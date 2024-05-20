@@ -1,6 +1,12 @@
 --assert(loadfile("C:\\Users\\spenc\\OneDrive\\Documents\\Eclipe_LDT\\dcs splash damage\\src\\mist.lua"))()
 
 --[[
+20 mai 2024 (Kervinou)
+    - ajout AGM_154A, HOT3_MBDA, AT_6, Ataka_9M120, Ataka_9M120F, AN-M81, AN-M88, HYDRA_70_MK5, HYDRA_70_M151_M433, HVAR, ARAKM70BAP
+    - ajout UG_90MM, TELSON8_SNEBT251, TELSON8_SNEBT253, TELSON8_SNEBT256, TELSON8_SNEBT257
+    - correction HYDRA_70_MK1, HYDRA_70_M151, Zuni_127, ARAKM70BHE
+    - ajout liste des manquants trouvés dans les LOGs : les valeurs sont à identifier
+
 03 mai 2023 (KERV)
     correction AGM 154 (https://forum.dcs.world/topic/289290-splash-damage-20-script-make-explosions-better/page/5/#comment-5207760)
  
@@ -115,6 +121,7 @@ explTable = {
   ["AGM_123"] = 274,
   ["AGM_130"] = 582,
   ["AGM_119"] = 176,
+  ["AGM_154A"]  = 95,
   ["AGM_154C"]  = 305,
   ["AGM_154"]  = 305,
   ["S-24A"] = 24,
@@ -129,9 +136,9 @@ explTable = {
   ["C_13"]  = 21,
   ["C_24"]  = 123,
   ["C_25"]  = 151,
-  ["HYDRA_70M15"] = 3,
-  ["Zuni_127"]  = 5,
-  ["ARAKM70BHE"]  = 4,
+  ["Zuni_127"]  = 8,
+  ["ARAKM70BHE"]  = 5,				-- Viggen
+  ["ARAKM70BAP"]  = 8,				-- Viggen
   ["BR_500"]  = 118,
   ["Rb 05A"]  = 217,
   ["RBK_500AO"]  = 256,
@@ -143,8 +150,6 @@ explTable = {
   ["AN-M64"]  = 180,
   ["AN-M65"]  = 295,
   ["AN-M66A2"]  = 536,
-  ["HYDRA_70_M151"] = 4,
-  ["HYDRA_70_MK5"] = 4,
   ["Vikhr_M"] = 11,
   ["British_GP_250LB_Bomb_Mk1"] = 100,           --("250 lb GP Mk.I")
   ["British_GP_250LB_Bomb_Mk4"] = 100,           --("250 lb GP Mk.IV")
@@ -168,6 +173,8 @@ explTable = {
   ["AN_M57"] = 100,                              --("AN-M57 - 250lb GP Bomb LD")
   ["AN_M65"] = 400,                              --("AN-M65 - 1000lb GP Bomb LD")
   ["AN_M66"] = 800,                              --("AN-M66 - 2000lb GP Bomb LD")
+  ["AN-M81"] = 100,				 -- A-4E
+  ["AN-M88"] = 100,				 -- Unguided Bomb, A-4E
   ["SC_50"] = 20,                                --("SC 50 - 50kg GP Bomb LD")
   ["ER_4_SC50"] = 20,                            --("4 x SC 50 - 50kg GP Bomb LD")
   ["SC_250_T1_L2"] = 100,                        --("SC 250 Type 1 L2 - 250kg GP Bomb LD")
@@ -181,7 +188,17 @@ explTable = {
   ["AB_250_2_SD_10A"] = 100,                     --("AB 250-2 - 17 x SD-10A, 250kg CBU with 10kg Frag/HE submunitions")
   ["AB_500_1_SD_10A"] = 213,                     --("AB 500-1 - 34 x SD-10A, 500kg CBU with 10kg Frag/HE submunitions")
   ["AGM_114K"] = 10,
+  ["HYDRA_70M15"] = 5,
   ["HYDRA_70_M229"] = 8,
+  ["HYDRA_70_M151"] = 5,			 -- AH-64D
+  ["HYDRA_70_M151_M433"] = 5,			 -- AH-64D
+  ["HYDRA_70_MK1"] = 5,				 -- UH-1H, HEAT  -- Rocket
+  ["HYDRA_70_MK5"] = 8,				 -- UH-1H, HEAT  -- Rocket
+  -- HYDRA_70_M156 : Practice Smoke
+  -- HYDRA_70_M257 : IL
+  -- HYDRA_70_M274 : Practice Smoke
+  -- HYDRA_70_WTU1B : Practice Smoke
+  ["HVAR"] = 5,					-- F-86, HE
   ["AGM_65D"] = 130,
   ["AGM_65E"] = 300,
   ["AGM_65F"] = 300,
@@ -189,7 +206,9 @@ explTable = {
   ["AGM_65G"] = 300,
   ["AGM_65K"] = 300,
   ["AGM_65L"] = 300,
-  ["HOT3"] = 15,
+  ["AT_6"] = 11,				--Mi-24P
+  ["Ataka_9M120"] = 11, 			--Mi-24P
+  ["Ataka_9M120F"] = 11, 			--Mi-24P
   ["AGR_20A"] = 8,
   ["AGR_20_M282"] = 8,                          -- A10C APKWS  															 
   ["GBU_54_V_1B"] = 118,
@@ -219,21 +238,72 @@ explTable = {
   ["MATRA_F4_SNEBT256"] = 8,
   ["MATRA_F1_SNEBT253"] = 8,
   ["MATRA_F1_SNEBT256"] = 8,
-  ["SAMP400LD"] = 274,
-  ["SAMP400HD"] = 274,
-  ["SAMP250LD"] = 118,
-  ["SAMP250HD"] = 118,
-  ["SAMP125LD"] = 64,
+  ["HOT3_MBDA"] = 15,				-- Gazelle M
+  ["HOT3"] = 15,
+  ["TELSON8_SNEBT251"] = 4, 			-- Gazelle, HE
+  ["TELSON8_SNEBT253"] = 8, 			-- Gazelle, HEAT
+  ["TELSON8_SNEBT256"] = 4, 			-- Gazelle, HE/FRAG
+  ["TELSON8_SNEBT257"] = 6, 			-- Gazelle, HE/FRAG lg
+  -- 250, 252, 254, 259E : Practice
+  ["UG_90MM"] = 8, -- JF-17, HEAT
+  ["SAMP400LD"] = 274,				-- Mirage F1
+  ["SAMP400HD"] = 274,				-- Mirage F1
+  ["SAMP250LD"] = 118,				-- Mirage F1
+  ["SAMP250HD"] = 118,				-- Mirage F1
+  ["SAMP125LD"] = 64,				-- Mirage F1
   ["BR_250"] = 118,
   ["BELOUGA"] = 32,
   ["BLG66_BELOUGA"] = 32,
   ["Durandal"] = 64,
   ["BLU107B_DURANDAL"] = 274,
-  ["FFAR Mk5 HEAT"] = 8,                        -- Rockets
-  ["FFAR Mk1 HE"] = 8,
+  ["FFAR Mk5 HEAT"] = 8,                        -- F-5E | A-4E, HE   -- Rocket
+  ["FFAR Mk1 HE"] = 8,				-- F-5E | A-4E, HEAT -- Rocket
+  -- FFAR M156, M257, M274 : Target Marking
   ["C5"] = 8                                    -- Mig19P Rockets
-  
 }
+
+-------------------------------------------
+-------------------------------------------
+-- Relevé des manquants (KERV + GitHub le 22/12/2023)
+-------------------------------------------
+-- AIM_120C missing from Splash Damage script -- Air to Air missile  
+-- AIM_7 missing from Splash Damage script -- Air to Air missile  
+-- AIM-7F missing from Splash Damage script -- Air to Air missile  
+-- AIM-7P missing from Splash Damage script -- Air to Air missile  
+-- AIM_9 missing from Splash Damage script -- Air to Air missile  
+-- R_550 missing from Splash Damage script -- Air to Air missile  
+-- R_530F_EM missing from Splash Damage script -- Air to Air missile  
+-- R_550_M1 missing from Splash Damage script -- Air to Air missile  
+-- MMagicII missing from Splash Damage script -- Air to Air missile  
+-- Matra Super 530D missing from Splash Damage script -- Air to Air missile  
+-- R-3R missing from Splash Damage script -- Air to Air missile  
+-- Rb 24J missing from Splash Damage script -- Air to Air missile  
+-- P_60 missing from Splash Damage script -- Air to Air missile?  
+-------------------------------------------
+-- TOW2 missing from Splash Damage script -- Anti-Tank Guided Missile (ATGM), VAB Mephisto  
+-------------------------------------------
+-- SVIR missing from Splash Damage script -- SAM  
+-- HAWK_RAKETA missing from Splash Damage script -- SAM  
+-- SA5B27 missing from Splash Damage script -- SAM  
+-- SA9M33 missing from Splash Damage script -- SAM  
+-- SA9M330 missing from Splash Damage script -- SAM  
+-- SA2V755 missing from Splash Damage script -- SAM  
+-- 9M317 missing from Splash Damage script -- SAM  
+-- SM_2 missing from Splash Damage script -- SAM  
+-- ROLAND_R missing from Splash Damage script -- SAM  
+-- FIM_92C missing from Splash Damage script -- SAM  
+-------------------------------------------
+-- ROCKEYE missing from Splash Damage script -- Cluster Bomb (CBU)  
+-------------------------------------------
+-- FFAR Mk156 WP -- Practice Rocket
+-- HYDRA_70_M156 -- Practice Rocket  
+-- HYDRA_70_M257 -- Practice Rocket  
+-- HYDRA_70_M274 -- Practice Rocket  
+-- HYDRA_70_MK61 -- Practice Rocket  
+-- HYDRA_70_WTU1B -- Practice Rocket  
+-------------------------------------------
+-------------------------------------------
+	
 
 
 ----[[ ##### HELPER/UTILITY FUNCTIONS ##### ]]----
