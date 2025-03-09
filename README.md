@@ -1,17 +1,25 @@
 # Splash Damage Script
 
+# Installation
+Download the script.
+In mission editor have a mission start trigger with the action "DO SCRIPT FILE" an point it to this script.
+
+# Release Notes
 --[[
 
-    09 March 2025 (Stevey666) - 2.0.8
+    09 March 2025 (Stevey666) - 3.0
       - Added ordinance protection gives a few options - stop the additional larger_explosion that tends to blow up your own bombs if theyre dropped at the same place if its within x m
-	  - Additional ordnance protection option that will cause a snap to ground larger_explosion if its within x meters of a recent larger explosion and within x seconds (can set in options)
+      - Additional ordnance protection option that will cause a snap to ground larger_explosion if its within x meters of a recent larger explosion and within x seconds (can set in options)
       - Added vehicle scanning around a weapon to allow for..
-	  - Cook offs - you can set vehicles that will cook off i.e ammo trucks, number of explosions, debris explosions, power adjustable
-	  - Fuel/Tanker explosion and flames - when a fuel tanker blows it will through up a big flame - adjustable in the scripts
-	  - Added section for vehicles for the above
-	  - Added radio commands for everything
-	  - Added in cluster munitions changes (note: barely tested, its not particularly accurate or that useful at this point so leaving disabled)
-	  - Potential bug - testing, stacking too many units together may cause a MIST error if you're using mist
+      - Cook offs - you can set vehicles that will cook off i.e ammo trucks, number of explosions, debris explosions, power adjustable
+      - Fuel/Tanker explosion and flames - when a fuel tanker blows it will through up a big flame - adjustable in the scripts
+      - Added section for vehicles for the above
+      - Added radio commands for everything
+      - Added in cluster munitions changes (note: barely tested, its not particularly accurate or that useful at this point so leaving disabled)
+      - Potential bug - testing, stacking too many units together may cause a MIST error if you're using mist
+      
+      - Setting this as 3.0 as I'd like to be responsive to requests, updates etc - creating a new fork to track this
+    
 	
     10 Feb 2025 (Stevey666) - 2.0.7
       - Fixed AGM 154/Adjusted weapons
