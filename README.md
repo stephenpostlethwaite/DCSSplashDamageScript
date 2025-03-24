@@ -6,16 +6,18 @@ In mission editor have a mission start trigger with the action "DO SCRIPT FILE" 
 
 # Release Notes
 --[[
-    x x 2025 (Stevey666) - 3.1 (not yet released)
-      - Added missing radio commands for Cascade Scaling
-	  - Adjust default cascading to 2 (from 1)
-	  - Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
-	  - Prevent weapons not in the list from being tracked
-	  - Moved some logging behind the debug mode flag
-	  - Ordnance Protection, added a max height ordnance protection will snap explosion to ground
-	  - Ordnance Protection, fixed enable/disable option
 
-    09 March 2025 (Stevey666) - 3.0
+
+      x x 2025 (Stevey666) - 3.1 (not yet released)
+	- Added missing radio commands for Cascade Scaling
+	- Adjust default cascading to 2 (from 1)
+	- Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
+	- Prevent weapons not in the list from being tracked
+	- Moved some logging behind the debug mode flag
+	- Ordnance Protection, added a max height ordnance protection will snap explosion to ground
+	- Ordnance Protection, fixed enable/disable option
+   
+     09 March 2025 (Stevey666) - 3.0  
       - Added ordinance protection gives a few options - stop the additional larger_explosion that tends to blow up your own bombs if theyre dropped at the same place if its within x m
       - Additional ordnance protection option that will cause a snap to ground larger_explosion if its within x meters of a recent larger explosion and within x seconds (can set in options)
       - Added vehicle scanning around a weapon to allow for..
