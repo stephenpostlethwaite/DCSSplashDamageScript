@@ -1,6 +1,7 @@
 --[[
-    x x 2025 (Stevey666) - 3.1 (not yet released)
-      - Added missing radio commands for Cascade Scaling
+    04 April 2025 (Stevey666) - 3.1
+	  - Set default cluster munitions option to false, set this to true in the options if you want it
+          - Added missing radio commands for Cascade Scaling
 	  - Adjust default cascading to 2 (from 1)
 	  - Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
 	  - Prevent weapons not in the list from being tracked
