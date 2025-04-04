@@ -8,6 +8,7 @@
 	  - Ordnance Protection, added a max height ordnance protection will snap explosion to ground
 	  - Ordnance Protection, fixed enable/disable option
 	  - Added Giant Explosion feature
+	  - Adjusted some hydra70 values on recom. from ETBSmorgan
 	  
 	  
     09 March 2025 (Stevey666) - 3.0
@@ -518,7 +519,7 @@ explTable = {
     ["HYDRA_70_MK5"] = { explosive = 8, shaped_charge = false },
     ["HYDRA_70_M151"] = { explosive = 5, shaped_charge = false },
     ["HYDRA_70_M151_M433"] = { explosive = 5, shaped_charge = false },
-    ["HYDRA_70_M229"] = { explosive = 5, shaped_charge = false },
+    ["HYDRA_70_M229"] = { explosive = 10, shaped_charge = false },
     ["FFAR Mk1 HE"] = { explosive = 5, shaped_charge = false },
     ["FFAR Mk5 HEAT"] = { explosive = 8, shaped_charge = false },
     ["HVAR"] = { explosive = 5, shaped_charge = false },
@@ -570,7 +571,7 @@ explTable = {
     ["AGR_20"] = { explosive = 8, shaped_charge = false },
     ["AGR_20A"] = { explosive = 8, shaped_charge = false },
     ["AGR_20_M282"] = { explosive = 8, shaped_charge = false },
-    ["Hydra_70_M282_MPP"] = { explosive = 8, shaped_charge = false },
+    ["Hydra_70_M282_MPP"] = { explosive = 5, shaped_charge = true },
     ["BRM-1_90MM"] = { explosive = 8, shaped_charge = false },
 }
 
