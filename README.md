@@ -5,11 +5,12 @@ Download the script.
 In mission editor have a mission start trigger with the action "DO SCRIPT FILE" an point it to this script.
 
 # Release Notes
--
+
 --[[
-    04 April 2025 (Stevey666) - 3.1
+
+      04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
-      	  - Added missing radio commands for Cascade Scaling
+	  - Added missing radio commands for Cascade Scaling
 	  - Adjust default cascading to 2 (from 1)
 	  - Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
 	  - Prevent weapons not in the list from being tracked
@@ -18,8 +19,7 @@ In mission editor have a mission start trigger with the action "DO SCRIPT FILE" 
 	  - Ordnance Protection, fixed enable/disable option
 	  - Added Giant Explosion feature
 	  - Adjusted some hydra70 values on recom. from ETBSmorgan
-	  
-	  
+   
     09 March 2025 (Stevey666) - 3.0
       - Added ordinance protection gives a few options - stop the additional larger_explosion that tends to blow up your own bombs if theyre dropped at the same place if its within x m
 	  - Additional ordnance protection option that will cause a snap to ground larger_explosion if its within x meters of a recent larger explosion and within x seconds (can set in options)
