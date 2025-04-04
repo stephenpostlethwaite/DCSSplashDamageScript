@@ -5,6 +5,7 @@ Download the script.
 In mission editor have a mission start trigger with the action "DO SCRIPT FILE" an point it to this script.
 
 # Release Notes
+-
 --[[
     04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
