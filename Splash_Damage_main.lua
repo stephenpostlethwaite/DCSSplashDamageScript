@@ -1,7 +1,10 @@
 --[[
+    xx xx 2025 (Stevey666) - 3.2
+	  - Added in "ground ordnance" tracking
+
     04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
-          - Added missing radio commands for Cascade Scaling
+      - Added missing radio commands for Cascade Scaling
 	  - Adjust default cascading to 2 (from 1)
 	  - Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
 	  - Prevent weapons not in the list from being tracked
@@ -158,6 +161,13 @@ splash_damage_options = {
     ["giant_explosion_count"] = 250,      --Number of explosions (default 300)
     ["giant_explosion_target_static"] = true, --Toggle to true for static targets (store position once), false for dynamic (update every second)
     ["giant_explosion_poll_rate"] = 1,    --Polling rate in seconds for flag checks (default 1s)
+	
+
+    --Ground Unit Ordnance
+    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
+    ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
+    ["groundunitordnance_blastwave_modifier"] = 3.0, --Additional multiplier for blast wave intensity of ground unit ordnance
+    ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
 }
 
 local script_enable = 1
@@ -574,11 +584,21 @@ explTable = {
     ["AGR_20_M282"] = { explosive = 8, shaped_charge = false },
     ["Hydra_70_M282_MPP"] = { explosive = 5, shaped_charge = true },
     ["BRM-1_90MM"] = { explosive = 8, shaped_charge = false },
+	
+	--*** Rocketry ***
+    ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
+    ["M26"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+
+	--*** Shells ***
+	["weapons.shells.M_105mm_HE"] = { explosive = 12, shaped_charge = false, groundordnance = true }, --105mm HE shell, M119/M102 (~10-15 kg TNT equiv)
+	["weapons.shells.M_155mm_HE"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, M777/M109 (~50-70 kg TNT equiv)
+	["weapons.shells.2A60_120"] = { explosive = 18, shaped_charge = false, groundordnance = true }, --120mm HE shell, 2B11 mortar (~15-20 kg TNT equiv)
+	["weapons.shells.2A18_122"] = { explosive = 22, shaped_charge = false, groundordnance = true }, --122mm HE shell, D-30 (~20-25 kg TNT equiv)
+	["weapons.shells.2A33_152"] = { explosive = 50, shaped_charge = false, groundordnance = true }, --152mm HE shell, SAU Akatsia (~40-60 kg TNT equiv)
+	["weapons.shells.PLZ_155_HE"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, PLZ05 (~50-70 kg TNT equiv)
+	["weapons.shells.M185_155"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, M109 (~50-70 kg TNT equiv)
+	["weapons.shells.2A64_152"] = { explosive = 50, shaped_charge = false, groundordnance = true }, --152mm HE shell, SAU Msta (~40-60 kg TNT equiv) 
 }
-
-
-
-
 
 
 local effectSmokeId = 1
@@ -751,8 +771,8 @@ function triggerGiantExplosion(params)
         end, pos, timer.getTime() + delay)
     end
 
-    -- Pre-explosion scan for cargo units
-    local scanRadius = 1500 * sizeScale -- 1500m base radius, scaled by sizeScale
+    --Pre-explosion scan for cargo units
+    local scanRadius = 1500 * sizeScale --1500m base radius, scaled by sizeScale
     local preExplosionTargets = {}
     if splash_damage_options.enable_cargo_effects then
         local volS = {
@@ -778,7 +798,7 @@ function triggerGiantExplosion(params)
         world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, ifFound)
         debugMsg("Pre-explosion scan for Giant Explosion: " .. #preExplosionTargets .. " targets found within " .. scanRadius .. "m")
     end
-    -- Trigger the explosion
+    --Trigger the explosion
     local maxRadius = 200 * sizeScale
     local maxHeight = 500 * sizeScale
     local adjustedExplosionCount = math.floor(explosionCount * (sizeScale ^ 2.5))
@@ -815,7 +835,7 @@ function triggerGiantExplosion(params)
 
     gameMsg("Expanding giant fireball over " .. totalDuration .. "s (scale " .. sizeScale .. ")!")
 
-    -- Post-explosion scan and cargo cook-off queuing
+    --Post-explosion scan and cargo cook-off queuing
     if splash_damage_options.enable_cargo_effects then
         timer.scheduleFunction(function(args)
             local centerPos = args[1]
@@ -845,7 +865,7 @@ function triggerGiantExplosion(params)
             world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, ifFound)
             debugMsg("Post-explosion scan for Giant Explosion: " .. #postExplosionTargets .. " targets found within " .. radius .. "m")
 
-            -- Compare pre- and post-explosion targets
+            --Compare pre- and post-explosion targets
             for _, preTarget in ipairs(preTargets) do
                 local found = false
                 local postHealth = 0
@@ -883,16 +903,16 @@ function triggerGiantExplosion(params)
                 end
             end
 
-            -- Process queued cargo effects with prioritized flames
+            --Process queued cargo effects with prioritized flames
             if #cargoEffectsQueue > 0 then
-                local flameIndex = 0 -- Separate index for flames
-                local otherIndex = 0 -- Index for explosions, cook-offs, debris
+                local flameIndex = 0 --Separate index for flames
+                local otherIndex = 0 --Index for explosions, cook-offs, debris
                 local processedCargoUnits = {}
                 local flamePositions = {}
                 for _, effect in ipairs(cargoEffectsQueue) do
                     local unitKey = effect.name .. "_" .. effect.coords.x .. "_" .. effect.coords.z
                     if not processedUnitsGlobal[unitKey] and not processedCargoUnits[unitKey] then
-                        -- Handle tanker flames first with minimal delay
+                        --Handle tanker flames first with minimal delay
                         if effect.isTanker and effect.explosion then
                             debugMsg("Triggering cargo explosion for tanker " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m with power " .. effect.power .. " scheduled at " .. flameIndex .. "s")
                             timer.scheduleFunction(function(params)
@@ -919,7 +939,7 @@ function triggerGiantExplosion(params)
                                         local terrainHeight = land.getHeight({x = params[1].x, y = params[1].z})
                                         local adjustedCoords = {x = params[1].x, y = terrainHeight + 2, z = params[1].z}
                                         debugMsg("Spawning flame effect at X: " .. string.format("%.0f", adjustedCoords.x) .. ", Y: " .. string.format("%.0f", adjustedCoords.y) .. ", Z: " .. string.format("%.0f", adjustedCoords.z))
-                                        trigger.action.explosion(adjustedCoords, 10) -- Small trigger explosion
+                                        trigger.action.explosion(adjustedCoords, 10) --Small trigger explosion
                                         trigger.action.effectSmokeBig(adjustedCoords, params[2], params[3], params[4])
                                 end, {effect.coords, flameSize, flameDensity, effectId}, timer.getTime() + flameIndex + 0.2)
                                     timer.scheduleFunction(function(id)
@@ -928,9 +948,9 @@ function triggerGiantExplosion(params)
                                 end, effectId, timer.getTime() + flameIndex + flameDuration + 0.2)
                                     table.insert(flamePositions, effect.coords)
                                 end
-                            flameIndex = flameIndex + 0.5 -- Fast spacing for flames (0.5s)
+                            flameIndex = flameIndex + 0.5 --Fast spacing for flames (0.5s)
                             end
-                        -- Handle non-tanker explosions, cook-offs, and debris
+                        --Handle non-tanker explosions, cook-offs, and debris
                         if not effect.isTanker or (effect.explosion and not effect.isTanker) then
                             if effect.explosion then
                                 debugMsg("Triggering cargo explosion for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m with power " .. effect.power .. " scheduled at " .. otherIndex .. "s")
@@ -974,13 +994,13 @@ function triggerGiantExplosion(params)
                                     end
                                 end
                             end
-                            otherIndex = otherIndex + 1 -- Slower spacing for non-flame effects (1s)
+                            otherIndex = otherIndex + 1 --Slower spacing for non-flame effects (1s)
                         end
                         processedCargoUnits[unitKey] = true
                         processedUnitsGlobal[unitKey] = true
                     end
                 end
-                cargoEffectsQueue = {} -- Clear the queue after processing
+                cargoEffectsQueue = {} --Clear the queue after processing
             end
         end, {initialPos, scanRadius, preExplosionTargets}, timer.getTime() + totalDuration + 1.0)
     end
@@ -1088,6 +1108,7 @@ end
 
 ----[[ ##### Updated track_wpns() Function ##### ]]----
 local recentExplosions = {}
+
 function track_wpns()
     local weaponsToRemove = {} --Delay removal to ensure all weapons are checked
     for wpn_id_, wpnData in pairs(tracked_weapons) do   
@@ -1137,6 +1158,14 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                 base_explosive = base_explosive * splash_damage_options.overall_scaling
                 if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
                     base_explosive = base_explosive * splash_damage_options.rocket_multiplier
+                end
+                    if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance then
+                        base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
+                    --Log modifier only once per weapon
+                    --if splash_damage_options.track_groundunitordnance_debug and not wpnData.debugLogged then
+                        --    debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
+                       -- wpnData.debugLogged = true --Mark as logged
+                    --end
                 end
 
                 local explosionPower = base_explosive
@@ -1241,6 +1270,21 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
             else --use intersection point
                 explosionPoint = ip
             end
+            if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance_debug then
+                local base_explosive, isShapedCharge = getWeaponExplosive(wpnData.name)
+                base_explosive = base_explosive * splash_damage_options.overall_scaling
+                if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
+                    base_explosive = base_explosive * splash_damage_options.rocket_multiplier
+                end
+                if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance then
+                    base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
+                end
+                local explosionPower = base_explosive
+                if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
+                    explosionPower = explosionPower * splash_damage_options.shaped_charge_multiplier
+                end
+                debugMsg("Ground unit ordnance " .. wpnData.name .. " impacted at X: " .. string.format("%.0f", explosionPoint.x) .. ", Y: " .. string.format("%.0f", explosionPoint.y) .. ", Z: " .. string.format("%.0f", explosionPoint.z) .. " with power " .. explosionPower)
+            end
 			local chosenTargets = wpnData.tightTargets or {}
             local safeToBlast = true
 			if splash_damage_options.ordnance_protection then
@@ -1261,6 +1305,12 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
             base_explosive = base_explosive * splash_damage_options.overall_scaling
             if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
                 base_explosive = base_explosive * splash_damage_options.rocket_multiplier
+            end
+                    if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance then
+                        base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
+                        if splash_damage_options.track_groundunitordnance_debug then
+                            debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
+                end
             end
 
             local explosionPower = base_explosive
@@ -1723,6 +1773,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 end
     return timer.getTime() + refreshRate
 end
+
 function onWpnEvent(event)
         if event.id == world.event.S_EVENT_SHOT then
         if event.weapon then
@@ -1732,47 +1783,94 @@ function onWpnEvent(event)
                 env.info("Weapon fired: [" .. typeName .. "]")
                 debugMsg("Weapon fired: [" .. typeName .. "]")
             end
+
+            --Debug the exact typeName and explTable lookup
+            if splash_damage_options.debug then
+                debugMsg("Checking explTable for typeName: [" .. typeName .. "]")
+            end
+            local weaponData = explTable[typeName]
+            if splash_damage_options.debug then
+            if weaponData then
+                    debugMsg("Found in explTable: explosive=" .. weaponData.explosive .. ", groundordnance=" .. tostring(weaponData.groundordnance))
+                else
+                    debugMsg("Not found in explTable: [" .. typeName .. "]")
+                end
+            end
+                --Handle ground ordnance explicitly
+            if weaponData and weaponData.groundordnance then
+                if splash_damage_options.track_groundunitordnance then
+                    if splash_damage_options.track_groundunitordnance_debug then
+                        debugMsg("Tracking ground unit ordnance: " .. typeName .. " fired by " .. (event.initiator and event.initiator:getTypeName() or "unknown"))
+                        env.info("SplashDamage: Tracking ground unit ordnance: " .. typeName .. " (" .. (event.initiator and event.initiator:getTypeName() or "no initiator") .. ")")
+                    end
+                    tracked_weapons[event.weapon.id_] = { 
+                        wpn = ordnance, 
+                        init = event.initiator and event.initiator:getName() or "unknown", 
+                        pos = ordnance:getPoint(), 
+                        dir = ordnance:getPosition().x, 
+                        name = typeName, 
+                        speed = ordnance:getVelocity(), 
+                        cat = ordnance:getCategory(),
+                        isGroundUnitOrdnance = true --Flag for ground ordnance
+                    }
+                elseif splash_damage_options.track_groundunitordnance_debug then
+                    debugMsg("Event shot, but not tracking ground unit ordnance: " .. typeName)
+                    env.info("SplashDamage: event shot, but not tracking ground unit ordnance: " .. typeName .. " (" .. (event.initiator and event.initiator:getTypeName() or "no initiator") .. ")")
+                end
+                return
+            end
+            --Handle other tracked weapons in explTable
+            if weaponData then
+                if (ordnance:getDesc().category ~= 0) and event.initiator then
+                    if ordnance:getDesc().category == 1 then --Missiles
+                        if (ordnance:getDesc().MissileCategory ~= 1 and ordnance:getDesc().MissileCategory ~= 2) then --Exclude AAM and SAM
+                            tracked_weapons[event.weapon.id_] = { 
+                                wpn = ordnance, 
+                                init = event.initiator:getName(), 
+                                pos = ordnance:getPoint(), 
+                                dir = ordnance:getPosition().x, 
+                                name = typeName, 
+                                speed = ordnance:getVelocity(), 
+                                cat = ordnance:getCategory() 
+                            }
+                        end
+                    else --Rockets, bombs, etc.
+                        tracked_weapons[event.weapon.id_] = { 
+                            wpn = ordnance, 
+                            init = event.initiator:getName(), 
+                            pos = ordnance:getPoint(), 
+                            dir = ordnance:getPosition().x, 
+                            name = typeName, 
+                            speed = ordnance:getVelocity(), 
+                            cat = ordnance:getCategory() 
+                        }
+                    end
+                end
+                return --Exit after handling known weapons
+            end
+            --Handle unknown weapons or non-tracked shells
                 if string.find(typeName, "weapons.shells") then 
                 if splash_damage_options.debug then
                     debugMsg("Event shot, but not tracking: " .. typeName)
-                env.info("SplashDamage: event shot, but not tracking: " .. typeName .. " (" .. event.initiator:getTypeName() .. ")")
+                    env.info("SplashDamage: event shot, but not tracking: " .. typeName .. " (" .. (event.initiator and event.initiator:getTypeName() or "no initiator") .. ")")
 		end
                     return
                 end
-  
-            --Check if weapon is in explTable before tracking
-                if not explTable[typeName] then
-                env.info("SplashDamage: " .. typeName .. " missing from script (" .. event.initiator:getTypeName() .. ")")
-                    if splash_damage_options.weapon_missing_message == true then
+
+            --Log missing weapons
+            env.info("SplashDamage: " .. typeName .. " missing from script (" .. (event.initiator and event.initiator:getTypeName() or "no initiator") .. ")")
+            if splash_damage_options.weapon_missing_message then
                         trigger.action.outText("SplashDamage: " .. typeName .. " missing from script (" .. (event.initiator and event.initiator:isExist() and event.initiator:getTypeName() or "no initiator") .. ")", 3)
-  --                if mist and mist.utils and mist.utils.tableShow then --Only if MiST is present
- --                     local success, desc = pcall(mist.utils.tableShow, ordnance:getDesc())
- --                     if success then
---                          debugMsg("desc for [" .. typeName .. "]: " .. desc)
- --                     else
- --                         debugMsg("Could not retrieve description for [" .. typeName .. "]. Object may no longer exist.")
- --                     end
---                  end
                         env.info("Current keys in explTable:")
                         for k, v in pairs(explTable) do
                             env.info("Key: [" .. k .. "]")
-                        end
-                    end
-                return --Skip tracking this weapon since its not in the table
                 end
   
-            if (ordnance:getDesc().category ~= 0) and event.initiator then
-                    if ordnance:getDesc().category == 1 then
-                        if (ordnance:getDesc().MissileCategory ~= 1 and ordnance:getDesc().MissileCategory ~= 2) then
-                        tracked_weapons[event.weapon.id_] = { wpn = ordnance, init = event.initiator:getName(), pos = ordnance:getPoint(), dir = ordnance:getPosition().x, name = typeName, speed = ordnance:getVelocity(), cat = ordnance:getCategory() }
                     end
-                else
-                    tracked_weapons[event.weapon.id_] = { wpn = ordnance, init = event.initiator:getName(), pos = ordnance:getPoint(), dir = ordnance:getPosition().x, name = typeName, speed = ordnance:getVelocity(), cat = ordnance:getCategory() }
                 end
             end
         end
-    end
-end
+
   
 local function protectedCall(...)
     local status, retval = pcall(...)
@@ -1827,6 +1925,7 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
             local obj = foundObject
             local obj_location = obj:getPoint()
             local dist = getDistance(_point, obj_location)
+            if dist > 1 then -- Avoid re-exploding at exact impact point
             local timing = dist / 500
             if obj:isExist() and tableHasKey(obj:getDesc(), "box") then
                 local length = (obj:getDesc().box.max.x + math.abs(obj:getDesc().box.min.x))
@@ -1841,6 +1940,14 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                 local surface_distance = dist - _depth / 2
                 local scaled_power_factor = 0.006 * power + 1
                 local intensity = (power * scaled_power_factor) / (4 * math.pi * surface_distance^2)
+                --Apply ground ordnance blastwave modifier
+                local weaponData = explTable[weapon] or {}
+                if splash_damage_options.track_groundunitordnance and weaponData.groundordnance then
+                    intensity = intensity * splash_damage_options.groundunitordnance_blastwave_modifier
+                    if splash_damage_options.track_groundunitordnance_debug then
+                        debugMsg("Applied groundunitordnance_blastwave_modifier " .. splash_damage_options.groundunitordnance_blastwave_modifier .. " to " .. weapon .. ", intensity now: " .. intensity)
+                    end
+                end
                 local surface_area = _length * height
                 local damage_for_surface = intensity * surface_area
                 if damage_for_surface > splash_damage_options.cascade_damage_threshold then
@@ -1890,7 +1997,9 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                         end
                     end
                     if triggerExplosion then
+                            debugMsg("Scheduling secondary explosion on " .. obj:getTypeName() .. " at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. " with power " .. explosion_size * splash_damage_options.cascade_scaling)
                         timer.scheduleFunction(explodeObject, {obj_location, dist, explosion_size * splash_damage_options.cascade_scaling}, timer.getTime() + timing)
+                        end
                     end
                 end
             end
@@ -2102,12 +2211,30 @@ function addSplashDamageMenu()
     missionCommands.addCommand("-0.25s", durationMenu, updateSplashDamageSetting, "giant_explosion_duration", -0.25)
     local countMenu = missionCommands.addSubMenu("Explosion Count", giantExplosionMenu)
     addValueAdjustmentCommands(countMenu, "giant_explosion_count")
-    
+
+    --Page 8: Ground Ordnance Settings (New)
+    local groundOrdnanceMenu = missionCommands.addSubMenu("Ground Ordnance Settings", splash_damage_menu)
+    missionCommands.addCommand("Toggle Ground Ordnance Tracking", groundOrdnanceMenu, toggleSplashDamageSetting, "track_groundunitordnance")
+    missionCommands.addCommand("Toggle Ground Ordnance Debug", groundOrdnanceMenu, toggleSplashDamageSetting, "track_groundunitordnance_debug")
+    local damageModifierMenu = missionCommands.addSubMenu("Damage Modifier", groundOrdnanceMenu)
+    missionCommands.addCommand("+0.1", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", 0.1)
+    missionCommands.addCommand("+0.5", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", 0.5)
+    missionCommands.addCommand("+1.0", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", 1.0)
+    missionCommands.addCommand("-0.1", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", -0.1)
+    missionCommands.addCommand("-0.5", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", -0.5)
+    missionCommands.addCommand("-1.0", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", -1.0)
+    local blastwaveModifierMenu = missionCommands.addSubMenu("Blast Wave Modifier", groundOrdnanceMenu)
+    missionCommands.addCommand("+0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", 0.1)
+    missionCommands.addCommand("+0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", 0.5)
+    missionCommands.addCommand("+1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", 1.0)
+    missionCommands.addCommand("-0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.1)
+    missionCommands.addCommand("-0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.5)
+    missionCommands.addCommand("-1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -1.0)
 end
 
 if (script_enable == 1) then
-    gameMsg("SPLASH DAMAGE 3.1 SCRIPT RUNNING")
-    env.info("SPLASH DAMAGE 3.1 SCRIPT RUNNING")
+    gameMsg("SPLASH DAMAGE 3.2 SCRIPT RUNNING")
+    env.info("SPLASH DAMAGE 3.2 SCRIPT RUNNING")
 
     timer.scheduleFunction(function()
         protectedCall(track_wpns)
@@ -2115,7 +2242,7 @@ if (script_enable == 1) then
     end, {}, timer.getTime() + refreshRate)
 
     if splash_damage_options.giant_explosion_enabled then
-        giantExplosionTargets = {} -- Ensure it’s fresh
+        giantExplosionTargets = {} --Ensure it’s fresh
         local targetCount = 0
         for coa = 0, 2 do
             local groups = coalition.getGroups(coa)
