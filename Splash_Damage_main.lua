@@ -1,6 +1,8 @@
 --[[
     xx xx 2025 (Stevey666) - 3.2
-	  - Added in "ground ordnance" tracking
+	  - Added in ground ordnance tracking
+	  - Adjusted blastwave explosion
+	  - Changes to debug output, ordering by vehicle distance
 
     04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
@@ -95,6 +97,7 @@ splash_damage_options = {
     ["debug"] = false,  --enable debugging messages 
     ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
+    ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
 	
     ["enable_radio_menu"] = true, --enables the in-game radio menu for modifying settings
     
@@ -166,8 +169,8 @@ splash_damage_options = {
     --Ground Unit Ordnance
     ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
-    ["groundunitordnance_blastwave_modifier"] = 3.0, --Additional multiplier for blast wave intensity of ground unit ordnance
-    ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
+    ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
+	
 }
 
 local script_enable = 1
@@ -1363,7 +1366,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                             table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
                             debugMsg("Added to recentExplosions for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
 				end
-				blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.ordnance, explosionPower, isShapedCharge)
+				blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
 			end
             --detect_ordnance_destruction comes before recent_large_explosion_snap in original
             if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions then
@@ -1479,6 +1482,8 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
     		end
                     local status, err = pcall(function()
                 --Log pre-explosion targets
+                --Sort pre-explosion targets by distance
+                table.sort(chosenTargets, function(a, b) return a.distance < b.distance end)
                 if splash_damage_options.track_pre_explosion then
                     if #chosenTargets > 0 then
                         local msg = "Targets in blast zone for " .. weaponName .. " BEFORE explosion (last frame, using finalPos):\n"
@@ -1493,7 +1498,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                     end
                 end
 
-                blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.ordnance, explosionPower, isShapedCharge)
+                blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
 
                 --Post-explosion analysis and queue cargo effects
                 if splash_damage_options.track_pre_explosion then
@@ -1522,11 +1527,13 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                 local category = foundObject:getCategory()
                                 if (category == Object.Category.UNIT and (foundObject:getDesc().category == Unit.Category.GROUND_UNIT or foundObject:getDesc().category == Unit.Category.AIRPLANE)) or
                                        category == Object.Category.STATIC then
+                                        local distance = getDistance(impactPoint, foundObject:getPoint())
                                         table.insert(postExplosionTargets, {
                                             name = foundObject:getTypeName(),
                                             health = foundObject:getLife() or 0,
                                             position = foundObject:getPoint(),
-                                            maxHealth = (category == Object.Category.UNIT and foundObject:getDesc().life) or foundObject:getLife() or 0
+                                            maxHealth = (category == Object.Category.UNIT and foundObject:getDesc().life) or foundObject:getLife() or 0,
+                                            distance = distance
                                         })
                                             end
                                 end
@@ -1534,7 +1541,8 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                         end
 
                         world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, ifFound)
-
+                        --Sort post-explosion targets by distance
+                        table.sort(postExplosionTargets, function(a, b) return a.distance < b.distance end)
                         local msg = "Post-explosion analysis for " .. weaponName .. ":\n"
 
                         --Match pre-detected units
@@ -1542,11 +1550,13 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                             local found = false
                             local postHealth = 0
                             local postPosition = nil
+                            local postDistance = 0
                             for _, postTarget in ipairs(postExplosionTargets) do
                                 if preTarget.name == postTarget.name and getDistance(preTarget.position, postTarget.position) < 1 then
                                     found = true
                                     postHealth = postTarget.health
                                     postPosition = postTarget.position
+                                    postDistance = postTarget.distance
                                     break
                                 end
                             end
@@ -1564,7 +1574,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 
                             --Always include coords in status message
                             local coords = found and postPosition or preTarget.position
-                            local statusMsg = status .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Pre: " .. preTarget.health .. ", Post: " .. postHealth .. ")"
+                            local statusMsg = status .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Dist: " .. string.format("%.1f", postDistance) .. "m, Pre: " .. preTarget.health .. ", Post: " .. postHealth .. ")"
                             --Check if target is in cargoUnits and within blast radius
                             local cargoData = cargoUnits[preTarget.name]
                             if cargoData and preTarget.distance <= blastRadius and 
@@ -1612,7 +1622,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                 local status = postTarget.health <= 0 and "WAS FULLY DESTROYED" or 
                                               (healthPercent < splash_damage_options.cargo_damage_threshold and "WAS DAMAGED BELOW THRESHOLD" or 
                                               "SURVIVED (Health: " .. postTarget.health .. ")")
-                                local statusMsg = status .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Pre: Unknown, Post: " .. postTarget.health .. ")"
+                                local statusMsg = status .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Dist: " .. string.format("%.1f", postTarget.distance) .. "m, Pre: Unknown, Post: " .. postTarget.health .. ")"
                                 local cargoData = cargoUnits[postTarget.name]
                                 if cargoData and (postTarget.health <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
                                     if splash_damage_options.enable_cargo_effects then
@@ -1896,11 +1906,10 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
     end
     if splash_damage_options.use_dynamic_blast_radius then
         local dynamicRadius = math.pow(power, 1/3) * 5 * splash_damage_options.dynamic_blast_radius_modifier
-        if isShapedCharge then
-            _radius = dynamicRadius * splash_damage_options.shaped_charge_multiplier
-        else
-            _radius = dynamicRadius
+        _radius = isShapedCharge and dynamicRadius * splash_damage_options.shaped_charge_multiplier or dynamicRadius
         end
+    if splash_damage_options.debug then
+        debugMsg("blastWave called for weapon '" .. weapon .. "' at X: " .. _point.x .. ", Y: " .. _point.y .. ", Z: " .. _point.z .. " with power " .. power .. " and radius " .. _radius .. "m")
     end
     
     local foundUnits = {}
@@ -1916,10 +1925,8 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
         if foundObject:getDesc().category == Unit.Category.GROUND_UNIT and foundObject:getCategory() == Object.Category.UNIT then
             foundUnits[#foundUnits + 1] = foundObject
         end
-        if foundObject:getDesc().category == Unit.Category.GROUND_UNIT then
-            if splash_damage_options.blast_stun == true then
-                --suppressUnit(foundObject, 2, weapon)
-            end
+        if foundObject:getDesc().category == Unit.Category.GROUND_UNIT and splash_damage_options.blast_stun then
+            -- suppressUnit(foundObject, 2, weapon) -- Not implemented, commented out
         end
         if splash_damage_options.wave_explosions then
             local obj = foundObject
@@ -1958,14 +1965,40 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                     if explosion_size > power then explosion_size = power end
                     local triggerExplosion = false
                     if splash_damage_options.always_cascade_explode then
-                        triggerExplosion = true
-                    else
+                            triggerExplosion = true
+                            if splash_damage_options.debug then
+                                debugMsg("Triggering explosion for " .. obj:getTypeName() .. " due to always_cascade_explode")
+                            end
+                        else
+                            if obj:getDesc().life then
+                                local health = obj:getLife() or 0
+                                local maxHealth = obj:getDesc().life or 1
+                                local healthPercent = (health / maxHealth) * 100
+                                if splash_damage_options.debug then
+                                    debugMsg("Health check for " .. obj:getTypeName() .. ": " .. health .. "/" .. maxHealth .. " (" .. healthPercent .. "%) vs threshold " .. splash_damage_options.cascade_explode_threshold)
+                                end
+                                if healthPercent <= splash_damage_options.cascade_explode_threshold then
+                                    triggerExplosion = true
+                                end
+                            else
+                                triggerExplosion = true
+                                if splash_damage_options.debug then
+                                    debugMsg("Triggering explosion for " .. obj:getTypeName() .. " (no life data)")
+                                end
+                            end
+                            if not triggerExplosion and obj:getDesc().category == Unit.Category.GROUND_UNIT then
+                                local health = obj:getLife() or 0
+                                if health <= 0 then
+                                    triggerExplosion = true
+                                    if splash_damage_options.debug then
+                                        debugMsg("Triggering explosion for " .. obj:getTypeName() .. " (health <= 0)")
+                                    end
+                                end
+                            end
+                        end
+                            --Queue cargo effects for units below
                         if obj:getDesc().life then
                             local healthPercent = (obj:getLife() / obj:getDesc().life) * 100
-                            if healthPercent <= splash_damage_options.cascade_explode_threshold then
-                                triggerExplosion = true
-                            end
-                            --Queue cargo effects for units below
                             local cargoData = cargoUnits[obj:getTypeName()]
                             if cargoData and healthPercent <= splash_damage_options.cargo_damage_threshold and splash_damage_options.enable_cargo_effects then
                                 local cargoPower = power * cargoData.cargoExplosionMult
@@ -1986,19 +2019,14 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                                     flameDuration = cargoData.flameDuration
                                 })
                             end
-                        else
-                            triggerExplosion = true
-                        end
-                        if not triggerExplosion and obj:getDesc().category == Unit.Category.GROUND_UNIT then
-                            local health = obj:getLife() or 0
-                            if health <= 0 then
-                                triggerExplosion = true
-                            end
-                        end
                     end
                     if triggerExplosion then
-                            debugMsg("Scheduling secondary explosion on " .. obj:getTypeName() .. " at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. " with power " .. explosion_size * splash_damage_options.cascade_scaling)
-                        timer.scheduleFunction(explodeObject, {obj_location, dist, explosion_size * splash_damage_options.cascade_scaling}, timer.getTime() + timing)
+                            local final_power = explosion_size * splash_damage_options.cascade_scaling
+                            if splash_damage_options.track_groundunitordnance_debug and weaponData.groundordnance then
+                                debugMsg("Calculated power for " .. obj:getTypeName() .. " at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. ", distance " .. dist .. "m: " .. final_power)
+                                debugMsg("Scheduling secondary explosion on " .. obj:getTypeName() .. " at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. " with power " .. final_power)
+                            end
+                            timer.scheduleFunction(explodeObject, {obj_location, dist, final_power}, timer.getTime() + timing)
                         end
                     end
                 end
@@ -2007,10 +2035,18 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
         return true
     end
   
+    --Search all relevant object categories
+    if splash_damage_options.debug then
+        debugMsg("Scanning for objects within " .. _radius .. "m radius")
+    end
     world.searchObjects(Object.Category.UNIT, volS, ifFound)
     world.searchObjects(Object.Category.STATIC, volS, ifFound)
     world.searchObjects(Object.Category.SCENERY, volS, ifFound)
     world.searchObjects(Object.Category.CARGO, volS, ifFound)
+    if splash_damage_options.debug then
+        debugMsg("Found " .. #foundUnits .. " ground units for damage modeling")
+    end
+    --Apply damage model if enabled
     if splash_damage_options.damage_model then
         timer.scheduleFunction(modelUnitDamage, foundUnits, timer.getTime() + 1.5)
     end
