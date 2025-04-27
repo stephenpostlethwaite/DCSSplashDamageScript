@@ -1,6 +1,6 @@
 --[[
     xx xx 2025 (Stevey666) - 3.2
-	  - Added in ground ordnance tracking
+	  - Added in ground ordnance tracking and radio commands, this tracks ground artillery etc if in the explosives table
 	  - Adjusted blastwave explosion
 	  - Changes to debug output, ordering by vehicle distance
 	  - Added in option to create additional smoke effect for all vehicles initially destroyed by your ordnance or the script
@@ -2293,9 +2293,26 @@ function addSplashDamageMenu()
     missionCommands.addCommand("-0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.1)
     missionCommands.addCommand("-0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.5)
     missionCommands.addCommand("-1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -1.0)
-	
-	
-	--tbd smoke option
+    -- New commands for smokeeffectallvehicles
+    missionCommands.addCommand("Toggle Smoke All Vehicles", groundOrdnanceMenu, toggleSplashDamageSetting, "smokeeffectallvehicles")
+    local smokeSizeMenu = missionCommands.addSubMenu("Smoke Size", groundOrdnanceMenu)
+    missionCommands.addCommand("Set Size 1", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 1)
+    missionCommands.addCommand("Set Size 2", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 2)
+    missionCommands.addCommand("Set Size 3", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 3)
+    missionCommands.addCommand("Set Size 4", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 4)
+    missionCommands.addCommand("Set Size 5", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 5)
+    missionCommands.addCommand("Set Size 6", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 6)
+    missionCommands.addCommand("Set Size 7", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 7)
+    missionCommands.addCommand("Set Size 8", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 8)
+    local smokeDurationMenu = missionCommands.addSubMenu("Smoke Duration", groundOrdnanceMenu)
+    missionCommands.addCommand("+10s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", 10)
+    missionCommands.addCommand("+30s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", 30)
+    missionCommands.addCommand("+60s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", 60)
+    missionCommands.addCommand("-10s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", -10)
+    missionCommands.addCommand("-30s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", -30)
+    missionCommands.addCommand("-60s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", -60)
+
+
 end
 
 if (script_enable == 1) then
