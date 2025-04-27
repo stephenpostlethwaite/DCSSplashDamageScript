@@ -3,7 +3,7 @@
 	  - New feature: ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
 	  - Adjusted blastwave explosion
 	  - Changes to debug output, ordering by vehicle distance
-	  - New feature: option to create additional smoke effect for all vehicles initially destroyed by your ordnance or the script, set to false by default.
+	  - New feature: option to create additional smoke and cargo cookoff effect for all vehicles initially destroyed by your ordnance or the script, set to false by default.
 	  - Giant explosion set to false by default
 
     04 April 2025 (Stevey666) - 3.1
@@ -172,11 +172,18 @@ splash_damage_options = {
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
 
-    --Smoke Effect For All Vehicles
-    ["smokeeffectallvehicles"] = false, -- Enable smoke effects for all ground vehicles not in cargoUnits vehicle table
-    ["default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
-    ["default_flame_duration"] = 60, -- Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
-	
+    --Smoke and Cookoff Effect For All Vehicles
+    ["smokeandcookoffeffectallvehicles"] = false, -- Enable effects for all ground vehicles not in cargoUnits vehicle table
+	["allunits_enable_smoke"] = false,
+	["allunits_enable_cookoff"] = false,
+	["allunits_explode_power"] = 50, --Initial power of vehicle exploding
+    ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
+    ["allunits_default_flame_duration"] = 60, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
+	["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
+	["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
+	["allunits_cookoff_power"] = 10, --power of the cookoff explosions
+	["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
+
 }
 
 local script_enable = 1
@@ -1609,26 +1616,27 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                         statusMsg = statusMsg .. " WITH COOK-OFF (" .. cargoData.cookOffCount .. " blasts over " .. cargoData.cookOffDuration .. "s)"
                                     end
                                 end
-                            elseif splash_damage_options.smokeeffectallvehicles and preTarget.distance <= blastRadius and 
+                            elseif splash_damage_options.smokeandcookoffeffectallvehicles and preTarget.distance <= blastRadius and 
                                    (not found or postHealth <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
                                 if splash_damage_options.enable_cargo_effects then
                                     table.insert(cargoEffectsQueue, {
                                         name = preTarget.name,
                                         distance = preTarget.distance,
                                         coords = coords,
-                                        power = 0, -- No explosion
+                                        power = splash_damage_options.allunits_explode_power, -- No explosion
                                         explosion = true,
-                                        cookOff = false,
-                                        cookOffCount = 0,
-                                        cookOffPower = 0,
-                                        cookOffDuration = 0,
-                                        cookOffRandomTiming = false,
-                                        cookOffPowerRandom = 0,
-                                        isTanker = true, -- Enable smoke
-                                        flameSize = splash_damage_options.default_flame_size,
-                                        flameDuration = splash_damage_options.default_flame_duration
+                                        cookOff = splash_damage_options.allunits_enable_cookoff,
+                                        cookOffCount = splash_damage_options.allunits_cookoff_count,
+                                        cookOffPower = splash_damage_options.allunits_cookoff_power,
+                                        cookOffDuration = splash_damage_options.allunits_cookoff_duration,
+                                        cookOffRandomTiming = true,
+                                        cookOffPowerRandom = splash_damage_options.allunits_cookoff_powerrandom,
+                                        isTanker = splash_damage_options.allunits_enable_smoke, -- Enable smoke
+                                        flameSize = splash_damage_options.allunits_default_flame_size, 
+                                        flameDuration = splash_damage_options.allunits_default_flame_duration,
+										cargoExplosionMult = 1
                                     })
-                                    statusMsg = statusMsg .. " WITH DEFAULT SMOKE (Size: " .. splash_damage_options.default_flame_size .. ", Duration: " .. splash_damage_options.default_flame_duration .. "s)"
+                                    statusMsg = statusMsg .. " WITH DEFAULT SMOKE (Size: " .. splash_damage_options.allunits_default_flame_size .. ", Duration: " .. splash_damage_options.allunits_default_flame_duration .. "s)"
                                     debugMsg("Queued default smoke effect for " .. preTarget.name .. " at " .. string.format("%.1f", preTarget.distance) .. "m")
                                 end
                             end
@@ -2294,24 +2302,24 @@ function addSplashDamageMenu()
     missionCommands.addCommand("-0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.1)
     missionCommands.addCommand("-0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.5)
     missionCommands.addCommand("-1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -1.0)
-    -- New commands for smokeeffectallvehicles
-    missionCommands.addCommand("Toggle Smoke All Vehicles", groundOrdnanceMenu, toggleSplashDamageSetting, "smokeeffectallvehicles")
+    -- New commands for smokeandcookoffeffectallvehicles
+    missionCommands.addCommand("Toggle Smoke All Vehicles", groundOrdnanceMenu, toggleSplashDamageSetting, "smokeandcookoffeffectallvehicles")
     local smokeSizeMenu = missionCommands.addSubMenu("Smoke Size", groundOrdnanceMenu)
-    missionCommands.addCommand("Set Size 1", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 1)
-    missionCommands.addCommand("Set Size 2", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 2)
-    missionCommands.addCommand("Set Size 3", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 3)
-    missionCommands.addCommand("Set Size 4", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 4)
-    missionCommands.addCommand("Set Size 5", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 5)
-    missionCommands.addCommand("Set Size 6", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 6)
-    missionCommands.addCommand("Set Size 7", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 7)
-    missionCommands.addCommand("Set Size 8", smokeSizeMenu, updateSplashDamageSetting, "default_flame_size", nil, 8)
+    missionCommands.addCommand("Set Size 1", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 1)
+    missionCommands.addCommand("Set Size 2", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 2)
+    missionCommands.addCommand("Set Size 3", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 3)
+    missionCommands.addCommand("Set Size 4", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 4)
+    missionCommands.addCommand("Set Size 5", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 5)
+    missionCommands.addCommand("Set Size 6", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 6)
+    missionCommands.addCommand("Set Size 7", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 7)
+    missionCommands.addCommand("Set Size 8", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 8)
     local smokeDurationMenu = missionCommands.addSubMenu("Smoke Duration", groundOrdnanceMenu)
-    missionCommands.addCommand("+10s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", 10)
-    missionCommands.addCommand("+30s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", 30)
-    missionCommands.addCommand("+60s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", 60)
-    missionCommands.addCommand("-10s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", -10)
-    missionCommands.addCommand("-30s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", -30)
-    missionCommands.addCommand("-60s", smokeDurationMenu, updateSplashDamageSetting, "default_flame_duration", -60)
+    missionCommands.addCommand("+10s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", 10)
+    missionCommands.addCommand("+30s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", 30)
+    missionCommands.addCommand("+60s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", 60)
+    missionCommands.addCommand("-10s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", -10)
+    missionCommands.addCommand("-30s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", -30)
+    missionCommands.addCommand("-60s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", -60)
 
 
 end
