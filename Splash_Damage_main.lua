@@ -3,6 +3,7 @@
 	  - Added in ground ordnance tracking
 	  - Adjusted blastwave explosion
 	  - Changes to debug output, ordering by vehicle distance
+	  - Added in option to create additional smoke effect for all vehicles initially destroyed by your ordnance or the script
 
     04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
@@ -165,11 +166,15 @@ splash_damage_options = {
     ["giant_explosion_target_static"] = true, --Toggle to true for static targets (store position once), false for dynamic (update every second)
     ["giant_explosion_poll_rate"] = 1,    --Polling rate in seconds for flag checks (default 1s)
 	
-
     --Ground Unit Ordnance
     ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
+
+    --Smoke Effect For All Vehicles
+	["smokeeffectallvehicles"] = true, -- Enable smoke effects for all ground vehicles not in cargoUnits vehicle table
+    ["default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
+    ["default_flame_duration"] = 60, -- Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
 	
 }
 
@@ -1581,7 +1586,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                (not found or postHealth <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
 
                                 if splash_damage_options.enable_cargo_effects then
-                                                local cargoPower = cargoData.cargoExplosionPower or weaponPower --Use fixed power or fallback
+                                    local cargoPower = cargoData.cargoExplosionPower or weaponPower
                                     table.insert(cargoEffectsQueue, {
                                         name = preTarget.name,
                                         distance = preTarget.distance,
@@ -1602,6 +1607,28 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                     if cargoData.cargoCookOff and cargoData.cookOffCount > 0 then
                                         statusMsg = statusMsg .. " WITH COOK-OFF (" .. cargoData.cookOffCount .. " blasts over " .. cargoData.cookOffDuration .. "s)"
                                     end
+                                end
+                            elseif splash_damage_options.smokeeffectallvehicles and preTarget.distance <= blastRadius and 
+                                   (not found or postHealth <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
+                                if splash_damage_options.enable_cargo_effects then
+                                    table.insert(cargoEffectsQueue, {
+                                        name = preTarget.name,
+                                        distance = preTarget.distance,
+                                        coords = coords,
+                                        power = 0, -- No explosion
+                                        explosion = true,
+                                        cookOff = false,
+                                        cookOffCount = 0,
+                                        cookOffPower = 0,
+                                        cookOffDuration = 0,
+                                        cookOffRandomTiming = false,
+                                        cookOffPowerRandom = 0,
+                                        isTanker = true, -- Enable smoke
+                                        flameSize = splash_damage_options.default_flame_size,
+                                        flameDuration = splash_damage_options.default_flame_duration
+                                    })
+                                    statusMsg = statusMsg .. " WITH DEFAULT SMOKE (Size: " .. splash_damage_options.default_flame_size .. ", Duration: " .. splash_damage_options.default_flame_duration .. "s)"
+                                    debugMsg("Queued default smoke effect for " .. preTarget.name .. " at " .. string.format("%.1f", preTarget.distance) .. "m")
                                 end
                             end
 
@@ -2266,6 +2293,9 @@ function addSplashDamageMenu()
     missionCommands.addCommand("-0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.1)
     missionCommands.addCommand("-0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.5)
     missionCommands.addCommand("-1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -1.0)
+	
+	
+	--tbd smoke option
 end
 
 if (script_enable == 1) then
