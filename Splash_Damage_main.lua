@@ -1,9 +1,10 @@
 --[[
     xx xx 2025 (Stevey666) - 3.2
-	  - Added in ground ordnance tracking and radio commands, this tracks ground artillery etc if in the explosives table
+	  - New feature: ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
 	  - Adjusted blastwave explosion
 	  - Changes to debug output, ordering by vehicle distance
-	  - Added in option to create additional smoke effect for all vehicles initially destroyed by your ordnance or the script
+	  - New feature: option to create additional smoke effect for all vehicles initially destroyed by your ordnance or the script, set to false by default.
+	  - Giant explosion set to false by default
 
     04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
@@ -158,7 +159,7 @@ splash_damage_options = {
     ["cluster_bomblet_damage_modifier"] = 1,  --Adjustable global modifier for bomblet explosive power
 	
 	--Giant Explosion Options - Remember, any target you want to blow up needs to be named "GiantExplosionTarget(X)"  (X) being any value/name etc
-    ["giant_explosion_enabled"] = true,  --Toggle to enable/disable Giant Explosion
+    ["giant_explosion_enabled"] = false,  --Toggle to enable/disable Giant Explosion
     ["giant_explosion_power"] = 6000,    --Power in kg of TNT (default 8 tons)
     ["giant_explosion_scale"] = 1,     --Size scale factor (default 1)
     ["giant_explosion_duration"] = 3.0,  --Total duration in seconds (default 3s)
@@ -167,12 +168,12 @@ splash_damage_options = {
     ["giant_explosion_poll_rate"] = 1,    --Polling rate in seconds for flag checks (default 1s)
 	
     --Ground Unit Ordnance
-    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
+    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
 
     --Smoke Effect For All Vehicles
-	["smokeeffectallvehicles"] = true, -- Enable smoke effects for all ground vehicles not in cargoUnits vehicle table
+    ["smokeeffectallvehicles"] = false, -- Enable smoke effects for all ground vehicles not in cargoUnits vehicle table
     ["default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
     ["default_flame_duration"] = 60, -- Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
 	
