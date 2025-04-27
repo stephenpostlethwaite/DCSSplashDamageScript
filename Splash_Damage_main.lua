@@ -2276,8 +2276,8 @@ function addSplashDamageMenu()
     local countMenu = missionCommands.addSubMenu("Explosion Count", giantExplosionMenu)
     addValueAdjustmentCommands(countMenu, "giant_explosion_count")
 
-    --Page 8: Ground Ordnance Settings (New)
-    local groundOrdnanceMenu = missionCommands.addSubMenu("Ground Ordnance Settings", splash_damage_menu)
+    --Page 8: Ground Ordnance and All Vehicles Smoke Settings
+    local groundOrdnanceMenu = missionCommands.addSubMenu("Ground Ordnance and All Vehicles Smoke Settings", splash_damage_menu)
     missionCommands.addCommand("Toggle Ground Ordnance Tracking", groundOrdnanceMenu, toggleSplashDamageSetting, "track_groundunitordnance")
     missionCommands.addCommand("Toggle Ground Ordnance Debug", groundOrdnanceMenu, toggleSplashDamageSetting, "track_groundunitordnance_debug")
     local damageModifierMenu = missionCommands.addSubMenu("Damage Modifier", groundOrdnanceMenu)
