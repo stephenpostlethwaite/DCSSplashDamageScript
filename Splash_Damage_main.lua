@@ -5,6 +5,7 @@
 	  - Changes to debug output, ordering by vehicle distance
 	  - New feature: option to create additional smoke and cargo cookoff effect for all vehicles initially destroyed by your ordnance or the script, set to false by default.
 	  - Giant explosion set to false by default
+	  - Thanks to tae. for the report, adjusted Ural-4320 in vehicle table, had incorrect name so wasn't triggering cook off.
 
     04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
@@ -306,7 +307,8 @@ flamesize:
         flameDuration = 30,
     },
 --#Technically this is both ammo and fuel looking at the model
-    ["Ural-4320"] = {
+--#Called Ural-4320 in game, but in code its Ural-375
+    ["Ural-375"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
 		cargoExplosionPower = 200,
