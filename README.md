@@ -8,9 +8,21 @@ In mission editor have a mission start trigger with the action "DO SCRIPT FILE" 
 
 --[[
 
-      04 April 2025 (Stevey666) - 3.1
+
+    10 May 2025 (Stevey666) - 3.2
+	  - New feature (user request): ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
+	  - New feature (user request): option to create additional smoke and cargo cookoff effect for all ground vehicles initially destroyed by your ordnance or the script, set to false by default.
+	  - Adjusted blastwave explosion
+	  - Changes to debug output, ordering by vehicle distance
+	  - Thanks to tae. for the report, adjusted Ural-4320 in vehicle table, had incorrect name so wasn't triggering cook off.
+	  - Fixed error popup when using Mig 21's SPRD-99
+	  - Added Cargo Cook off / fireball to some static objects i.e crates/barrels
+	  - Reworked Giant Explosion tracking - no mission editor trigger needed, just name static unit or unit "GiantExplosionTarget[X]"
+	  - Allow for Giant Explosion trigger on damage or on death
+
+    04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
-	  - Added missing radio commands for Cascade Scaling
+      - Added missing radio commands for Cascade Scaling
 	  - Adjust default cascading to 2 (from 1)
 	  - Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
 	  - Prevent weapons not in the list from being tracked
