@@ -1,11 +1,14 @@
 --[[
-    xx xx 2025 (Stevey666) - 3.2
-	  - New feature: ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
+    10 May 2025 (Stevey666) - 3.2
+	  - New feature (user request): ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
+	  - New feature (user request): option to create additional smoke and cargo cookoff effect for all ground vehicles initially destroyed by your ordnance or the script, set to false by default.
 	  - Adjusted blastwave explosion
 	  - Changes to debug output, ordering by vehicle distance
-	  - New feature: option to create additional smoke and cargo cookoff effect for all vehicles initially destroyed by your ordnance or the script, set to false by default.
-	  - Giant explosion set to false by default
 	  - Thanks to tae. for the report, adjusted Ural-4320 in vehicle table, had incorrect name so wasn't triggering cook off.
+	  - Fixed error popup when using Mig 21's SPRD-99
+	  - Added Cargo Cook off / fireball to some static objects i.e crates/barrels
+	  - Reworked Giant Explosion tracking - no mission editor trigger needed, just name static unit or unit "GiantExplosionTarget[X]"
+	  - Allow for Giant Explosion trigger on damage or on death
 
     04 April 2025 (Stevey666) - 3.1
 	  - Set default cluster munitions option to false, set this to true in the options if you want it
@@ -102,7 +105,7 @@ splash_damage_options = {
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
 	
-    ["enable_radio_menu"] = true, --enables the in-game radio menu for modifying settings
+    ["enable_radio_menu"] = false, --enables the in-game radio menu for modifying settings
     
     ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
     ["wave_explosions"] = true, --secondary explosions on top of game objects, radiating outward from the impact point and scaled based on size of object and distance from weapon impact point
@@ -160,21 +163,24 @@ splash_damage_options = {
     ["cluster_bomblet_damage_modifier"] = 1,  --Adjustable global modifier for bomblet explosive power
 	
 	--Giant Explosion Options - Remember, any target you want to blow up needs to be named "GiantExplosionTarget(X)"  (X) being any value/name etc
-    ["giant_explosion_enabled"] = false,  --Toggle to enable/disable Giant Explosion
+    ["giant_explosion_enabled"] = true,  --Toggle to enable/disable Giant Explosion
     ["giant_explosion_power"] = 6000,    --Power in kg of TNT (default 8 tons)
     ["giant_explosion_scale"] = 1,     --Size scale factor (default 1)
     ["giant_explosion_duration"] = 3.0,  --Total duration in seconds (default 3s)
     ["giant_explosion_count"] = 250,      --Number of explosions (default 300)
     ["giant_explosion_target_static"] = true, --Toggle to true for static targets (store position once), false for dynamic (update every second)
     ["giant_explosion_poll_rate"] = 1,    --Polling rate in seconds for flag checks (default 1s)
-	
+    ["giantexplosion_ondamage"] = true,   --Trigger explosion when unit is damaged
+    ["giantexplosion_ondeath"] = true,    --Trigger explosion when unit is destroyed
+    ["giantexplosion_testmode"] = true,  --Enable test mode with separate array for radio commands	
+    
     --Ground Unit Ordnance
     ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
 
     --Smoke and Cookoff Effect For All Vehicles
-    ["smokeandcookoffeffectallvehicles"] = false, -- Enable effects for all ground vehicles not in cargoUnits vehicle table
+    ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
 	["allunits_enable_smoke"] = false,
 	["allunits_enable_cookoff"] = false,
 	["allunits_explode_power"] = 50, --Initial power of vehicle exploding
@@ -336,6 +342,111 @@ flamesize:
         isTanker = false,
         flameSize = 1,
         flameDuration = 30,
+    },
+	
+	--#Ammo Boxes etc
+	
+	--#Long ammo box
+	
+	    ["Cargo06"] = {
+        cargoExplosion = true,
+        cargoExplosionMult = 1,
+		cargoExplosionPower = 100,
+        cargoCookOff = true,
+        cookOffCount = 5,
+        cookOffPower = 1,
+        cookOffDuration = 10,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = 50,
+        isTanker = false,
+        flameSize = 1,
+        flameDuration = 30,
+    },
+
+		--#ammo boxes
+	
+	    ["Cargo03"] = {
+        cargoExplosion = true,
+        cargoExplosionMult = 1,
+		cargoExplosionPower = 10,
+        cargoCookOff = true,
+        cookOffCount = 10,
+        cookOffPower = 1,
+        cookOffDuration = 20,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = 0,
+        isTanker = false,
+        flameSize = 1,
+        flameDuration = 30,
+    },
+	
+		--FuelBarrels
+	
+	    ["Cargo05"] = {
+        cargoExplosion = true,
+        cargoExplosionMult = 1,
+		cargoExplosionPower = 100,
+        cargoCookOff = false,
+        cookOffCount = 5,
+        cookOffPower = 1,
+        cookOffDuration = 10,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = 50,
+        isTanker = true,
+        flameSize = 2,
+        flameDuration = 30,
+    },
+	
+		--APFC fuel
+	
+	    ["APFC fuel"] = {
+        cargoExplosion = true,
+        cargoExplosionMult = 1,
+		cargoExplosionPower = 100,
+        cargoCookOff = false,
+        cookOffCount = 5,
+        cookOffPower = 1,
+        cookOffDuration = 10,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = 50,
+        isTanker = true,
+        flameSize = 2,
+        flameDuration = 30,
+    },
+	
+		--Oil Barrel
+	
+	    ["Oil Barrel"] = {
+        cargoExplosion = true,
+        cargoExplosionMult = 1,
+		cargoExplosionPower = 100,
+        cargoCookOff = false,
+        cookOffCount = 5,
+        cookOffPower = 1,
+        cookOffDuration = 10,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = 50,
+        isTanker = true,
+        flameSize = 1,
+        flameDuration = 20,
+    },
+	
+	
+		--FARP Ammo Dump Coating
+	
+	    ["FARP Ammo Dump Coating"] = {
+        cargoExplosion = true,
+        cargoExplosionMult = 1,
+		cargoExplosionPower = 100,
+        cargoCookOff = true,
+        cookOffCount = 5,
+        cookOffPower = 1,
+        cookOffDuration = 20,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = 50,
+        isTanker = false,
+        flameSize = 1,
+        flameDuration = 20,
     },
 }
 
@@ -716,6 +827,7 @@ end
 
 ----[[ ##### End of HELPER/UTILITY FUNCTIONS ##### ]]----
 giantExplosionTargets = {}
+giantExplosionTestTargets = {}
 cargoEffectsQueue = {}
 WpnHandler = {}
 tracked_target_position = nil --Store the last known position of TargetUnit for giant explosion
@@ -723,36 +835,117 @@ tracked_weapons = {}
 local processedUnitsGlobal = {}
 
 function scanGiantExplosionTargets()
-    giantExplosionTargets = {}
-    local function findTargets(obj)
+local function processObject(obj)
         if obj:isExist() then
             local name = obj:getName()
             if string.find(name, "GiantExplosionTarget") then
-                local flagName = string.gsub(name, "Target", "")
-                table.insert(giantExplosionTargets, {
+                local pos = obj:getPoint()
+                local targetData = {
                     name = name,
-                    flag = flagName,
                     obj = obj,
-                    pos = obj:getPoint(),
-                    static = splash_damage_options.giant_explosion_target_static
-                })
+                    pos = pos,
+                    static = splash_damage_options.giant_explosion_target_static,
+                    initialHealth = obj:getLife() or 0
+                }
+                table.insert(giantExplosionTargets, targetData)
+                if splash_damage_options.giantexplosion_testmode then
+                    table.insert(giantExplosionTestTargets, {name = name, pos = pos})
+                end
+                debugMsg("Found GiantExplosion unit: " .. name .. " at X:" .. pos.x .. " Y:" .. pos.y .. " Z:" .. pos.z)
             end
         end
-        return true
     end
-    world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, {id = world.VolumeType.ALL}, findTargets)
-    if not splash_damage_options.giant_explosion_target_static then
-        timer.scheduleFunction(updateGiantExplosionPositions, {}, timer.getTime() + 1.0)
+    -- Iterate over all coalitions
+    for coa = 0, 2 do
+        -- Process units
+        local groups = coalition.getGroups(coa)
+        if groups then
+            for _, group in pairs(groups) do
+                local units = group:getUnits()
+                if units then
+                    for _, unit in pairs(units) do
+                        processObject(unit)
+                    end
+                end
+            end
+        end
+        -- Process static objects
+        local statics = coalition.getStaticObjects(coa)
+        if statics then
+            for _, static in pairs(statics) do
+                processObject(static)
+            end
+        end
+    end
+    debugMsg("Total GiantExplosion units found: " .. #giantExplosionTargets)
+    if #giantExplosionTargets > 0 then
+        timer.scheduleFunction(checkGiantExplosionUnits, {}, timer.getTime() + splash_damage_options.giant_explosion_poll_rate)
     end
 end
 
-function updateTargetPosition()
-    for name, target in pairs(giantExplosionTargets) do
+function updateGiantExplosionPositions()
+    for _, target in ipairs(giantExplosionTargets) do
         if target.obj:isExist() then
-            target.pos = target.obj:getPosition().p
+            target.pos = target.obj:getPoint()
         end
     end
     return timer.getTime() + 1.0
+end
+
+function checkGiantExplosionUnits()
+    if not splash_damage_options.giant_explosion_enabled then
+        debugMsg("Giant Explosion is disabled in options.")
+        return
+    end
+
+    local targetsToRemove = {}
+    for i, target in ipairs(giantExplosionTargets) do
+        local triggerExplosion = false
+        local currentPos = target.pos
+
+        if target.obj:isExist() then
+            if not target.static then
+                currentPos = target.obj:getPoint()
+                target.pos = currentPos
+            end
+            if splash_damage_options.giantexplosion_ondamage then
+                local currentHealth = target.obj:getLife() or 0
+                if currentHealth < target.initialHealth then
+                    triggerExplosion = true
+                    debugMsg("Triggering explosion for " .. target.name .. " due to damage (Health: " .. currentHealth .. "/" .. target.initialHealth .. ")")
+                end
+            end
+        else
+            if splash_damage_options.giantexplosion_ondeath then
+                triggerExplosion = true
+                debugMsg("Triggering explosion for " .. target.name .. " due to destruction")
+            end
+        end
+
+        if triggerExplosion then
+            triggerGiantExplosion({
+                pos = currentPos,
+                power = splash_damage_options.giant_explosion_power,
+                scale = splash_damage_options.giant_explosion_scale,
+                duration = splash_damage_options.giant_explosion_duration,
+                count = splash_damage_options.giant_explosion_count
+            })
+            table.insert(targetsToRemove, i)
+        end
+    end
+
+    --Remove triggered targets in reverse order to avoid index issues
+    for i = #targetsToRemove, 1, -1 do
+        table.remove(giantExplosionTargets, targetsToRemove[i])
+        debugMsg("Removed " .. targetsToRemove[i] .. " from giantExplosionTargets. Remaining: " .. #giantExplosionTargets)
+    end
+
+    --Continue scheduling checks if there are still targets
+    if #giantExplosionTargets > 0 then
+        return timer.getTime() + splash_damage_options.giant_explosion_poll_rate
+    else
+        debugMsg("No GiantExplosion units remaining. Disabling periodic checks.")
+    end
 end
 
 
@@ -938,36 +1131,36 @@ function triggerGiantExplosion(params)
                                 trigger.action.explosion(params[1], params[2])
                             end, {effect.coords, effect.power}, timer.getTime() + flameIndex + 0.1)
 
-                                local flameSize = effect.flameSize or 3
-                                local flameDuration = effect.flameDuration
-                                local flameDensity = 1.0
-                                local effectId = effectSmokeId
-                                effectSmokeId = effectSmokeId + 1
-                                local isDuplicate = false
-                                for _, pos in pairs(flamePositions) do
-                                    if getDistance3D(effect.coords, pos) < 3 then
-                                        isDuplicate = true
-                                        debugMsg("Skipping duplicate flame for " .. effect.name .. " near X: " .. string.format("%.0f", pos.x) .. ", Y: " .. string.format("%.0f", pos.y) .. ", Z: " .. string.format("%.0f", pos.z))
-                                        break
-                                    end
+                            local flameSize = effect.flameSize or 3
+                            local flameDuration = effect.flameDuration
+                            local flameDensity = 1.0
+                            local effectId = effectSmokeId
+                            effectSmokeId = effectSmokeId + 1
+                            local isDuplicate = false
+                            for _, pos in pairs(flamePositions) do
+                                if getDistance3D(effect.coords, pos) < 3 then
+                                    isDuplicate = true
+                                    debugMsg("Skipping duplicate flame for " .. effect.name .. " near X: " .. string.format("%.0f", pos.x) .. ", Y: " .. string.format("%.0f", pos.y) .. ", Z: " .. string.format("%.0f", pos.z))
+                                    break
                                 end
-                                if not isDuplicate then
-                                debugMsg("Adding flame effect for tanker " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m (Size: " .. flameSize .. ", Duration: " .. flameDuration .. "s, ID: " .. effectId .. ") scheduled at " .. flameIndex .. "s")
-                                    timer.scheduleFunction(function(params)
-                                        local terrainHeight = land.getHeight({x = params[1].x, y = params[1].z})
-                                        local adjustedCoords = {x = params[1].x, y = terrainHeight + 2, z = params[1].z}
-                                        debugMsg("Spawning flame effect at X: " .. string.format("%.0f", adjustedCoords.x) .. ", Y: " .. string.format("%.0f", adjustedCoords.y) .. ", Z: " .. string.format("%.0f", adjustedCoords.z))
-                                        trigger.action.explosion(adjustedCoords, 10) --Small trigger explosion
-                                        trigger.action.effectSmokeBig(adjustedCoords, params[2], params[3], params[4])
-                                end, {effect.coords, flameSize, flameDensity, effectId}, timer.getTime() + flameIndex + 0.2)
-                                    timer.scheduleFunction(function(id)
-                                        debugMsg("Stopping flame effect for " .. effect.name .. " (ID: " .. id .. ")")
-                                        trigger.action.effectSmokeStop(id)
-                                end, effectId, timer.getTime() + flameIndex + flameDuration + 0.2)
-                                    table.insert(flamePositions, effect.coords)
-                                end
-                            flameIndex = flameIndex + 0.5 --Fast spacing for flames (0.5s)
                             end
+                            if not isDuplicate then
+                                debugMsg("Adding flame effect for tanker " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m (Size: " .. flameSize .. ", Duration: " .. flameDuration .. "s, ID: " .. effectId .. ") scheduled at " .. flameIndex .. "s")
+                                timer.scheduleFunction(function(params)
+                                    local terrainHeight = land.getHeight({x = params[1].x, y = params[1].z})
+                                    local adjustedCoords = {x = params[1].x, y = terrainHeight + 2, z = params[1].z}
+                                    debugMsg("Spawning flame effect at X: " .. string.format("%.0f", adjustedCoords.x) .. ", Y: " .. string.format("%.0f", adjustedCoords.y) .. ", Z: " .. string.format("%.0f", adjustedCoords.z))
+                                    trigger.action.explosion(adjustedCoords, 10) --Small trigger explosion
+                                    trigger.action.effectSmokeBig(adjustedCoords, params[2], params[3], params[4])
+                                end, {effect.coords, flameSize, flameDensity, effectId}, timer.getTime() + flameIndex + 0.2)
+                                timer.scheduleFunction(function(id)
+                                    debugMsg("Stopping flame effect for " .. effect.name .. " (ID: " .. id .. ")")
+                                    trigger.action.effectSmokeStop(id)
+                                end, effectId, timer.getTime() + flameIndex + flameDuration + 0.2)
+                                table.insert(flamePositions, effect.coords)
+                            end
+                            flameIndex = flameIndex + 0.5 --Fast spacing for flames (0.5s)
+                        end
                         --Handle non-tanker explosions, cook-offs, and debris
                         if not effect.isTanker or (effect.explosion and not effect.isTanker) then
                             if effect.explosion then
@@ -976,38 +1169,38 @@ function triggerGiantExplosion(params)
                                     debugMsg("Executing cargo explosion at X: " .. string.format("%.0f", params[1].x) .. ", Y: " .. string.format("%.0f", params[1].y) .. ", Z: " .. string.format("%.0f", params[1].z) .. " with power " .. params[2])
                                     trigger.action.explosion(params[1], params[2])
                                 end, {effect.coords, effect.power}, timer.getTime() + otherIndex + 0.1)
-                        end
-                        if effect.cookOff and effect.cookOffCount > 0 then
-                                debugMsg("Scheduling " .. effect.cookOffCount .. " cook-off explosions for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m over " .. effect.cookOffDuration .. "s starting at " .. otherIndex .. "s")
-                            for i = 1, effect.cookOffCount do
-                                local delay = effect.cookOffRandomTiming and math.random() * effect.cookOffDuration or (i - 1) * (effect.cookOffDuration / effect.cookOffCount)
-                                local basePower = effect.cookOffPower
-                                local powerVariation = effect.cookOffPowerRandom / 100
-                                local cookOffPower = effect.cookOffPowerRandom == 0 and basePower or basePower * (1 + powerVariation * (math.random() * 2 - 1))
-                                debugMsg("Cook-off #" .. i .. " for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m scheduled at " .. string.format("%.3f", delay) .. "s with power " .. string.format("%.2f", cookOffPower))
-                                timer.scheduleFunction(function(params)
-                                    debugMsg("Executing cook-off at X: " .. string.format("%.0f", params[1].x) .. ", Y: " .. string.format("%.0f", params[1].y) .. ", Z: " .. string.format("%.0f", params[1].z) .. " with power " .. params[2])
-                                    trigger.action.explosion(params[1], params[2])
-                                    end, {effect.coords, cookOffPower}, timer.getTime() + otherIndex + delay)
                             end
-                            if splash_damage_options.debris_effects then
-                                local debrisCount = math.random(splash_damage_options.debris_count_min, splash_damage_options.debris_count_max)
-                                for j = 1, debrisCount do
-                                    local theta = math.random() * 2 * math.pi
-                                    local phi = math.acos(math.random() * 2 - 1)
-                                    local minDist = splash_damage_options.debris_max_distance * 0.1
-                                    local maxDist = splash_damage_options.debris_max_distance
-                                    local r = math.random() * (maxDist - minDist) + minDist
-                                    local debrisX = effect.coords.x + r * math.sin(phi) * math.cos(theta)
-                                    local debrisZ = effect.coords.z + r * math.sin(phi) * math.sin(theta)
-                                    local terrainY = land.getHeight({x = debrisX, y = debrisZ})
-                                    local debrisY = terrainY + math.random() * maxDist
-                                    local debrisPos = {x = debrisX, y = debrisY, z = debrisZ}
-                                    local debrisPower = splash_damage_options.debris_power
-                                    local debrisDelay = (j - 1) * (effect.cookOffDuration / debrisCount)
-                                    timer.scheduleFunction(function(debrisArgs)
-                                        debugMsg("Debris explosion at X: " .. string.format("%.0f", debrisArgs[1].x) .. ", Y: " .. string.format("%.0f", debrisArgs[1].y) .. ", Z: " .. string.format("%.0f", debrisArgs[1].z) .. " with power " .. debrisArgs[2])
-                                        trigger.action.explosion(debrisArgs[1], debrisArgs[2])
+                            if effect.cookOff and effect.cookOffCount > 0 then
+                                debugMsg("Scheduling " .. effect.cookOffCount .. " cook-off explosions for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m over " .. effect.cookOffDuration .. "s starting at " .. otherIndex .. "s")
+                                for i = 1, effect.cookOffCount do
+                                    local delay = effect.cookOffRandomTiming and math.random() * effect.cookOffDuration or (i - 1) * (effect.cookOffDuration / effect.cookOffCount)
+                                    local basePower = effect.cookOffPower
+                                    local powerVariation = effect.cookOffPowerRandom / 100
+                                    local cookOffPower = effect.cookOffPowerRandom == 0 and basePower or basePower * (1 + powerVariation * (math.random() * 2 - 1))
+                                    debugMsg("Cook-off #" .. i .. " for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m scheduled at " .. string.format("%.3f", delay) .. "s with power " .. string.format("%.2f", cookOffPower))
+                                    timer.scheduleFunction(function(params)
+                                        debugMsg("Executing cook-off at X: " .. string.format("%.0f", params[1].x) .. ", Y: " .. string.format("%.0f", params[1].y) .. ", Z: " .. string.format("%.0f", params[1].z) .. " with power " .. params[2])
+                                        trigger.action.explosion(params[1], params[2])
+                                    end, {effect.coords, cookOffPower}, timer.getTime() + otherIndex + delay)
+                                end
+                                if splash_damage_options.debris_effects then
+                                    local debrisCount = math.random(splash_damage_options.debris_count_min, splash_damage_options.debris_count_max)
+                                    for j = 1, debrisCount do
+                                        local theta = math.random() * 2 * math.pi
+                                        local phi = math.acos(math.random() * 2 - 1)
+                                        local minDist = splash_damage_options.debris_max_distance * 0.1
+                                        local maxDist = splash_damage_options.debris_max_distance
+                                        local r = math.random() * (maxDist - minDist) + minDist
+                                        local debrisX = effect.coords.x + r * math.sin(phi) * math.cos(theta)
+                                        local debrisZ = effect.coords.z + r * math.sin(phi) * math.sin(theta)
+                                        local terrainY = land.getHeight({x = debrisX, y = debrisZ})
+                                        local debrisY = terrainY + math.random() * maxDist
+                                        local debrisPos = {x = debrisX, y = debrisY, z = debrisZ}
+                                        local debrisPower = splash_damage_options.debris_power
+                                        local debrisDelay = (j - 1) * (effect.cookOffDuration / debrisCount)
+                                        timer.scheduleFunction(function(debrisArgs)
+                                            debugMsg("Debris explosion at X: " .. string.format("%.0f", debrisArgs[1].x) .. ", Y: " .. string.format("%.0f", debrisArgs[1].y) .. ", Z: " .. string.format("%.0f", debrisArgs[1].z) .. " with power " .. debrisArgs[2])
+                                            trigger.action.explosion(debrisArgs[1], debrisArgs[2])
                                         end, {debrisPos, debrisPower}, timer.getTime() + otherIndex + debrisDelay)
                                     end
                                 end
@@ -1024,28 +1217,8 @@ function triggerGiantExplosion(params)
     end
 end
 
---Flag Checker for mission editor
-function checkGiantExplosionFlag()
-    for name, target in pairs(giantExplosionTargets) do
-        local flagName = name:gsub("GiantExplosionTarget", "GiantExplosionTarget")
-        local flagValue = trigger.misc.getUserFlag(flagName)
-        --commenting out as it spams every second 
-		debugMsg("Checking flag " .. flagName .. ": " .. flagValue)
-        if flagValue == 1 then
-            debugMsg("Triggering explosion for " .. name .. " at X:" .. target.pos.x .. " Y:" .. target.pos.y .. " Z:" .. target.pos.z)
-            triggerGiantExplosion({
-                pos = target.pos,
-                power = splash_damage_options.giant_explosion_power,
-                scale = splash_damage_options.giant_explosion_scale,
-                duration = splash_damage_options.giant_explosion_duration,
-                count = splash_damage_options.giant_explosion_count
-            })
-            trigger.action.setUserFlag(flagName, 2)
-        end
-    end
-    return timer.getTime() + splash_damage_options.giant_explosion_poll_rate
-end
-  
+
+
 function getWeaponExplosive(name)
     local weaponData = explTable[name]
     if weaponData then
@@ -1181,8 +1354,8 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                         base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
                     --Log modifier only once per weapon
                     --if splash_damage_options.track_groundunitordnance_debug and not wpnData.debugLogged then
-                        --    debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
-                       -- wpnData.debugLogged = true --Mark as logged
+                        --  debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
+                       --wpnData.debugLogged = true --Mark as logged
                     --end
                 end
 
@@ -1625,7 +1798,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                         name = preTarget.name,
                                         distance = preTarget.distance,
                                         coords = coords,
-                                        power = splash_damage_options.allunits_explode_power, -- No explosion
+                                        power = splash_damage_options.allunits_explode_power, --No explosion
                                         explosion = true,
                                         cookOff = splash_damage_options.allunits_enable_cookoff,
                                         cookOffCount = splash_damage_options.allunits_cookoff_count,
@@ -1633,7 +1806,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                         cookOffDuration = splash_damage_options.allunits_cookoff_duration,
                                         cookOffRandomTiming = true,
                                         cookOffPowerRandom = splash_damage_options.allunits_cookoff_powerrandom,
-                                        isTanker = splash_damage_options.allunits_enable_smoke, -- Enable smoke
+                                        isTanker = splash_damage_options.allunits_enable_smoke, --Enable smoke
                                         flameSize = splash_damage_options.allunits_default_flame_size, 
                                         flameDuration = splash_damage_options.allunits_default_flame_duration,
 										cargoExplosionMult = 1
@@ -1823,10 +1996,32 @@ end
 end
 
 function onWpnEvent(event)
-        if event.id == world.event.S_EVENT_SHOT then
+    if event.id == world.event.S_EVENT_SHOT then
         if event.weapon then
-                local ordnance = event.weapon
-                local typeName = trim(ordnance:getTypeName())
+            local ordnance = event.weapon
+            --verify isExist and getDesc
+            local isValid = false
+            local status, desc = pcall(function() return ordnance:isExist() and ordnance:getDesc() end)
+            if status and desc then
+                isValid = true
+            end
+            if not isValid then
+                if splash_damage_options.debug then
+                    env.info("SplashDamage: Invalid weapon object in S_EVENT_SHOT")
+                    debugMsg("Invalid weapon object in S_EVENT_SHOT")
+                end
+                return
+            end
+            --Safely get typeName with pcall
+            local status, typeName = pcall(function() return trim(ordnance:getTypeName()) end)
+            if not status or not typeName then
+                if splash_damage_options.debug then
+                    env.info("SplashDamage: Failed to get weapon typeName: " .. tostring(typeName))
+                    debugMsg("Failed to get weapon typeName: " .. tostring(typeName))
+                end
+                return
+            end
+ 
             if splash_damage_options.debug then
                 env.info("Weapon fired: [" .. typeName .. "]")
                 debugMsg("Weapon fired: [" .. typeName .. "]")
@@ -1964,13 +2159,13 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
             foundUnits[#foundUnits + 1] = foundObject
         end
         if foundObject:getDesc().category == Unit.Category.GROUND_UNIT and splash_damage_options.blast_stun then
-            -- suppressUnit(foundObject, 2, weapon) -- Not implemented, commented out
+            --suppressUnit(foundObject, 2, weapon) --Not implemented, commented out
         end
         if splash_damage_options.wave_explosions then
             local obj = foundObject
             local obj_location = obj:getPoint()
             local dist = getDistance(_point, obj_location)
-            if dist > 1 then -- Avoid re-exploding at exact impact point
+            if dist > 1 then --Avoid re-exploding at exact impact point
             local timing = dist / 500
             if obj:isExist() and tableHasKey(obj:getDesc(), "box") then
                 local length = (obj:getDesc().box.max.x + math.abs(obj:getDesc().box.min.x))
@@ -2257,24 +2452,45 @@ function addSplashDamageMenu()
     local clusterBombletDamageMenu = missionCommands.addSubMenu("Bomblet Damage Modifier", clusterMenu)
     addValueAdjustmentCommands(clusterBombletDamageMenu, "cluster_bomblet_damage_modifier")
 	
-	--Page 7: Giant Explosion Settings
+--Page 7: Giant Explosion Settings
     local giantExplosionMenu = missionCommands.addSubMenu("Giant Explosion Settings", splash_damage_menu)
     missionCommands.addCommand("Toggle Giant Explosion", giantExplosionMenu, toggleSplashDamageSetting, "giant_explosion_enabled")
     missionCommands.addCommand("Toggle Static Target", giantExplosionMenu, toggleSplashDamageSetting, "giant_explosion_target_static")
-    for name, target in pairs(giantExplosionTargets) do
-        local displayName = name:gsub("GiantExplosionTarget", "GiantExplosionTarget")
-        missionCommands.addCommand("Detonate " .. displayName, giantExplosionMenu, function()
-            trigger.action.setUserFlag(displayName, 1)
-        end)
-            end
-    missionCommands.addCommand("Detonate All Giant Targets", giantExplosionMenu, function()
-        for name, target in pairs(giantExplosionTargets) do
-            local flagName = name:gsub("GiantExplosionTarget", "GiantExplosionTarget")
-            trigger.action.setUserFlag(flagName, 1)
+    missionCommands.addCommand("Toggle On Damage", giantExplosionMenu, toggleSplashDamageSetting, "giantexplosion_ondamage")
+    missionCommands.addCommand("Toggle On Death", giantExplosionMenu, toggleSplashDamageSetting, "giantexplosion_ondeath")
+    missionCommands.addCommand("Toggle Test Mode", giantExplosionMenu, toggleSplashDamageSetting, "giantexplosion_testmode")
+    if splash_damage_options.giantexplosion_testmode then
+	    local testExplosionMenu = missionCommands.addSubMenu("Test Giant Explosion", giantExplosionMenu)
+        for _, target in ipairs(giantExplosionTestTargets) do
+            missionCommands.addCommand("Detonate " .. target.name, testExplosionMenu, function()
+                triggerGiantExplosion({
+                    pos = target.pos,
+                    power = splash_damage_options.giant_explosion_power,
+                    scale = splash_damage_options.giant_explosion_scale,
+                    duration = splash_damage_options.giant_explosion_duration,
+                    count = splash_damage_options.giant_explosion_count
+                })
+            end)
         end
-    end)
+        missionCommands.addCommand("Detonate All Giant Targets", testExplosionMenu, function()
+            for _, target in ipairs(giantExplosionTestTargets) do
+                triggerGiantExplosion({
+                    pos = target.pos,
+                    power = splash_damage_options.giant_explosion_power,
+                    scale = splash_damage_options.giant_explosion_scale,
+                    duration = splash_damage_options.giant_explosion_duration,
+                    count = splash_damage_options.giant_explosion_count
+                })
+            end
+        end)
+    end
     local powerMenu = missionCommands.addSubMenu("Explosion Power", giantExplosionMenu)
-    addValueAdjustmentCommands(powerMenu, "giant_explosion_power")
+	missionCommands.addCommand("+1000", powerMenu, updateSplashDamageSetting, "giant_explosion_power", 1000)
+    missionCommands.addCommand("+500", powerMenu, updateSplashDamageSetting, "giant_explosion_power", 500)
+	missionCommands.addCommand("+100", powerMenu, updateSplashDamageSetting, "giant_explosion_power", 100)
+	missionCommands.addCommand("-1000", powerMenu, updateSplashDamageSetting, "giant_explosion_power", -1000)
+    missionCommands.addCommand("-500", powerMenu, updateSplashDamageSetting, "giant_explosion_power", -500)
+	missionCommands.addCommand("-100", powerMenu, updateSplashDamageSetting, "giant_explosion_power", -100)
     local scaleMenu = missionCommands.addSubMenu("Size Scale", giantExplosionMenu)
     missionCommands.addCommand("+0.1", scaleMenu, updateSplashDamageSetting, "giant_explosion_scale", 0.1)
     missionCommands.addCommand("+0.5", scaleMenu, updateSplashDamageSetting, "giant_explosion_scale", 0.5)
@@ -2285,6 +2501,7 @@ function addSplashDamageMenu()
     missionCommands.addCommand("-0.25s", durationMenu, updateSplashDamageSetting, "giant_explosion_duration", -0.25)
     local countMenu = missionCommands.addSubMenu("Explosion Count", giantExplosionMenu)
     addValueAdjustmentCommands(countMenu, "giant_explosion_count")
+
 
     --Page 8: Ground Ordnance and All Vehicles Smoke Settings
     local groundOrdnanceMenu = missionCommands.addSubMenu("Ground Ordnance and All Vehicles Smoke Settings", splash_damage_menu)
@@ -2304,7 +2521,7 @@ function addSplashDamageMenu()
     missionCommands.addCommand("-0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.1)
     missionCommands.addCommand("-0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.5)
     missionCommands.addCommand("-1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -1.0)
-    -- New commands for smokeandcookoffeffectallvehicles
+    --New commands for smokeandcookoffeffectallvehicles
     missionCommands.addCommand("Toggle Smoke All Vehicles", groundOrdnanceMenu, toggleSplashDamageSetting, "smokeandcookoffeffectallvehicles")
     local smokeSizeMenu = missionCommands.addSubMenu("Smoke Size", groundOrdnanceMenu)
     missionCommands.addCommand("Set Size 1", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 1)
@@ -2336,37 +2553,13 @@ if (script_enable == 1) then
     end, {}, timer.getTime() + refreshRate)
 
     if splash_damage_options.giant_explosion_enabled then
-        giantExplosionTargets = {} --Ensure it’s fresh
-        local targetCount = 0
-        for coa = 0, 2 do
-            local groups = coalition.getGroups(coa)
-            if groups then
-                for _, group in pairs(groups) do
-                    local units = group:getUnits()
-                    if units then
-                        for _, unit in pairs(units) do
-                            local name = unit:getName()
-                            if name:find("GiantExplosionTarget") then
-                                local pos = unit:getPosition().p
-                                giantExplosionTargets[name] = {obj = unit, pos = pos}
-                                if splash_damage_options.giant_explosion_target_static then
-                                    giantExplosionTargets[name].pos = pos
-                            end
-                                debugMsg("Found GiantExplosionTarget: " .. name .. " at X:" .. pos.x .. " Y:" .. pos.y .. " Z:" .. pos.z)
-                                targetCount = targetCount + 1
-                end
-            end
-        end
-                end
-            end
-        end
-        debugMsg("Total GiantExplosionTargets found: " .. targetCount)
-        timer.scheduleFunction(checkGiantExplosionFlag, {}, timer.getTime() + splash_damage_options.giant_explosion_poll_rate)
+        scanGiantExplosionTargets()
         if not splash_damage_options.giant_explosion_target_static then
-            timer.scheduleFunction(updateTargetPosition, {}, timer.getTime() + 1.0)
+            timer.scheduleFunction(updateGiantExplosionPositions, {}, timer.getTime() + 1.0)
         end
     end
 
     world.addEventHandler(WpnHandler)
     addSplashDamageMenu()
 end
+
