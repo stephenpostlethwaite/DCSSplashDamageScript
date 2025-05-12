@@ -1,4 +1,7 @@
 --[[
+    x x 2025 (Stevey666) - 3.3
+	  - Added changed JF17 ordnance to weapons table (thanks to Kurdes)
+	  
     10 May 2025 (Stevey666) - 3.2
 	  - New feature (user request): ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
 	  - New feature (user request): option to create additional smoke and cargo cookoff effect for all ground vehicles initially destroyed by your ordnance or the script, set to false by default.
@@ -713,9 +716,16 @@ explTable = {
     ["AGR_20_M282"] = { explosive = 8, shaped_charge = false },
     ["Hydra_70_M282_MPP"] = { explosive = 5, shaped_charge = true },
     ["BRM-1_90MM"] = { explosive = 8, shaped_charge = false },
+
+    --JF17 weapons changes as per Kurdes
+    ["C_701T"] = { explosive = 38, shaped_charge = false },
+    ["C_701IR"] = { explosive = 38, shaped_charge = false },
+    ["LS_6_100"] = { explosive = 45, shaped_charge = false },
+    ["LS_6"] = { explosive = 100, shaped_charge = false },
+    ["LS_6_500"] = { explosive = 274, shaped_charge = false },
 	
 	--*** Rocketry ***
-    ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
+    ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv))
     ["M26"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
 
 	--*** Shells ***
