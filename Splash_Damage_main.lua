@@ -1,6 +1,12 @@
 --[[
     x x 2025 (Stevey666) - 3.3
 	  - Added changed JF17 ordnance to weapons table (thanks to Kurdes)
+	  - Added naval weapons into explosive table
+	  - Added some ground unit ordnance to explosive table and allowing a wider area to be tracked
+	  - Game_mesages and enable_radio_menu options defaulted to false. 
+			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
+			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
+	  - Fixed incorrect radio menu item for always_cascade_explode
 	  
     10 May 2025 (Stevey666) - 3.2
 	  - New feature (user request): ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
@@ -170,7 +176,7 @@ splash_damage_options = {
     ["giant_explosion_power"] = 6000,    --Power in kg of TNT (default 8 tons)
     ["giant_explosion_scale"] = 1,     --Size scale factor (default 1)
     ["giant_explosion_duration"] = 3.0,  --Total duration in seconds (default 3s)
-    ["giant_explosion_count"] = 250,      --Number of explosions (default 300)
+    ["giant_explosion_count"] = 250,      --Number of explosions (default 250)
     ["giant_explosion_target_static"] = true, --Toggle to true for static targets (store position once), false for dynamic (update every second)
     ["giant_explosion_poll_rate"] = 1,    --Polling rate in seconds for flag checks (default 1s)
     ["giantexplosion_ondamage"] = true,   --Trigger explosion when unit is damaged
@@ -178,9 +184,11 @@ splash_damage_options = {
     ["giantexplosion_testmode"] = true,  --Enable test mode with separate array for radio commands	
     
     --Ground Unit Ordnance
-    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
+    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
+    ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
+    ["scan_50m_for_groundordnance"] = true, --If true, uses a 50m scan radius for ground ordnance instead of dynamic blast radius
 
     --Smoke and Cookoff Effect For All Vehicles
     ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
@@ -717,7 +725,7 @@ explTable = {
     ["Hydra_70_M282_MPP"] = { explosive = 5, shaped_charge = true },
     ["BRM-1_90MM"] = { explosive = 8, shaped_charge = false },
 
-    --JF17 weapons changes as per Kurdes
+    --*** JF17 weapons changes as per Kurdes ***
     ["C_701T"] = { explosive = 38, shaped_charge = false },
     ["C_701IR"] = { explosive = 38, shaped_charge = false },
     ["LS_6_100"] = { explosive = 45, shaped_charge = false },
@@ -725,9 +733,10 @@ explTable = {
     ["LS_6_500"] = { explosive = 274, shaped_charge = false },
 	
 	--*** Rocketry ***
-    ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv))
-    ["M26"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
-
+    ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
+    -- ["M26"] = { explosive = 0, shaped_charge = false, groundordnance = true}, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+	["M26"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+	
 	--*** Shells ***
 	["weapons.shells.M_105mm_HE"] = { explosive = 12, shaped_charge = false, groundordnance = true }, --105mm HE shell, M119/M102 (~10-15 kg TNT equiv)
 	["weapons.shells.M_155mm_HE"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, M777/M109 (~50-70 kg TNT equiv)
@@ -737,6 +746,29 @@ explTable = {
 	["weapons.shells.PLZ_155_HE"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, PLZ05 (~50-70 kg TNT equiv)
 	["weapons.shells.M185_155"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, M109 (~50-70 kg TNT equiv)
 	["weapons.shells.2A64_152"] = { explosive = 50, shaped_charge = false, groundordnance = true }, --152mm HE shell, SAU Msta (~40-60 kg TNT equiv) 
+	
+	["weapons.shells.2A46M_125_HE"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --125mm HE shell, T-90 (~5-6 kg TNT equiv)
+	["weapons.shells.HESH_105"] = { explosive = 6, shaped_charge = false, groundordnance = true }, --105mm HESH shell, M1128 Stryker (~4-6 kg TNT equiv)
+	
+	---*** Naval ***
+	["weapons.missiles.AGM_84S"] = { explosive = 225, shaped_charge = false, groundordnance = true }, --Harpoon missile, Ticonderoga (~200-250 kg TNT equiv)
+	["weapons.missiles.P_500"] = { explosive = 500, shaped_charge = false, groundordnance = true }, --P-500 Bazalt missile, Moscow (~450-550 kg TNT equiv)	
+	
+	["weapons.shells.AK176_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, AK-176 (~0.7-1 kg TNT equiv)
+	["weapons.shells.A222_130"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, A-222 Bereg (~4-5 kg TNT equiv)
+	["weapons.shells.53-UBR-281U"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
+	["weapons.shells.PJ87_100_PFHE"] = { explosive = 3, shaped_charge = false, groundordnance = true }, --100mm HE-PF shell, Type 052B (~2.4-3.4 kg TNT equiv)
+	["weapons.shells.AK100_100"] = { explosive = 3, shaped_charge = false, groundordnance = true }, --100mm HE shell, AK-100 (~2.5-3.5 kg TNT equiv) AK-100 100mm (e.g., on Project 1135 Krivak-class)
+	["weapons.shells.AK130_130"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, AK-130 (~4-5 kg TNT equiv) AK-130 130mm (e.g., on Project 956 Sovremenny-class)
+	["weapons.shells.2A70_100"] = { explosive = 3, shaped_charge = false, groundordnance = true }, --100mm HE shell, 2A70 (~3-3.5 kg TNT equiv) 2A70 100mm (e.g., on Project 775 Ropucha-class)
+	["weapons.shells.OTO_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, OTO Melara (~0.8-1.1 kg TNT equiv) OTO Melara 76mm (e.g., on NATO frigates like Oliver Hazard Perry-class)
+	["weapons.shells.MK45_127"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --127mm HE shell, Mark 45 (~4.8-5.6 kg TNT equiv) Mark 45 127mm (e.g., on Arleigh Burke-class destroyers)
+	["weapons.shells.PJ26_76_PFHE"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE-PF shell, PJ-26 (~0.8-1.1 kg TNT equiv)
+	["weapons.shells.53-UOR-281U"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
+	["weapons.shells.MK75_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, Mk 75 (~0.8-1.1 kg TNT equiv)
+	--*** Bismark Mod Weapons ***
+	["weapons.shells.380mm_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
+	["weapons.shells.SK_C_33_105_HE"] = { explosive = 15, shaped_charge = false, groundordnance = true }, --105mm HE shell, SK C/33 (~12-16 kg TNT equiv)
 }
 
 
@@ -1379,12 +1411,14 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                     blastRadius = math.pow(explosionPower, 1/3) * 10 * splash_damage_options.dynamic_blast_radius_modifier 
                 end
 
-                --Tight scan while weapon exists
-                --local tightRadius = 50
-                --if splash_damage_options.use_dynamic_blast_radius then
-                --tightRadius = math.pow(explosionPower, 1/3) * 5 * splash_damage_options.dynamic_blast_radius_modifier
-                --end
-				local tightRadius = blastRadius --Use already calculated blastRadius
+                    --Set tightRadius, use 50m for ground ordnance if enabled
+                    local tightRadius = blastRadius
+                    if wpnData.isGroundUnitOrdnance and splash_damage_options.scan_50m_for_groundordnance then
+                        tightRadius = 50 --Fixed 50m radius for ground ordnance
+                        if splash_damage_options.track_groundunitordnance_debug then
+                            debugMsg("Using 50m scan radius for ground ordnance " .. wpnData.name)
+                        end
+                    end
                 local volS = {
                     id = world.VolumeType.SPHERE,
                     params = { 
@@ -1563,7 +1597,14 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 					trigger.action.explosion(explosionPoint, explosionPower)
                             table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
                             debugMsg("Added to recentExplosions for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
+    	--Check for units destroyed by initial explosion
+	    local playerName = wpnData.init or "unknown"
+	    for _, target in ipairs(chosenTargets) do
+	        if target.unit:isExist() and target.health > 0 and target.unit:getLife() <= 0 then
+	            debugMsg("Unit " .. target.name .. " destroyed by initial explosion, credited to player: " .. playerName)
 				end
+	    end
+	end
 				blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
 			end
             --detect_ordnance_destruction comes before recent_large_explosion_snap in original
@@ -2052,6 +2093,20 @@ function onWpnEvent(event)
                 --Handle ground ordnance explicitly
             if weaponData and weaponData.groundordnance then
                 if splash_damage_options.track_groundunitordnance then
+                    --Count tracked ground ordnance
+                    local groundOrdnanceCount = 0
+                    for _, wpnData in pairs(tracked_weapons) do
+                        if wpnData.isGroundUnitOrdnance then
+                            groundOrdnanceCount = groundOrdnanceCount + 1
+                        end
+                    end
+                    if groundOrdnanceCount >= splash_damage_options.groundunitordnance_maxtrackedcount then
+                        if splash_damage_options.debug then
+                            debugMsg("Skipping tracking for " .. typeName .. ": ground ordnance limit reached (" .. groundOrdnanceCount .. "/" .. splash_damage_options.groundunitordnance_maxtrackedcount .. ")")
+                            env.info("SplashDamage: Skipping tracking for " .. typeName .. ": ground ordnance limit reached (" .. groundOrdnanceCount .. "/" .. splash_damage_options.groundunitordnance_maxtrackedcount .. ")")
+                        end
+                        return
+                    end
                     if splash_damage_options.track_groundunitordnance_debug then
                         debugMsg("Tracking ground unit ordnance: " .. typeName .. " fired by " .. (event.initiator and event.initiator:getTypeName() or "unknown"))
                         env.info("SplashDamage: Tracking ground unit ordnance: " .. typeName .. " (" .. (event.initiator and event.initiator:getTypeName() or "no initiator") .. ")")
@@ -2200,6 +2255,9 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                 end
                 local surface_area = _length * height
                 local damage_for_surface = intensity * surface_area
+                    if splash_damage_options.debug then
+                        debugMsg("Processing unit '" .. obj:getTypeName() .. "' at dist=" .. string.format("%.1f", dist) .. "m: intensity=" .. string.format("%.4f", intensity) .. ", surface_area=" .. string.format("%.2f", surface_area) .. ", damage_for_surface=" .. string.format("%.4f", damage_for_surface))
+                    end
                 if damage_for_surface > splash_damage_options.cascade_damage_threshold then
                     local explosion_size = damage_for_surface
                     if obj:getDesc().category == Unit.Category.STRUCTURE then
@@ -2210,7 +2268,7 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                     if splash_damage_options.always_cascade_explode then
                             triggerExplosion = true
                             if splash_damage_options.debug then
-                                debugMsg("Triggering explosion for " .. obj:getTypeName() .. " due to always_cascade_explode")
+                                debugMsg("Triggering secondary explosion for '" .. obj:getTypeName() .. "' due to always_cascade_explode")
                             end
                         else
                             if obj:getDesc().life then
@@ -2218,7 +2276,7 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                                 local maxHealth = obj:getDesc().life or 1
                                 local healthPercent = (health / maxHealth) * 100
                                 if splash_damage_options.debug then
-                                    debugMsg("Health check for " .. obj:getTypeName() .. ": " .. health .. "/" .. maxHealth .. " (" .. healthPercent .. "%) vs threshold " .. splash_damage_options.cascade_explode_threshold)
+                                    debugMsg("Health check for '" .. obj:getTypeName() .. "': " .. health .. "/" .. maxHealth .. " (" .. string.format("%.2f", healthPercent) .. "%) vs threshold " .. splash_damage_options.cascade_explode_threshold)
                                 end
                                 if healthPercent <= splash_damage_options.cascade_explode_threshold then
                                     triggerExplosion = true
@@ -2226,7 +2284,7 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                             else
                                 triggerExplosion = true
                                 if splash_damage_options.debug then
-                                    debugMsg("Triggering explosion for " .. obj:getTypeName() .. " (no life data)")
+                                    debugMsg("Triggering secondary explosion for '" .. obj:getTypeName() .. "' (no life data)")
                                 end
                             end
                             if not triggerExplosion and obj:getDesc().category == Unit.Category.GROUND_UNIT then
@@ -2234,7 +2292,7 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                                 if health <= 0 then
                                     triggerExplosion = true
                                     if splash_damage_options.debug then
-                                        debugMsg("Triggering explosion for " .. obj:getTypeName() .. " (health <= 0)")
+                                        debugMsg("Triggering secondary explosion for '" .. obj:getTypeName() .. "' (health <= 0)")
                                     end
                                 end
                             end
@@ -2261,15 +2319,36 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                                     flameSize = cargoData.flameSize,
                                     flameDuration = cargoData.flameDuration
                                 })
+                                if splash_damage_options.debug then
+                                    debugMsg("Queued cargo effect for '" .. obj:getTypeName() .. "' with power " .. cargoPower)
+                                end
                             end
                     end
                     if triggerExplosion then
                             local final_power = explosion_size * splash_damage_options.cascade_scaling
-                            if splash_damage_options.track_groundunitordnance_debug and weaponData.groundordnance then
-                                debugMsg("Calculated power for " .. obj:getTypeName() .. " at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. ", distance " .. dist .. "m: " .. final_power)
-                                debugMsg("Scheduling secondary explosion on " .. obj:getTypeName() .. " at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. " with power " .. final_power)
+                            if splash_damage_options.debug then
+                                debugMsg("Scheduling secondary explosion for '" .. obj:getTypeName() .. "' at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. ", dist=" .. string.format("%.1f", dist) .. "m, power=" .. string.format("%.2f", final_power))
                             end
+                            if splash_damage_options.track_groundunitordnance_debug and weaponData.groundordnance then
+                                debugMsg("Calculated power for '" .. obj:getTypeName() .. "' at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. ", distance " .. dist .. "m: " .. final_power)
+                            end
+                            local playerName = tracked_weapons[weapon] and tracked_weapons[weapon].init or "unknown"
+                            timer.scheduleFunction(function(args)
+                                local obj = args[1]
+                                local playerName = args[2]
+                                if obj:isExist() and obj:getLife() <= 0 then
+                                    debugMsg("Unit '" .. obj:getTypeName() .. "' destroyed by secondary explosion, credited to player: " .. playerName)
+                                end
+                            end, {obj, playerName}, timer.getTime() + timing + 0.1)
                             timer.scheduleFunction(explodeObject, {obj_location, dist, final_power}, timer.getTime() + timing)
+                        else
+                            if splash_damage_options.debug then
+                                debugMsg("No secondary explosion for '" .. obj:getTypeName() .. "': health above threshold (" .. string.format("%.2f", (obj:getLife() / obj:getDesc().life) * 100) .. "% > " .. splash_damage_options.cascade_explode_threshold .. "%)")
+                            end
+                        end
+                    else
+                        if splash_damage_options.debug then
+                            debugMsg("No secondary explosion for '" .. obj:getTypeName() .. "': damage_for_surface=" .. string.format("%.4f", damage_for_surface) .. " below threshold " .. splash_damage_options.cascade_damage_threshold)
                         end
                     end
                 end
@@ -2389,7 +2468,7 @@ function addSplashDamageMenu()
     addValueAdjustmentCommands(infantryCantFireMenu, "infantry_cant_fire_health")
     local rocketMultiplierMenu = missionCommands.addSubMenu("Rocket Multiplier", debugGeneralMenu)
     addValueAdjustmentCommands(rocketMultiplierMenu, "rocket_multiplier")
-    --Page 2/3: Explosions
+    --Page 2: Explosions
     local explosionCargoMenu = missionCommands.addSubMenu("Explosion Settings", splash_damage_menu)
     local staticDamageMenu = missionCommands.addSubMenu("Static Damage Boost", explosionCargoMenu)
     addValueAdjustmentCommands(staticDamageMenu, "static_damage_boost")
@@ -2407,17 +2486,18 @@ function addSplashDamageMenu()
     local dynamicBlastMenu = missionCommands.addSubMenu("Dynamic Blast Radius Modifier", explosionCargoMenu)
     addValueAdjustmentCommands(dynamicBlastMenu, "dynamic_blast_radius_modifier")
 	
-    local explosionCargoMenu = missionCommands.addSubMenu("Cascade Settings", splash_damage_menu)
-    local cascadeScalingMenu = missionCommands.addSubMenu("Cascade Scaling", explosionCargoMenu)
+   --Page 2: Cascade	
+    local explosionCascMenu = missionCommands.addSubMenu("Cascade Settings", splash_damage_menu)
+    local cascadeScalingMenu = missionCommands.addSubMenu("Cascade Scaling", explosionCascMenu)
     addValueAdjustmentCommands(cascadeScalingMenu, "cascade_scaling")
-    local cascadeExplodeThresholdMenu = missionCommands.addSubMenu("Cascade Explode Threshold", explosionCargoMenu)
+    local cascadeExplodeThresholdMenu = missionCommands.addSubMenu("Cascade Explode Threshold", explosionCascMenu)
     addValueAdjustmentCommands(cascadeExplodeThresholdMenu, "cascade_explode_threshold")
-    local cascadeThresholdMenu = missionCommands.addSubMenu("Cascade Damage Threshold", explosionCargoMenu)
+    local cascadeThresholdMenu = missionCommands.addSubMenu("Cascade Damage Threshold", explosionCascMenu)
     addValueAdjustmentCommands(cascadeThresholdMenu, "cascade_damage_threshold")
-
+    missionCommands.addCommand("Toggle Always Cascade Explode", explosionCascMenu, toggleSplashDamageSetting, "always_cascade_explode")
+    
     --Page 4: Cargo and Ordnance Protection 
     local explosionCargoMenu = missionCommands.addSubMenu("Cargo and Ordnance", splash_damage_menu)
-    missionCommands.addCommand("Toggle Always Cascade Explode", explosionCargoMenu, toggleSplashDamageSetting, "always_cascade_explode")
     missionCommands.addCommand("Toggle Tracking & Cargo Effects", explosionCargoMenu, toggleSplashDamageSetting, "track_pre_explosion")
     local cargoThresholdMenu = missionCommands.addSubMenu("Cargo Damage Threshold", explosionCargoMenu)
     addValueAdjustmentCommands(cargoThresholdMenu, "cargo_damage_threshold")
@@ -2572,4 +2652,3 @@ if (script_enable == 1) then
     world.addEventHandler(WpnHandler)
     addSplashDamageMenu()
 end
-
