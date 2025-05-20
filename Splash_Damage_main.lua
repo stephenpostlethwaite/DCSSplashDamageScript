@@ -1,5 +1,9 @@
 --[[
-    x x 2025 (Stevey666) - 3.3
+    ---------------------------------------------------------------------- Latest Changes --------------------------------------------------------------------
+    x x 2025 - 3.3
+	
+		(Stevey666) 
+		
 	  - Added changed JF17 ordnance to weapons table (thanks to Kurdes)
 	  - Added naval weapons into explosive table
 	  - Added some ground unit ordnance to explosive table and allowing a wider area to be tracked
@@ -8,139 +12,58 @@
 			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
 	  - Fixed incorrect radio menu item for always_cascade_explode
 	  
-    10 May 2025 (Stevey666) - 3.2
-	  - New feature (user request): ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
-	  - New feature (user request): option to create additional smoke and cargo cookoff effect for all ground vehicles initially destroyed by your ordnance or the script, set to false by default.
-	  - Adjusted blastwave explosion
-	  - Changes to debug output, ordering by vehicle distance
-	  - Thanks to tae. for the report, adjusted Ural-4320 in vehicle table, had incorrect name so wasn't triggering cook off.
-	  - Fixed error popup when using Mig 21's SPRD-99
-	  - Added Cargo Cook off / fireball to some static objects i.e crates/barrels
-	  - Reworked Giant Explosion tracking - no mission editor trigger needed, just name static unit or unit "GiantExplosionTarget[X]"
-	  - Allow for Giant Explosion trigger on damage or on death
-
-    04 April 2025 (Stevey666) - 3.1
-	  - Set default cluster munitions option to false, set this to true in the options if you want it
-      - Added missing radio commands for Cascade Scaling
-	  - Adjust default cascading to 2 (from 1)
-	  - Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
-	  - Prevent weapons not in the list from being tracked
-	  - Moved some logging behind the debug mode flag
-	  - Ordnance Protection, added a max height ordnance protection will snap explosion to ground
-	  - Ordnance Protection, fixed enable/disable option
-	  - Added Giant Explosion feature
-	  - Adjusted some hydra70 values on recom. from ETBSmorgan
+	    (Sniex)
+		
+	  - Added weapon types to the expltable
+	  - Adjusted some rocket explosive power numbers (+1 or 2)
+	  - Adjusted explosive power for anti radar, ship missile, cruise missile and some others
+	  - Made options menu more readable
 	  
-	  
-    09 March 2025 (Stevey666) - 3.0
-      - Added ordinance protection gives a few options - stop the additional larger_explosion that tends to blow up your own bombs if theyre dropped at the same place if its within x m
-	  - Additional ordnance protection option that will cause a snap to ground larger_explosion if its within x meters of a recent larger explosion and within x seconds (can set in options)
-      - Added vehicle scanning around a weapon to allow for..
-	  - Cook offs - you can set vehicles that will cook off i.e ammo trucks, number of explosions, debris explosions, power adjustable
-	  - Fuel/Tanker explosion and flames - when a fuel tanker blows it will through up a big flame - adjustable in the scripts
-	  - Added section for vehicles for the above
-	  - Added radio commands for everything
-	  - Added in cluster munitions changes (note: barely tested, its not particularly accurate or that useful at this point so leaving disabled)
-	  - Potential bug - testing, stacking too many units together may cause a MIST error if you're using mist
-	  
-	  - Setting this as 3.0 as I'd like to be responsive to requests, updates etc - creating a new fork to track this
-	
-
-    10 Feb 2025 (Stevey666) - 2.0.7
-      - Fixed AGM 154/Adjusted weapons
-      - Added overall damage scaling 
-      - Added modifier for shaped charges (i.e. Mavericks), adjusted weapon list accordingly
-      - Adjusted blast radius and damage calculations, created option for dynamic blast radius
-      - Adjusted cascading explosions, added additional "cascade_scaling" modifier and cascade explode threshold modifier. Units wont explode on initial impact unless health drops under threshold
-      - Added always_cascade_explode option so you can set it to the old ways of making everything in the blast wave go kaboom
-      - Added in game radio commands to change the new options ingame without having to reload everything in mission editor to test it out
-
-    12 November 2024 (by JGi | Quéton 1-1)
-    - Tweak down radius 100>90 (Thanks Arhibeau)
-    - Tweak down some values
-
-    20 January 2024 (by JGi | Quéton 1-1)
-    - Added missing weapons to explTable
-    - Sort weapons in explTable by type
-    - Added aircraft type in log when missing
-
-    03 May 2023 (KERV)
-      Correction AGM 154 (https://forum.dcs.world/topic/289290-splash-damage-20-script-make-explosions-better/page/5/#comment-5207760)
-  
-    06 March 2023 (Kerv)
-    - Add some data for new ammunition
-
-    16 April 2022
-      spencershepard (GRIMM):
-      - Added new/missing weapons to explTable
-      - Added new option rocket_multiplier
-
-    31 December 2021
-      spencershepard (GRIMM):
-      - Added many new weapons
-      - Added filter for weapons.shells events
-      - Fixed mission weapon message option
-      - Changed default for damage_model option
-  
-    21 December 2021
-      spencershepard (GRIMM):
-      SPLASH DAMAGE 2.0:
-      - Added blast wave effect to add timed and scaled secondary explosions on top of game objects
-      - Object geometry within blast wave changes damage intensity
-      - Damage boost for structures since they are hard to kill, even if very close to large explosions
-      - Increased some rocket values in explTable
-      - Missing weapons from explTable will display message to user and log to DCS.log so that we can add what's missing
-      - Damage model for ground units that will disable their weapons and ability to move with partial damage before they are killed
-      - Added options table to allow easy adjustments before release
-      - General refactoring and restructure
-
-    28 October 2020
-      FrozenDroid: 
-      - Uncommented error logging, actually made it an error log which shows a message box on error.
-      - Fixed the too restrictive weapon filter (took out the HE warhead requirement)
-
-    2 October 2020
-      FrozenDroid:
-      - Added error handling to all event handler and scheduled functions. Lua script errors can no longer bring the server down.
-      - Added some extra checks to which weapons to handle, make sure they actually have a warhead (how come S-8KOM's don't have a warhead field...?)
+    ---------------------------------------------------------------------- Full Changelog at bottom of script ------------------------------------------------
 --]]
 
 ----[[ ##### SCRIPT CONFIGURATION ##### ]]----
 splash_damage_options = {
-    --debug options
-    ["game_messages"] = false, --enable some messages on screen
-    ["debug"] = false,  --enable debugging messages 
-    ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
+    ---------------------------------------------------------------------- Debug -----------------------------------------------------------------------------
+    ["game_messages"] = true, --enable some messages on screen
+    ["debug"] = true,  --enable debugging messages 
+    ["weapon_missing_message"] = true, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
 	
-    ["enable_radio_menu"] = false, --enables the in-game radio menu for modifying settings
+    ---------------------------------------------------------------------- Radio -----------------------------------------------------------------------------
+    ["enable_radio_menu"] = true, --enables the in-game radio menu for modifying settings
     
-    ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
+    ---------------------------------------------------------------------- Basic Splash Settings -------------------------------------------------------------
+    ["static_damage_boost"] = 300, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
     ["wave_explosions"] = true, --secondary explosions on top of game objects, radiating outward from the impact point and scaled based on size of object and distance from weapon impact point
     ["larger_explosions"] = true, --secondary explosions on top of weapon impact points, dictated by the values in the explTable
     ["damage_model"] = true, --allow blast wave to affect ground unit movement and weapons
-    ["blast_search_radius"] = 90, --this is the max size of any blast wave radius, since we will only find objects within this zone
-    ["cascade_damage_threshold"] = 0.1, --if the calculated blast damage doesn't exceed this value, there will be no secondary explosion damage on the unit. If this value is too small, the appearance of explosions far outside of an expected radius looks incorrect.
+    ["blast_search_radius"] = 90, --this is the max size of any blast wave radius, since we will only find objects within this zone.  Only used if dynamic is not enabled
+    ["use_dynamic_blast_radius"] = true,   --if true, blast radius is calculated from explosion power; if false, blast_search_radius (90) is used
+    ["dynamic_blast_radius_modifier"] = 2,  --multiplier for the blast radius
     ["blast_stun"] = false, --not implemented
+    ---------------------------------------------------------------------- Units -----------------------------------------------------------------------------
     ["unit_disabled_health"] = 30, --if health is below this value after our explosions, disable its movement 
     ["unit_cant_fire_health"] = 40, --if health is below this value after our explosions, set ROE to HOLD to simulate damage weapon systems
     ["infantry_cant_fire_health"] = 60,  --if health is below this value after our explosions, set ROE to HOLD to simulate severe injury
 	
+    ---------------------------------------------------------------------- Rockets ---------------------------------------------------------------------------
     ["rocket_multiplier"] = 1.3, --multiplied by the explTable value for rockets
     ["overall_scaling"] = 1,    --overall scaling for explosive power
-    
+
+    ---------------------------------------------------------------------- Shaped Charge ---------------------------------------------------------------------    
     ["apply_shaped_charge_effects"] = true, --apply reduction in blastwave etc for shaped charge munitions
     ["shaped_charge_multiplier"] = 0.2,  --multiplier that reduces blast radius and explosion power for shaped charge munitions.
     
-    ["use_dynamic_blast_radius"] = true,   --if true, blast radius is calculated from explosion power; if false, blast_search_radius (90) is used
-    ["dynamic_blast_radius_modifier"] = 2,  --multiplier for the blast radius
-    
+
+    ---------------------------------------------------------------------- Cascading -------------------------------------------------------------------------  
     ["cascade_scaling"] = 2,    --multiplier for secondary (cascade) blast damage, 1 damage fades out too soon, 2 or 3 damage seems a good balance
+    ["cascade_damage_threshold"] = 0.1, --if the calculated blast damage doesn't exceed this value, there will be no secondary explosion damage on the unit. If this value is too small, the appearance of explosions far outside of an expected radius looks incorrect.
     ["cascade_explode_threshold"] = 60,   --only trigger cascade explosion if the unit's current health is <= this percent of its maximum, setting can help blow nearby jeeps but not tanks
     ["always_cascade_explode"] = false, --switch if you want everything to explode like with the original script
     
-	
+    ---------------------------------------------------------------------- Cargo Cook Off/Fuel Explosion  ----------------------------------------------------
     --track_pre_explosion/enable_cargo_effects should both be the same value
     ["track_pre_explosion"] = true, --Toggle to enable/disable pre-explosion tracking
     ["enable_cargo_effects"] = true, --Toggle for enabling/disabling cargo explosions and cook-offs  
@@ -160,7 +83,7 @@ splash_damage_options = {
     ["recent_large_explosion_range"] = 100, --range its looking for in meters for a recent large_explosion generated by the script
     ["recent_large_explosion_time"] = 4, --in seconds how long ago there was a recent large_explosion generated by the script
 
-    --Cluster bomb settings
+    ---------------------------------------------------------------------- Cluster Bombs ---------------------------------------------------------------------
     ["cluster_enabled"] = false,
     ["cluster_base_length"] = 150,           --Base forward spread (meters)
     ["cluster_base_width"] = 200,            --Base lateral spread (meters)
@@ -171,7 +94,8 @@ splash_damage_options = {
     ["cluster_bomblet_reductionmodifier"] = true, --Use equation to reduce number of bomblets (to make it look better)
     ["cluster_bomblet_damage_modifier"] = 1,  --Adjustable global modifier for bomblet explosive power
 	
-	--Giant Explosion Options - Remember, any target you want to blow up needs to be named "GiantExplosionTarget(X)"  (X) being any value/name etc
+    ---------------------------------------------------------------------- Giant Explosions ------------------------------------------------------------------
+    	--Remember, any target you want to blow up needs to be named "GiantExplosionTarget(X)"  (X) being any value/name etc
     ["giant_explosion_enabled"] = true,  --Toggle to enable/disable Giant Explosion
     ["giant_explosion_power"] = 6000,    --Power in kg of TNT (default 8 tons)
     ["giant_explosion_scale"] = 1,     --Size scale factor (default 1)
@@ -183,24 +107,25 @@ splash_damage_options = {
     ["giantexplosion_ondeath"] = true,    --Trigger explosion when unit is destroyed
     ["giantexplosion_testmode"] = true,  --Enable test mode with separate array for radio commands	
     
-    --Ground Unit Ordnance
+    ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
     ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
     ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
     ["scan_50m_for_groundordnance"] = true, --If true, uses a 50m scan radius for ground ordnance instead of dynamic blast radius
-
-    --Smoke and Cookoff Effect For All Vehicles
+	
+	
+    ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
     ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
-	["allunits_enable_smoke"] = false,
-	["allunits_enable_cookoff"] = false,
-	["allunits_explode_power"] = 50, --Initial power of vehicle exploding
+    ["allunits_enable_smoke"] = false,
+    ["allunits_enable_cookoff"] = false,
+    ["allunits_explode_power"] = 50, --Initial power of vehicle exploding
     ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
     ["allunits_default_flame_duration"] = 60, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
-	["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
-	["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
-	["allunits_cookoff_power"] = 10, --power of the cookoff explosions
-	["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
+    ["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
+    ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
+    ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
+    ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
 
 }
 
@@ -602,6 +527,7 @@ explTable = {
     ["GB-6"] = { explosive = 0, shaped_charge = false },
     ["GB-6-HE"] = { explosive = 0, shaped_charge = false },
     ["GB-6-SFW"] = { explosive = 0, shaped_charge = false },
+    ["X_65"] = { explosive = 100, shaped_charge = false },
   
     --*** AIR GROUND MISSILE (AGM) ***
     ["AGM_62"] = { explosive = 400, shaped_charge = false },
@@ -643,26 +569,33 @@ explTable = {
     ["X_29L"] = { explosive = 320, shaped_charge = false },
     ["X_29T"] = { explosive = 320, shaped_charge = false },
     ["X_29TE"] = { explosive = 320, shaped_charge = false },
-  
+	
+    ["AKD-10"] = { explosive = 10, shaped_charge = false }, --drone
+	
     --*** ANTI-RADAR MISSILE (ARM) ***
-    ["AGM_88C"] = { explosive = 89, shaped_charge = false },
-    ["AGM_88"] = { explosive = 89, shaped_charge = false },
-    ["AGM_122"] = { explosive = 15, shaped_charge = false },
-    ["LD-10"] = { explosive = 89, shaped_charge = false },
-    ["AGM_45A"] = { explosive = 38, shaped_charge = false },
-    ["X_58"] = { explosive = 140, shaped_charge = false },
-    ["X_25MP"] = { explosive = 89, shaped_charge = false },
+    ["AGM_88C"] = { explosive = 69, shaped_charge = false },
+    ["AGM_88"] = { explosive = 69, shaped_charge = false },
+    ["AGM_122"] = { explosive = 12, shaped_charge = false },
+    ["LD-10"] = { explosive = 75, shaped_charge = false },
+    ["AGM_45A"] = { explosive = 66, shaped_charge = false },
+    ["X_58"] = { explosive = 149, shaped_charge = false },
+    ["X_25MP"] = { explosive = 90, shaped_charge = false },
+    ["X_31P"]    = { explosive = 90,  shaped_charge = false },
   
     --*** ANTI-SHIP MISSILE (ASh) ***
     ["AGM_84D"] = { explosive = 488, shaped_charge = false },
     ["Rb 15F"] = { explosive = 500, shaped_charge = false },
     ["C-802AK"] = { explosive = 500, shaped_charge = false },
-  
+    ["X_31A"]    = { explosive = 89,  shaped_charge = false }, --KH-31A ASh
+    ["X_22"]    = { explosive = 1200,  shaped_charge = false }, --Ash 1ton RDX = 1600KG TNT
+    ["X_35"]    = { explosive = 145,  shaped_charge = true }, --ASh 145KG
+	
     --*** CRUISE MISSILE ***
-    ["CM-802AKG"] = { explosive = 488, shaped_charge = false },
-    ["AGM_84E"] = { explosive = 488, shaped_charge = false },
-    ["AGM_84H"] = { explosive = 488, shaped_charge = false },
-    ["X_59M"] = { explosive = 488, shaped_charge = false },
+    ["CM-802AKG"] = { explosive = 240, shaped_charge = false },
+    ["AGM_84E"] = { explosive = 360, shaped_charge = false },
+    ["AGM_84H"] = { explosive = 380, shaped_charge = false },
+    ["X_59M"] = { explosive = 340, shaped_charge = false },
+    ["X_65"] = { explosive = 545, shaped_charge = false },
   
     --*** ROCKETS ***
     ["HYDRA_70M15"] = { explosive = 5, shaped_charge = false },
@@ -709,11 +642,11 @@ explTable = {
     ["S-25O"] = { explosive = 150, shaped_charge = false },
     ["S-25-O"] = { explosive = 150, shaped_charge = false },
     ["S_25L"] = { explosive = 190, shaped_charge = false },
-    ["S-5M"] = { explosive = 1, shaped_charge = false },
+    ["S-5M"] = { explosive = 3, shaped_charge = false },
     ["C_5"] = { explosive = 8, shaped_charge = false },
     ["C5"] = { explosive = 5, shaped_charge = false },
-    ["C_8"] = { explosive = 4, shaped_charge = false },
-    ["C_8OFP2"] = { explosive = 3, shaped_charge = false },
+    ["C_8"] = { explosive = 5, shaped_charge = false },
+    ["C_8OFP2"] = { explosive = 5, shaped_charge = false },
     ["C_13"] = { explosive = 21, shaped_charge = false },
     ["C_24"] = { explosive = 123, shaped_charge = false },
     ["C_25"] = { explosive = 151, shaped_charge = false },
@@ -732,10 +665,17 @@ explTable = {
     ["LS_6"] = { explosive = 100, shaped_charge = false },
     ["LS_6_500"] = { explosive = 274, shaped_charge = false },
 	
+	--*** Vehicle/Ship based ***--	
+	
 	--*** Rocketry ***
     ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
-    -- ["M26"] = { explosive = 0, shaped_charge = false, groundordnance = true}, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
-	["M26"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+    ["GRAD_9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
+       -- ["M26"] = { explosive = 0, shaped_charge = false, groundordnance = true}, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+    ["M26"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+    ["SCUD_RAKETA"] = { explosive = 985, shaped_charge = false, groundordnance = true },
+    ["SMERCH_9M55F"] = { explosive = 46, shaped_charge = false, groundordnance = true }, --220mm HE rocket, (~25-45 kg TNT equiv)
+	
+	["TOW2"] = { explosive = 6.5, shaped_charge = true, groundordnance = true },  --ATGM
 	
 	--*** Shells ***
 	["weapons.shells.M_105mm_HE"] = { explosive = 12, shaped_charge = false, groundordnance = true }, --105mm HE shell, M119/M102 (~10-15 kg TNT equiv)
@@ -769,6 +709,10 @@ explTable = {
 	--*** Bismark Mod Weapons ***
 	["weapons.shells.380mm_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
 	["weapons.shells.SK_C_33_105_HE"] = { explosive = 15, shaped_charge = false, groundordnance = true }, --105mm HE shell, SK C/33 (~12-16 kg TNT equiv)
+	
+	
+	
+	
 }
 
 
@@ -1582,7 +1526,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                         local submunitionName = weaponData.submunition_name or "unknown"
 				--Apply bomblet reduction logic if enabled
 				if splash_damage_options.cluster_bomblet_reductionmodifier then
-                            if submunitionCount > 35 then
+                            if submunitionCount > 35 then  
                                 local reductionFactor = (60 - 35) / (247 - 35)
 							submunitionCount = 35 + math.floor((submunitionCount - 35) * reductionFactor)
 							if submunitionCount > 60 then submunitionCount = 60 end --Cap at 60
@@ -1602,10 +1546,11 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 	    for _, target in ipairs(chosenTargets) do
 	        if target.unit:isExist() and target.health > 0 and target.unit:getLife() <= 0 then
 	            debugMsg("Unit " .. target.name .. " destroyed by initial explosion, credited to player: " .. playerName)
-				end
+	        end
 	    end
 	end
-				blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+	blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+
 			end
             --detect_ordnance_destruction comes before recent_large_explosion_snap in original
             if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions then
@@ -2468,7 +2413,9 @@ function addSplashDamageMenu()
     addValueAdjustmentCommands(infantryCantFireMenu, "infantry_cant_fire_health")
     local rocketMultiplierMenu = missionCommands.addSubMenu("Rocket Multiplier", debugGeneralMenu)
     addValueAdjustmentCommands(rocketMultiplierMenu, "rocket_multiplier")
+	
     --Page 2: Explosions
+	
     local explosionCargoMenu = missionCommands.addSubMenu("Explosion Settings", splash_damage_menu)
     local staticDamageMenu = missionCommands.addSubMenu("Static Damage Boost", explosionCargoMenu)
     addValueAdjustmentCommands(staticDamageMenu, "static_damage_boost")
@@ -2487,6 +2434,7 @@ function addSplashDamageMenu()
     addValueAdjustmentCommands(dynamicBlastMenu, "dynamic_blast_radius_modifier")
 	
    --Page 2: Cascade	
+   
     local explosionCascMenu = missionCommands.addSubMenu("Cascade Settings", splash_damage_menu)
     local cascadeScalingMenu = missionCommands.addSubMenu("Cascade Scaling", explosionCascMenu)
     addValueAdjustmentCommands(cascadeScalingMenu, "cascade_scaling")
@@ -2496,7 +2444,7 @@ function addSplashDamageMenu()
     addValueAdjustmentCommands(cascadeThresholdMenu, "cascade_damage_threshold")
     missionCommands.addCommand("Toggle Always Cascade Explode", explosionCascMenu, toggleSplashDamageSetting, "always_cascade_explode")
     
-    --Page 4: Cargo and Ordnance Protection 
+	--Page 4: Cargo and Ordnance Protection 
     local explosionCargoMenu = missionCommands.addSubMenu("Cargo and Ordnance", splash_damage_menu)
     missionCommands.addCommand("Toggle Tracking & Cargo Effects", explosionCargoMenu, toggleSplashDamageSetting, "track_pre_explosion")
     local cargoThresholdMenu = missionCommands.addSubMenu("Cargo Damage Threshold", explosionCargoMenu)
@@ -2634,8 +2582,8 @@ function addSplashDamageMenu()
 end
 
 if (script_enable == 1) then
-    gameMsg("SPLASH DAMAGE 3.2 SCRIPT RUNNING")
-    env.info("SPLASH DAMAGE 3.2 SCRIPT RUNNING")
+    gameMsg("SPLASH DAMAGE 3.3 SCRIPT RUNNING")
+    env.info("SPLASH DAMAGE 3.3 SCRIPT RUNNING")
 
     timer.scheduleFunction(function()
         protectedCall(track_wpns)
@@ -2652,3 +2600,120 @@ if (script_enable == 1) then
     world.addEventHandler(WpnHandler)
     addSplashDamageMenu()
 end
+
+--[[
+   
+    x x 2025 (Stevey666) - 3.3
+	  - Added changed JF17 ordnance to weapons table (thanks to Kurdes)
+	  - Added naval weapons into explosive table
+	  - Added some ground unit ordnance to explosive table and allowing a wider area to be tracked
+	  - Game_mesages and enable_radio_menu options defaulted to false. 
+			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
+			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
+	  - Fixed incorrect radio menu item for always_cascade_explode
+	  
+	  
+	    (Sniex)
+	    
+	  - Added weapon types to the expltable
+	  - Adjusted some rocket explosive power numbers (+1 or 2)
+	  - Adjusted explosive power for anti radar, ship missile, cruise missile and some others
+	  - Made options menu more readable
+	  
+    10 May 2025 (Stevey666) - 3.2
+	  - New feature (user request): ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
+	  - New feature (user request): option to create additional smoke and cargo cookoff effect for all ground vehicles initially destroyed by your ordnance or the script, set to false by default.
+	  - Adjusted blastwave explosion
+	  - Changes to debug output, ordering by vehicle distance
+	  - Thanks to tae. for the report, adjusted Ural-4320 in vehicle table, had incorrect name so wasn't triggering cook off.
+	  - Fixed error popup when using Mig 21's SPRD-99
+	  - Added Cargo Cook off / fireball to some static objects i.e crates/barrels
+	  - Reworked Giant Explosion tracking - no mission editor trigger needed, just name static unit or unit "GiantExplosionTarget[X]"
+	  - Allow for Giant Explosion trigger on damage or on death
+
+    04 April 2025 (Stevey666) - 3.1
+	  - Set default cluster munitions option to false, set this to true in the options if you want it
+      - Added missing radio commands for Cascade Scaling
+	  - Adjust default cascading to 2 (from 1)
+	  - Adjusted Ural-4320 to be a tanker and ammo carrier for cargo cookoff
+	  - Prevent weapons not in the list from being tracked
+	  - Moved some logging behind the debug mode flag
+	  - Ordnance Protection, added a max height ordnance protection will snap explosion to ground
+	  - Ordnance Protection, fixed enable/disable option
+	  - Added Giant Explosion feature
+	  - Adjusted some hydra70 values on recom. from ETBSmorgan
+	  
+	  
+    09 March 2025 (Stevey666) - 3.0
+      - Added ordinance protection gives a few options - stop the additional larger_explosion that tends to blow up your own bombs if theyre dropped at the same place if its within x m
+	  - Additional ordnance protection option that will cause a snap to ground larger_explosion if its within x meters of a recent larger explosion and within x seconds (can set in options)
+      - Added vehicle scanning around a weapon to allow for..
+	  - Cook offs - you can set vehicles that will cook off i.e ammo trucks, number of explosions, debris explosions, power adjustable
+	  - Fuel/Tanker explosion and flames - when a fuel tanker blows it will through up a big flame - adjustable in the scripts
+	  - Added section for vehicles for the above
+	  - Added radio commands for everything
+	  - Added in cluster munitions changes (note: barely tested, its not particularly accurate or that useful at this point so leaving disabled)
+	  - Potential bug - testing, stacking too many units together may cause a MIST error if you're using mist
+	  
+	  - Setting this as 3.0 as I'd like to be responsive to requests, updates etc - creating a new fork to track this
+	
+
+    10 Feb 2025 (Stevey666) - 2.0.7
+      - Fixed AGM 154/Adjusted weapons
+      - Added overall damage scaling 
+      - Added modifier for shaped charges (i.e. Mavericks), adjusted weapon list accordingly
+      - Adjusted blast radius and damage calculations, created option for dynamic blast radius
+      - Adjusted cascading explosions, added additional "cascade_scaling" modifier and cascade explode threshold modifier. Units wont explode on initial impact unless health drops under threshold
+      - Added always_cascade_explode option so you can set it to the old ways of making everything in the blast wave go kaboom
+      - Added in game radio commands to change the new options ingame without having to reload everything in mission editor to test it out
+
+    12 November 2024 (by JGi | Quéton 1-1)
+    - Tweak down radius 100>90 (Thanks Arhibeau)
+    - Tweak down some values
+
+    20 January 2024 (by JGi | Quéton 1-1)
+    - Added missing weapons to explTable
+    - Sort weapons in explTable by type
+    - Added aircraft type in log when missing
+
+    03 May 2023 (KERV)
+      Correction AGM 154 (https://forum.dcs.world/topic/289290-splash-damage-20-script-make-explosions-better/page/5/#comment-5207760)
+  
+    06 March 2023 (Kerv)
+    - Add some data for new ammunition
+
+    16 April 2022
+      spencershepard (GRIMM):
+      - Added new/missing weapons to explTable
+      - Added new option rocket_multiplier
+
+    31 December 2021
+      spencershepard (GRIMM):
+      - Added many new weapons
+      - Added filter for weapons.shells events
+      - Fixed mission weapon message option
+      - Changed default for damage_model option
+  
+    21 December 2021
+      spencershepard (GRIMM):
+      SPLASH DAMAGE 2.0:
+      - Added blast wave effect to add timed and scaled secondary explosions on top of game objects
+      - Object geometry within blast wave changes damage intensity
+      - Damage boost for structures since they are hard to kill, even if very close to large explosions
+      - Increased some rocket values in explTable
+      - Missing weapons from explTable will display message to user and log to DCS.log so that we can add what's missing
+      - Damage model for ground units that will disable their weapons and ability to move with partial damage before they are killed
+      - Added options table to allow easy adjustments before release
+      - General refactoring and restructure
+
+    28 October 2020
+      FrozenDroid: 
+      - Uncommented error logging, actually made it an error log which shows a message box on error.
+      - Fixed the too restrictive weapon filter (took out the HE warhead requirement)
+
+    2 October 2020
+      FrozenDroid:
+      - Added error handling to all event handler and scheduled functions. Lua script errors can no longer bring the server down.
+      - Added some extra checks to which weapons to handle, make sure they actually have a warhead (how come S-8KOM's don't have a warhead field...?)
+--]]
+
