@@ -11,6 +11,9 @@
 			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
 			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
 	  - Fixed incorrect radio menu item for always_cascade_explode
+	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled).
+	  - New feature: Napalm. Override and MK77 Skyhawk Napalm - Allows napalm effects, overriding specific weapons set in options is possible too.
+	  		- This feature has been adpated from tit69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/
 	  
 	    (Sniex)
 		
@@ -74,6 +77,11 @@ splash_damage_options = {
     ["debris_count_max"] = 12, --Maximum debris pieces per cook-off
     ["debris_max_distance"] = 10, --Max distance debris can travel (meters), the min distance from the vehicle will be 10% of this
 	
+    ["cookoff_flares_enabled"] = true, --Enable/disable flare effects for cook-offs
+    ["cookoff_flare_color"] = 2, 
+    ["cookoff_flare_count_modifier"] = 1, --Multiplier for flare count (e.g., 1x, 2x cookOffCount from the vehicle table)
+    ["cookoff_flare_offset"] = 1, --Max offset distance for flares in meters (horizontal)
+    ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
     ["ordnance_protection_radius"] = 10, --Distance in meters to protect nearby bombs
     ["detect_ordnance_destruction"] = true, --Toggle detection of ordnance destroyed by large explosions
@@ -115,7 +123,7 @@ splash_damage_options = {
     ["scan_50m_for_groundordnance"] = true, --If true, uses a 50m scan radius for ground ordnance instead of dynamic blast radius
 	
 	
-    ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
+    ---------------------------------------------------------------------- Smoke and Cookoff For All Vehicles  -----------------------------------------------
     ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
     ["allunits_enable_smoke"] = false,
     ["allunits_enable_cookoff"] = false,
@@ -127,6 +135,17 @@ splash_damage_options = {
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
     ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
 
+    ---------------------------------------------------------------------- Napalm Overrides ------------------------------------------------------------------
+    ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
+    ["napalmoverride_enabled"] = false, --If true, enables napalm effects for weapons in napalm_override_weapons
+    ["napalm_override_weapons"] = "Mk_82", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
+    ["napalm_spread_points"] = 4, --Number of points of explosion
+    ["napalm_spread_spacing"] = 25, --Distance m between
+    ["napalm_phosphor_enabled"] = true, --If true, enables phosphor flare effects for napalm weapons
+    ["napalm_phosphor_multiplier"] = 0.75, --Multiplier for number of phosphor flares
+    ["napalm_addflame"] = true, --Enable flame effects at napalm spawn points
+    ["napalm_addflame_size"] = 3, --Flame size (1-8, 4 = huge smoke and fire)
+    ["napalm_addflame_duration"] = 180, --Flame duration in seconds
 }
 
 local script_enable = 1
@@ -484,6 +503,8 @@ explTable = {
   
     --*** CLUSTER BOMBS (CBU) ***
 	--I don't have most of these so can't test them with debug on
+	["MK77mod0-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
+    ["MK77mod1-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
     ["CBU_99"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye variant, confirmed 247 Mk 118 bomblets
     ["ROCKEYE"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye, confirmed 247 Mk 118 bomblets
     ["BLU_3B_GROUP"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 19, submunition_explosive = 0.2, submunition_name = "BLU_3B" }, --Not in datamine, possibly custom or outdated; submunition name guessed
@@ -720,9 +741,7 @@ local effectSmokeId = 1
 
 ----[[ ##### HELPER/UTILITY FUNCTIONS ##### ]]----
 
-local function tableHasKey(table, key)
-    return table[key] ~= nil
-end
+----NAPALM HELPER FUNCTIONS----
   
 local function debugMsg(str)
     if splash_damage_options.debug == true then
@@ -731,6 +750,63 @@ local function debugMsg(str)
         trigger.action.outText(uniqueStr, 5)
         env.info("DEBUG: " .. uniqueStr)
     end
+end
+
+local function getSpreadPoints(impactPoint, velocity, numPoints, spacing)
+    local points = {{x = impactPoint.x, y = land.getHeight({x = impactPoint.x, y = impactPoint.z}), z = impactPoint.z}}
+    local mag = math.sqrt(velocity.x^2 + velocity.z^2)
+    if mag == 0 then return points end
+    local dir = {x = velocity.x / mag, z = velocity.z / mag}
+    local prevHeight = points[1].y
+    for i = 1, numPoints do
+        local offset = i * spacing
+        local newPoint = {
+            x = impactPoint.x + dir.x * offset,
+            z = impactPoint.z + dir.z * offset
+        }
+        local terrainHeight = land.getHeight({x = newPoint.x, y = newPoint.z})
+        local heightDiff = terrainHeight - prevHeight
+        newPoint.y = prevHeight + math.max(math.min(heightDiff, 30), -30) --Cap at -+30m
+        prevHeight = newPoint.y
+        table.insert(points, newPoint)
+    end
+    return points
+end
+
+function V3Mag(speedVec)
+    local mag = speedVec.x*speedVec.x + speedVec.y*speedVec.y+speedVec.z*speedVec.z
+    mag = math.sqrt(mag)
+    return mag
+end
+  
+function Vhead(speedVec)
+    local speed = V3Mag(speedVec)
+    local dist = speed * refreshRate * 1.5 
+    return dist
+end
+
+function explodeNapalm(vec3)
+    trigger.action.explosion(vec3, 10)
+end
+    
+function removeNapalm(staticName) 
+    StaticObject.getByName(staticName):destroy()
+end
+
+function phosphor(vec3)
+    local baseFlareCount = math.random(3, 10)
+    local scaledFlareCount = math.max(1, math.floor(baseFlareCount * splash_damage_options.napalm_phosphor_multiplier))
+    for i = 1, scaledFlareCount do
+        azimuth = 30 * i
+        trigger.action.signalFlare(vec3, 2, azimuth)
+    end
+    if splash_damage_options.debug then
+        debugMsg("Triggered " .. scaledFlareCount .. " phosphor flares at X: " .. string.format("%.0f", vec3.x) .. ", Z: " .. string.format("%.0f", vec3.z))
+    end
+end
+----NAPALM HELPER FUNCTIONS----
+local function tableHasKey(table, key)
+    return table[key] ~= nil
 end
   
 local function gameMsg(str)
@@ -774,6 +850,125 @@ local function lookahead(speedVec)
     local speed = vec3Mag(speedVec)
     local dist = speed * refreshRate * 1.5 
     return dist
+end
+ function napalmOnImpact(impactPoint, velocity, weaponName)
+    if not splash_damage_options.napalmoverride_enabled and not (splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN")) then return end
+    --For MK77 cluster munitions, snap impact point to ground
+    local finalImpactPoint = impactPoint
+    if splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN") then
+        local groundHeight = land.getHeight({x = impactPoint.x, y = impactPoint.z})
+                    finalImpactPoint = {
+            x = impactPoint.x,
+            y = groundHeight,
+            z = impactPoint.z
+                    }
+                    if splash_damage_options.debug then
+            debugMsg("Snapped MK77 " .. weaponName .. " impact to ground at X: " .. string.format("%.0f", finalImpactPoint.x) .. ", Z: " .. string.format("%.0f", finalImpactPoint.z))
+        end
+    else
+        --For non-MK77, skip if more than 50m above ground
+        local groundHeight = land.getHeight({x = impactPoint.x, y = impactPoint.z})
+        if impactPoint.y - groundHeight > 50 then return end --Skip if more than 50m above ground
+    end
+    --Adjust spread points for MK77mod0-WPN (30% more)
+    local spreadPointsCount = splash_damage_options.napalm_spread_points
+    if weaponName == "MK77mod0-WPN" then
+        spreadPointsCount = math.floor(spreadPointsCount * 1.3 + 0.5) --30% more, rounded
+    end
+    --Use horizontal velocity for MK77, full velocity for others
+    local spreadVelocity = velocity
+    if weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN" then
+        spreadVelocity = {x = velocity.x, z = velocity.z}
+    end
+    local spreadPoints = getSpreadPoints(finalImpactPoint, spreadVelocity, spreadPointsCount, splash_damage_options.napalm_spread_spacing)
+    local flamePositions = {} --Track flame coordinates to avoid duplicates
+    local function spawnAndExplode(index)
+        if index > #spreadPoints then return end
+        local point = spreadPoints[index]
+        local napalmName = "napalmImpact" .. napalmCounter
+        local currentCounter = napalmCounter
+        napalmCounter = napalmCounter + 1
+        local owngroupID = math.random(9999, 99999)
+        local cvnunitID = math.random(9999, 99999)
+        local _dataFuel = {
+            ["groupId"] = owngroupID,
+            ["category"] = "Fortifications",
+            ["shape_name"] = "toplivo-bak",
+            ["type"] = "Fuel tank",
+            ["unitId"] = cvnunitID,
+            ["rate"] = 100,
+            ["y"] = point.z,
+            ["x"] = point.x,
+            ["name"] = napalmName,
+            ["heading"] = 0,
+            ["dead"] = false,
+            ["hidden"] = true,
+        }
+        if splash_damage_options.debug then
+            local staticCount = 0
+            for _, coalitionId in pairs(coalition.side) do
+                local statics = coalition.getStaticObjects(coalitionId)
+                staticCount = staticCount + #statics
+            end
+            debugMsg("Spawning napalm object '" .. napalmName .. "' (Counter: " .. currentCounter .. ") at X: " .. string.format("%.0f", point.x) .. ", Y: " .. string.format("%.0f", point.y) .. ", Z: " .. string.format("%.0f", point.z) .. " (Active static objects: " .. staticCount .. ")")
+        end
+        local status, result = pcall(function()
+            return coalition.addStaticObject(coalition.side.BLUE, _dataFuel)
+        end)
+        local spawnSuccess = status and result and StaticObject.getByName(napalmName) and StaticObject.getByName(napalmName):isExist()
+        if not spawnSuccess and splash_damage_options.debug then
+            debugMsg("Failed to spawn napalm object '" .. napalmName .. "' at X: " .. string.format("%.0f", point.x) .. ", Y: " .. string.format("%.0f", point.y) .. ", Z: " .. string.format("%.0f", point.z) .. ": " .. (status and "Object not found or does not exist" or tostring(result)))
+        end
+        if spawnSuccess then
+        timer.scheduleFunction(explodeNapalm, point, timer.getTime() + 0.1)
+        timer.scheduleFunction(function(name)
+            if splash_damage_options.debug then
+                debugMsg("Destroying napalm object '" .. name .. "' at X: " .. string.format("%.0f", point.x) .. ", Z: " .. string.format("%.0f", point.z))
+            end
+            removeNapalm(name)
+        end, napalmName, timer.getTime() + 0.12)
+        if splash_damage_options.napalm_phosphor_enabled then
+            timer.scheduleFunction(phosphor, point, timer.getTime() + 0.12)
+        end
+        --Add flame effect if enabled
+        if splash_damage_options.napalm_addflame then
+            local flameSize = splash_damage_options.napalm_addflame_size
+            local flameDuration = splash_damage_options.napalm_addflame_duration
+            local flameDensity = 1.0
+            local effectId = effectSmokeId
+            effectSmokeId = effectSmokeId + 1
+            local isDuplicate = false
+            for _, pos in pairs(flamePositions) do
+                if getDistance3D(point, pos) < 3 then
+                    isDuplicate = true
+                    if splash_damage_options.debug then
+                        debugMsg("Skipping duplicate flame for napalm object '" .. napalmName .. "' near X: " .. string.format("%.0f", pos.x) .. ", Z: " .. string.format("%.0f", pos.z))
+                    end
+                    break
+                end
+            end
+            if not isDuplicate then
+                if splash_damage_options.debug then
+                    debugMsg("Adding flame effect for napalm object '" .. napalmName .. "' at X: " .. string.format("%.0f", point.x) .. ", Z: " .. string.format("%.0f", point.z) .. " (Size: " .. flameSize .. ", Duration: " .. flameDuration .. "s, ID: " .. effectId .. ")")
+                end
+                timer.scheduleFunction(function(params)
+                    local terrainHeight = land.getHeight({x = params[1].x, y = params[1].z})
+                    local adjustedCoords = {x = params[1].x, y = terrainHeight + 2, z = params[1].z}
+                    trigger.action.effectSmokeBig(adjustedCoords, params[2], params[3], params[4])
+                end, {point, flameSize, flameDensity, effectId}, timer.getTime() + 0.12)
+                timer.scheduleFunction(function(id)
+                    if splash_damage_options.debug then
+                        debugMsg("Stopping flame effect for napalm object (ID: " .. id .. ")")
+                    end
+                    trigger.action.effectSmokeStop(id)
+                end, effectId, timer.getTime() + 0.12 + flameDuration)
+                table.insert(flamePositions, point)
+            end
+        end
+        end
+        timer.scheduleFunction(spawnAndExplode, index + 1, timer.getTime() + 0.2)
+    end
+    spawnAndExplode(1)
 end
   
 --Cluster-specific helper functions from Rockeye script
@@ -819,6 +1014,8 @@ WpnHandler = {}
 tracked_target_position = nil --Store the last known position of TargetUnit for giant explosion
 tracked_weapons = {}
 local processedUnitsGlobal = {}
+napalmCounter = 1
+napalmCounter = 1
 
 function scanGiantExplosionTargets()
 local function processObject(obj)
@@ -1286,6 +1483,26 @@ end
 ----[[ ##### Updated track_wpns() Function ##### ]]----
 local recentExplosions = {}
 
+--function to schedule flares for cook-offs
+function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor)
+    local flareCount = math.floor(cookOffCount * splash_damage_options.cookoff_flare_count_modifier)
+    if flareCount < 1 then return end --Skip if no flares
+    debugMsg("Scheduling " .. flareCount .. " flares for cook-off at X: " .. string.format("%.0f", coords.x) .. ", Z: " .. string.format("%.0f", coords.z) .. " over " .. cookOffDuration .. "s")
+    for i = 1, flareCount do
+        local delay = math.random() * cookOffDuration --Random time within cook-off duration
+        local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
+        local offset = {
+            x = coords.x + math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset),
+            y = terrainHeight, --Start at ground level
+            z = coords.z + math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
+        }
+        local azimuth = math.random(1, 360) --Random direction
+        timer.scheduleFunction(function(params)
+            debugMsg("Spawning flare #" .. params[1] .. " at X: " .. string.format("%.0f", params[2].x) .. ", Y: " .. string.format("%.0f", params[2].y) .. ", Z: " .. string.format("%.0f", params[2].z) .. " with color " .. params[3])
+            trigger.action.signalFlare(params[2], params[3], params[4])
+        end, {i, offset, flareColor, azimuth}, timer.getTime() + delay)
+    end
+end
 function track_wpns()
     local weaponsToRemove = {} --Delay removal to ensure all weapons are checked
     for wpn_id_, wpnData in pairs(tracked_weapons) do   
@@ -1442,7 +1659,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
             else
             --Weapon has impacted
             debugMsg("Weapon " .. wpnData.name .. " no longer exists at " .. timer.getTime() .. "s")
-            local ip = land.getIP(wpnData.pos, wpnData.dir, lookahead(wpnData.speed))  --terrain intersection point with weapon's nose.  Only search out 20 meters though.
+            local ip = land.getIP(wpnData.pos, wpnData.dir, lookahead(wpnData.speed))  --terrain intersection point with weapon's nose
             local explosionPoint
             if not ip then --use last calculated IP
                 explosionPoint = wpnData.pos
@@ -1466,6 +1683,21 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
             end
 			local chosenTargets = wpnData.tightTargets or {}
             local safeToBlast = true
+            --Check if weapon is in napalm override list
+            local isNapalm = false
+            if splash_damage_options.napalmoverride_enabled then
+                local napalmWeapons = {}
+                for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
+                    napalmWeapons[trim(weapon)] = true
+                end
+					if napalmWeapons[wpnData.name] or (splash_damage_options.napalm_mk77_enabled and (wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN")) then
+						isNapalm = true
+						debugMsg("Napalm override triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
+						napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
+						table.insert(weaponsToRemove, wpn_id_)
+					end
+            end
+            if not isNapalm then
 			if splash_damage_options.ordnance_protection then
                 local checkVol = { id = world.VolumeType.SPHERE, params = { point = explosionPoint, radius = splash_damage_options.ordnance_protection_radius } }
                     debugMsg("Checking ordnance protection for '" .. wpnData.name .. "' at X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. " with radius " .. splash_damage_options.ordnance_protection_radius .. "m")
@@ -1924,6 +2156,9 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 								trigger.action.explosion(pos, power)
 							end, {effect.coords, cookOffPower}, timer.getTime() + effectIndex + delay)
 						end
+           					if splash_damage_options.cookoff_flares_enabled then
+                					scheduleCookOffFlares(effect.coords, effect.cookOffCount, effect.cookOffDuration, splash_damage_options.cookoff_flare_color)
+						end
 						--Debris burst only if cook-off is true and enabled
 						if splash_damage_options.debris_effects then
 							local debrisCount = math.random(splash_damage_options.debris_count_min, splash_damage_options.debris_count_max)
@@ -1979,6 +2214,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                 end
                 table.insert(weaponsToRemove, wpn_id_)
             end
+			end
         end)
         if not status then
             debugMsg("Error in track_wpns for '" .. (wpnData.name or "unknown weapon") .. "': " .. err)
@@ -2023,6 +2259,36 @@ function onWpnEvent(event)
                 debugMsg("Weapon fired: [" .. typeName .. "]")
             end
 
+		if splash_damage_options.napalmoverride_enabled then
+			local napalmWeapons = {}
+			for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
+				napalmWeapons[trim(weapon)] = true
+			end
+			if napalmWeapons[typeName] then
+				isNapalm = true
+				if splash_damage_options.debug then
+					debugMsg("Tracking napalm override weapon: [" .. typeName .. "]")
+				end
+			end
+		end
+		if splash_damage_options.napalm_mk77_enabled and (typeName == "MK77mod0-WPN" or typeName == "MK77mod1-WPN") then
+			isNapalm = true
+			if splash_damage_options.debug then
+				debugMsg("Tracking MK77 napalm weapon: [" .. typeName .. "]")
+			end
+		end
+		if isNapalm then
+			tracked_weapons[event.weapon.id_] = { 
+				wpn = ordnance, 
+				init = event.initiator and event.initiator:getName() or "unknown", 
+				pos = ordnance:getPoint(), 
+				dir = ordnance:getPosition().x, 
+				name = typeName, 
+				speed = ordnance:getVelocity(), 
+				cat = ordnance:getCategory()
+			}
+			return
+		end
             --Debug the exact typeName and explTable lookup
             if splash_damage_options.debug then
                 debugMsg("Checking explTable for typeName: [" .. typeName .. "]")
@@ -2716,4 +2982,3 @@ end
       - Added error handling to all event handler and scheduled functions. Lua script errors can no longer bring the server down.
       - Added some extra checks to which weapons to handle, make sure they actually have a warhead (how come S-8KOM's don't have a warhead field...?)
 --]]
-
