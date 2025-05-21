@@ -12,8 +12,8 @@
 			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
 	  - Fixed incorrect radio menu item for always_cascade_explode
 	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled).
-	  - New feature: Napalm. Override and MK77 Skyhawk Napalm - Allows napalm effects, overriding specific weapons set in options is possible too.
-	  		- This feature has been adpated from tit69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/
+	  - New feature: Napalm. MK77 A4 Skyhawk Napalm and Optional Napalm weapon override - Allows napalm effects, overriding specific weapons set in options is possible too.
+	  		- This feature has been adpated from tit69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , shout out to him and Olympus
 	  
 	**** TO DO BEFORE RELEASING *****
 		further napalm testing/refinements?
@@ -143,7 +143,7 @@ splash_damage_options = {
     ---------------------------------------------------------------------- Napalm Overrides ------------------------------------------------------------------
     ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
     ["napalmoverride_enabled"] = false, --If true, enables napalm effects for weapons in napalm_override_weapons
-    ["napalm_override_weapons"] = "Mk_82", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
+    ["napalm_override_weapons"] = "Mk_82,SAMP125LD", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
     ["napalm_spread_points"] = 4, --Number of points of explosion
     ["napalm_spread_spacing"] = 25, --Distance m between
     ["napalm_phosphor_enabled"] = true, --If true, enables phosphor flare effects for napalm weapons
@@ -513,8 +513,6 @@ explTable = {
     ["CBU_99"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye variant, confirmed 247 Mk 118 bomblets
     ["ROCKEYE"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye, confirmed 247 Mk 118 bomblets
     ["BLU_3B_GROUP"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 19, submunition_explosive = 0.2, submunition_name = "BLU_3B" }, --Not in datamine, possibly custom or outdated; submunition name guessed
-    ["MK77mod0-WPN"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --Not in datamine, possibly custom; submunition name guessed
-    ["MK77mod1-WPN"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --Not in datamine, possibly custom; submunition name guessed
     ["CBU_87"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --Confirmed 202 BLU-97/B bomblets
     ["CBU_103"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --WCMD variant of CBU-87, confirmed 202 BLU-97/B bomblets
     ["CBU_97"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 10, submunition_explosive = 15, submunition_name = "BLU_108" }, --Confirmed 10 BLU-108 submunitions, each with 4 skeets
@@ -857,7 +855,7 @@ local function lookahead(speedVec)
     return dist
 end
  function napalmOnImpact(impactPoint, velocity, weaponName)
-    if not splash_damage_options.napalmoverride_enabled and not (splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN")) then return end
+    if not (splash_damage_options.napalmoverride_enabled or (splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN"))) then return end
     --For MK77 cluster munitions, snap impact point to ground
     local finalImpactPoint = impactPoint
     if splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN") then
@@ -1688,19 +1686,27 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
             end
 			local chosenTargets = wpnData.tightTargets or {}
             local safeToBlast = true
-            --Check if weapon is in napalm override list
+            --Check if weapon is napalm
             local isNapalm = false
+				--Check for napalm override weapons
             if splash_damage_options.napalmoverride_enabled then
                 local napalmWeapons = {}
                 for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
                     napalmWeapons[trim(weapon)] = true
                 end
-					if napalmWeapons[wpnData.name] or (splash_damage_options.napalm_mk77_enabled and (wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN")) then
+					if napalmWeapons[wpnData.name] then
 						isNapalm = true
 						debugMsg("Napalm override triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
 						napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
 						table.insert(weaponsToRemove, wpn_id_)
 					end
+				end
+				--Check for MK77 weapons independently
+				if splash_damage_options.napalm_mk77_enabled and (wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN") then
+					isNapalm = true
+					debugMsg("MK77 napalm triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
+					napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
+					table.insert(weaponsToRemove, wpn_id_)
             end
             if not isNapalm then
 			if splash_damage_options.ordnance_protection then
