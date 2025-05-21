@@ -15,6 +15,11 @@
 	  - New feature: Napalm. Override and MK77 Skyhawk Napalm - Allows napalm effects, overriding specific weapons set in options is possible too.
 	  		- This feature has been adpated from tit69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/
 	  
+	**** TO DO BEFORE RELEASING *****
+		further napalm testing/refinements?
+		document napalm usage and shortcomings
+		rework radio commands menu as its too full, add missing radio commands
+
 	    (Sniex)
 		
 	  - Added weapon types to the expltable
