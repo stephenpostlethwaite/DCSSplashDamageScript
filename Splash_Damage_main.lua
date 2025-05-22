@@ -159,14 +159,16 @@ splash_damage_options = {
     ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
     ["napalmoverride_enabled"] = false, --If true, enables napalm effects for weapons in napalm_override_weapons
     ["napalm_override_weapons"] = "Mk_82,SAMP125LD", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
-    ["napalm_spread_points"] = 4, --Number of points of explosion per each bomb, so 1 bomb can have 4 fireballs as such
+    ["napalm_spread_points"] = 4, --Number of points of explosion per each bomb (aka spawns of dummy fuel tank), so 1 bomb can have 4 fireballs as such
     ["napalm_spread_spacing"] = 25, --Distance m between the points
     ["napalm_phosphor_enabled"] = true, --If true, enables phosphor flare effects for napalm weapons
     ["napalm_phosphor_multiplier"] = 0.5, --Multiplier for number of phosphor flares that shoot out, there is a level of randomisation in the code already
     ["napalm_addflame"] = true, --Enable flame effects at napalm spawn points
-    ["napalm_addflame_size"] = 3, --Flame size (1-8, 4 = huge smoke and fire)
-    ["napalm_addflame_duration"] = 180, --Flame duration in seconds
-
+    ["napalm_addflame_size"] = 3, --Flame size (1-8, 4 = huge smoke and  fire)
+    ["napalm_addflame_duration"] = 180, --Flame duration in seconds napalm_destroy_delay
+    ["napalm_flame_delay"] = 0.01, --Delay in seconds before flame effect
+    ["napalm_explode_delay"] = 0.01, --Delay in seconds before putting an exlode on the ground to blow up the spawned fuel tank, original script had this as 0.1
+    ["napalm_destroy_delay"] = 0.02, --Delay in seconds before it destroys the fuel tank object, original script had this as 0.12
 
 }
 
@@ -753,6 +755,7 @@ explTable = {
 	["weapons.shells.PJ26_76_PFHE"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE-PF shell, PJ-26 (~0.8-1.1 kg TNT equiv)
 	["weapons.shells.53-UOR-281U"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
 	["weapons.shells.MK75_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, Mk 75 (~0.8-1.1 kg TNT equiv)
+
 	--*** Bismark Mod Weapons ***
 	["weapons.shells.380mm_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
 	["weapons.shells.SK_C_33_105_HE"] = { explosive = 15, shaped_charge = false, groundordnance = true }, --105mm HE shell, SK C/33 (~12-16 kg TNT equiv)
@@ -953,15 +956,15 @@ function napalmOnImpact(impactPoint, velocity, weaponName)
             debugMsg("Failed to spawn napalm object '" .. napalmName .. "' at X: " .. string.format("%.0f", point.x) .. ", Y: " .. string.format("%.0f", point.y) .. ", Z: " .. string.format("%.0f", point.z) .. ": " .. (status and "Object not found or does not exist" or tostring(result)))
         end
         if spawnSuccess then
-        timer.scheduleFunction(explodeNapalm, point, timer.getTime() + 0.1)
+        timer.scheduleFunction(explodeNapalm, point, timer.getTime() + splash_damage_options.napalm_explode_delay)
         timer.scheduleFunction(function(name)
             if splash_damage_options.debug then
                 debugMsg("Destroying napalm object '" .. name .. "' at X: " .. string.format("%.0f", point.x) .. ", Z: " .. string.format("%.0f", point.z))
             end
             removeNapalm(name)
-        end, napalmName, timer.getTime() + 0.12)
+        end, napalmName, timer.getTime() + splash_damage_options.napalm_destroy_delay)
         if splash_damage_options.napalm_phosphor_enabled then
-            timer.scheduleFunction(napalm_phosphor, point, timer.getTime() + 0.12)
+            timer.scheduleFunction(napalm_phosphor, point, timer.getTime() + splash_damage_options.napalm_explode_delay)
         end
         --Add flame effect if enabled
         if splash_damage_options.napalm_addflame then
@@ -988,13 +991,13 @@ function napalmOnImpact(impactPoint, velocity, weaponName)
                     local terrainHeight = land.getHeight({x = params[1].x, y = params[1].z})
                     local adjustedCoords = {x = params[1].x, y = terrainHeight + 2, z = params[1].z}
                     trigger.action.effectSmokeBig(adjustedCoords, params[2], params[3], params[4])
-                end, {point, flameSize, flameDensity, effectId}, timer.getTime() + 0.12)
+                end, {point, flameSize, flameDensity, effectId}, timer.getTime() + splash_damage_options.napalm_flame_delay)
                 timer.scheduleFunction(function(id)
                     if splash_damage_options.debug then
                         debugMsg("Stopping flame effect for napalm object (ID: " .. id .. ")")
                     end
                     trigger.action.effectSmokeStop(id)
-                end, effectId, timer.getTime() + 0.12 + flameDuration)
+                end, effectId, timer.getTime() + splash_damage_options.napalm_flame_delay + flameDuration)
                 table.insert(flamePositions, point)
             end
         end
@@ -2947,6 +2950,16 @@ function addSplashDamageMenu()
         local subMenu = missionCommands.addSubMenu(s.name, napalmMenu)
         addValueAdjustmentCommands(subMenu, s.setting, s.increments)
     end
+    local napalmDelayMenu = missionCommands.addSubMenu("Delay Settings", napalmMenu)
+    local napalmDelaySettings = {
+        {name = "Explode Delay", setting = "napalm_explode_delay", increments = {0.01, 0.05, 0.1}},
+        {name = "Destroy Delay", setting = "napalm_destroy_delay", increments = {0.01, 0.05, 0.1}},
+        {name = "Flame Delay", setting = "napalm_flame_delay", increments = {0.01, 0.05, 0.1}}
+    }
+    for _, s in ipairs(napalmDelaySettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, napalmDelayMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
     local napalmFlameSizeMenu = missionCommands.addSubMenu("Flame Size", napalmMenu)
     for i = 1, 8 do
         missionCommands.addCommand("Set " .. i, napalmFlameSizeMenu, function()
@@ -2955,7 +2968,7 @@ function addSplashDamageMenu()
         end)
     end
 
-    --7. Exit Menu
+    -- 7. Exit Menu
     missionCommands.addCommand("Exit Splash Damage Menu", splash_damage_menu, exitSplashDamageMenu)
 end
 
