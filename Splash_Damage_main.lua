@@ -1,7 +1,8 @@
---[[
-    ---------------------------------------------------------------------- Latest Changes --------------------------------------------------------------------
+--[[-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=
+                                                                Latest Changes                                       
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
     x x 2025 - 3.3
-	
+
 		(Stevey666) 
 		
 	  - Added changed JF17 ordnance to weapons table (thanks to Kurdes)
@@ -10,40 +11,45 @@
 	  - Game_mesages and enable_radio_menu options defaulted to false. 
 			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
 			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
-	  - Fixed incorrect radio menu item for always_cascade_explode
-	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled).
+	  - Overhauled the radio options
+	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled). Not sure if I like this one so leaving in as optional
 	  - New feature: Napalm. MK77 A4 Skyhawk Napalm and Optional Napalm weapon override - Allows napalm effects, overriding specific weapons set in options is possible too.
-	  		- This feature has been adpated from tit69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , shout out to him and Olympus
+	  		- This feature has been adapated from tit69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , credit to him and the Olympus mod team for the Napalm method
 	  
 	**** TO DO BEFORE RELEASING *****
 		further napalm testing/refinements?
 		document napalm usage and shortcomings
-		rework radio commands menu as its too full, add missing radio commands
 
 	    (Sniex)
+
 		
 	  - Added weapon types to the expltable
 	  - Adjusted some rocket explosive power numbers (+1 or 2)
 	  - Adjusted explosive power for anti radar, ship missile, cruise missile and some others
-	  - Made options menu more readable
+	  - Visual adjustments to script for readability
 	  
-    ---------------------------------------------------------------------- Full Changelog at bottom of script ------------------------------------------------
---]]
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
+                                                                Full Changelog at the bottom of the script
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  	  
 
-----[[ ##### SCRIPT CONFIGURATION ##### ]]----
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-
+                                                                ##### SCRIPT CONFIGURATION #####
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 splash_damage_options = {
     ---------------------------------------------------------------------- Debug -----------------------------------------------------------------------------
-    ["game_messages"] = true, --enable some messages on screen
+    ["game_messages"] = false, --enable some messages on screen
     ["debug"] = false,  --enable debugging messages 
-    ["weapon_missing_message"] = true, --false disables messages alerting you to weapons missing from the explTable
+    ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
 	
     ---------------------------------------------------------------------- Radio -----------------------------------------------------------------------------
     ["enable_radio_menu"] = true, --enables the in-game radio menu for modifying settings
     
+
     ---------------------------------------------------------------------- Basic Splash Settings -------------------------------------------------------------
-    ["static_damage_boost"] = 300, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
+    ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
     ["wave_explosions"] = true, --secondary explosions on top of game objects, radiating outward from the impact point and scaled based on size of object and distance from weapon impact point
     ["larger_explosions"] = true, --secondary explosions on top of weapon impact points, dictated by the values in the explTable
     ["damage_model"] = true, --allow blast wave to affect ground unit movement and weapons
@@ -51,14 +57,16 @@ splash_damage_options = {
     ["use_dynamic_blast_radius"] = true,   --if true, blast radius is calculated from explosion power; if false, blast_search_radius (90) is used
     ["dynamic_blast_radius_modifier"] = 2,  --multiplier for the blast radius
     ["blast_stun"] = false, --not implemented
+    ["overall_scaling"] = 1,    --overall scaling for explosive power
+
     ---------------------------------------------------------------------- Units -----------------------------------------------------------------------------
     ["unit_disabled_health"] = 30, --if health is below this value after our explosions, disable its movement 
     ["unit_cant_fire_health"] = 40, --if health is below this value after our explosions, set ROE to HOLD to simulate damage weapon systems
     ["infantry_cant_fire_health"] = 60,  --if health is below this value after our explosions, set ROE to HOLD to simulate severe injury
 	
+
     ---------------------------------------------------------------------- Rockets ---------------------------------------------------------------------------
     ["rocket_multiplier"] = 1.3, --multiplied by the explTable value for rockets
-    ["overall_scaling"] = 1,    --overall scaling for explosive power
 
     ---------------------------------------------------------------------- Shaped Charge ---------------------------------------------------------------------    
     ["apply_shaped_charge_effects"] = true, --apply reduction in blastwave etc for shaped charge munitions
@@ -72,7 +80,8 @@ splash_damage_options = {
     ["always_cascade_explode"] = false, --switch if you want everything to explode like with the original script
     
     ---------------------------------------------------------------------- Cargo Cook Off/Fuel Explosion  ----------------------------------------------------
-    --track_pre_explosion/enable_cargo_effects should both be the same value
+    --track_pre_explosion/enable_cargo_effects should both be the same value--
+    
     ["track_pre_explosion"] = true, --Toggle to enable/disable pre-explosion tracking
     ["enable_cargo_effects"] = true, --Toggle for enabling/disabling cargo explosions and cook-offs  
     ["cargo_damage_threshold"] = 60, --Health % below which cargo explodes (0 = destroyed only)
@@ -82,10 +91,12 @@ splash_damage_options = {
     ["debris_count_max"] = 12, --Maximum debris pieces per cook-off
     ["debris_max_distance"] = 10, --Max distance debris can travel (meters), the min distance from the vehicle will be 10% of this
 	
-    ["cookoff_flares_enabled"] = true, --Enable/disable flare effects for cook-offs
+    ["cookoff_flares_enabled"] = false, --Enable/disable flare effects for cook-offs
     ["cookoff_flare_color"] = 2, 
     ["cookoff_flare_count_modifier"] = 1, --Multiplier for flare count (e.g., 1x, 2x cookOffCount from the vehicle table)
     ["cookoff_flare_offset"] = 1, --Max offset distance for flares in meters (horizontal)
+
+
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
     ["ordnance_protection_radius"] = 10, --Distance in meters to protect nearby bombs
@@ -95,6 +106,7 @@ splash_damage_options = {
     ["recent_large_explosion_snap"] = true, --enable looking for a recent large_explosion generated by the script
     ["recent_large_explosion_range"] = 100, --range its looking for in meters for a recent large_explosion generated by the script
     ["recent_large_explosion_time"] = 4, --in seconds how long ago there was a recent large_explosion generated by the script
+
 
     ---------------------------------------------------------------------- Cluster Bombs ---------------------------------------------------------------------
     ["cluster_enabled"] = false,
@@ -107,6 +119,7 @@ splash_damage_options = {
     ["cluster_bomblet_reductionmodifier"] = true, --Use equation to reduce number of bomblets (to make it look better)
     ["cluster_bomblet_damage_modifier"] = 1,  --Adjustable global modifier for bomblet explosive power
 	
+
     ---------------------------------------------------------------------- Giant Explosions ------------------------------------------------------------------
     	--Remember, any target you want to blow up needs to be named "GiantExplosionTarget(X)"  (X) being any value/name etc
     ["giant_explosion_enabled"] = true,  --Toggle to enable/disable Giant Explosion
@@ -120,6 +133,7 @@ splash_damage_options = {
     ["giantexplosion_ondeath"] = true,    --Trigger explosion when unit is destroyed
     ["giantexplosion_testmode"] = true,  --Enable test mode with separate array for radio commands	
     
+
     ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
     ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
@@ -130,8 +144,8 @@ splash_damage_options = {
 	
     ---------------------------------------------------------------------- Smoke and Cookoff For All Vehicles  -----------------------------------------------
     ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
-    ["allunits_enable_smoke"] = false,
-    ["allunits_enable_cookoff"] = false,
+    ["allunits_enable_smoke"] = false, -- Enable /disable smoke effects
+    ["allunits_enable_cookoff"] = false, -- Enable /disable cookoffs
     ["allunits_explode_power"] = 50, --Initial power of vehicle exploding
     ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
     ["allunits_default_flame_duration"] = 60, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
@@ -140,17 +154,20 @@ splash_damage_options = {
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
     ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
 
+
     ---------------------------------------------------------------------- Napalm Overrides ------------------------------------------------------------------
     ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
     ["napalmoverride_enabled"] = false, --If true, enables napalm effects for weapons in napalm_override_weapons
     ["napalm_override_weapons"] = "Mk_82,SAMP125LD", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
-    ["napalm_spread_points"] = 4, --Number of points of explosion
-    ["napalm_spread_spacing"] = 25, --Distance m between
+    ["napalm_spread_points"] = 4, --Number of points of explosion per each bomb, so 1 bomb can have 4 fireballs as such
+    ["napalm_spread_spacing"] = 25, --Distance m between the points
     ["napalm_phosphor_enabled"] = true, --If true, enables phosphor flare effects for napalm weapons
-    ["napalm_phosphor_multiplier"] = 0.75, --Multiplier for number of phosphor flares
+    ["napalm_phosphor_multiplier"] = 0.5, --Multiplier for number of phosphor flares that shoot out, there is a level of randomisation in the code already
     ["napalm_addflame"] = true, --Enable flame effects at napalm spawn points
     ["napalm_addflame_size"] = 3, --Flame size (1-8, 4 = huge smoke and fire)
     ["napalm_addflame_duration"] = 180, --Flame duration in seconds
+
+
 }
 
 local script_enable = 1
@@ -409,8 +426,12 @@ flamesize:
         flameDuration = 20,
     },
 }
+--[[
 
---Weapon Explosive Table
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-
+                                                                Weapon Explosive Table             
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 explTable = {
     --*** WWII BOMBS ***
     ["British_GP_250LB_Bomb_Mk1"] = { explosive = 100, shaped_charge = false },
@@ -508,7 +529,7 @@ explTable = {
   
     --*** CLUSTER BOMBS (CBU) ***
 	--I don't have most of these so can't test them with debug on
-	["MK77mod0-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
+    ["MK77mod0-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
     ["MK77mod1-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
     ["CBU_99"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye variant, confirmed 247 Mk 118 bomblets
     ["ROCKEYE"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye, confirmed 247 Mk 118 bomblets
@@ -526,8 +547,8 @@ explTable = {
     ["RBK_500U"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
     ["RBK_500AO"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 108, submunition_explosive = 0.5, submunition_name = "AO_25RT" }, --Confirmed 108 AO-2.5RT fragmentation bomblets
     ["RBK_500U_OAB_2_5RT"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
-	["RBK_500_255_PTO_1M"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 126, submunition_explosive = 0.5, submunition_name = "PTO_1M" },
-	["RBK_500_255_ShO"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 565, submunition_explosive = 0.1, submunition_name = "ShO" },  
+    ["RBK_500_255_PTO_1M"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 126, submunition_explosive = 0.5, submunition_name = "PTO_1M" },
+    ["RBK_500_255_ShO"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 565, submunition_explosive = 0.1, submunition_name = "ShO" },  
     --*** INS/GPS BOMBS (JDAM) ***
     ["GBU_31"] = { explosive = 582, shaped_charge = false },
     ["GBU_31_V_3B"] = { explosive = 582, shaped_charge = false },
@@ -689,8 +710,10 @@ explTable = {
     ["LS_6"] = { explosive = 100, shaped_charge = false },
     ["LS_6_500"] = { explosive = 274, shaped_charge = false },
 	
-	--*** Vehicle/Ship based ***--	
-	
+    --==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--
+	                        --*** Vehicle/Ship based ***--	
+    --==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--
+    
 	--*** Rocketry ***
     ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
     ["GRAD_9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
@@ -744,14 +767,29 @@ local effectSmokeId = 1
 
 ----[[ ##### HELPER/UTILITY FUNCTIONS ##### ]]----
 
-----NAPALM HELPER FUNCTIONS----
-  
+
 local function debugMsg(str)
     if splash_damage_options.debug == true then
         debugCounter = (debugCounter or 0) + 1
         local uniqueStr = str .. " [" .. timer.getTime() .. " - " .. debugCounter .. "]"
         trigger.action.outText(uniqueStr, 5)
         env.info("DEBUG: " .. uniqueStr)
+    end
+end
+
+function napalm_phosphor(vec3)
+    local baseFlareCount = math.random(0, 8) -- Wider range for variation
+    local randomFactor = math.random(0.1, 1) -- Random scaling per call
+    local scaledFlareCount = math.max(1, math.floor(baseFlareCount * splash_damage_options.napalm_phosphor_multiplier * randomFactor))
+    for i = 1, scaledFlareCount do
+        local randomAzimuth = math.random(0, 359) -- Random angle for scatter
+        local offsetX = math.random(-15, 15) -- Position offset (meters)
+        local offsetZ = math.random(-15, 15)
+        local flarePos = { x = vec3.x + offsetX, y = vec3.y, z = vec3.z + offsetZ }
+        trigger.action.signalFlare(flarePos, 2, randomAzimuth)
+    end
+    if splash_damage_options.debug then
+        debugMsg("Triggered " .. scaledFlareCount .. " napalm phosphor flares at X: " .. string.format("%.0f", vec3.x) .. ", Z: " .. string.format("%.0f", vec3.z))
     end
 end
 
@@ -796,21 +834,10 @@ function removeNapalm(staticName)
     StaticObject.getByName(staticName):destroy()
 end
 
-function phosphor(vec3)
-    local baseFlareCount = math.random(3, 10)
-    local scaledFlareCount = math.max(1, math.floor(baseFlareCount * splash_damage_options.napalm_phosphor_multiplier))
-    for i = 1, scaledFlareCount do
-        azimuth = 30 * i
-        trigger.action.signalFlare(vec3, 2, azimuth)
-    end
-    if splash_damage_options.debug then
-        debugMsg("Triggered " .. scaledFlareCount .. " phosphor flares at X: " .. string.format("%.0f", vec3.x) .. ", Z: " .. string.format("%.0f", vec3.z))
-    end
-end
-----NAPALM HELPER FUNCTIONS----
 local function tableHasKey(table, key)
     return table[key] ~= nil
 end
+
   
 local function gameMsg(str)
     if splash_damage_options.game_messages == true then
@@ -854,7 +881,8 @@ local function lookahead(speedVec)
     local dist = speed * refreshRate * 1.5 
     return dist
 end
- function napalmOnImpact(impactPoint, velocity, weaponName)
+
+function napalmOnImpact(impactPoint, velocity, weaponName)
     if not (splash_damage_options.napalmoverride_enabled or (splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN"))) then return end
     --For MK77 cluster munitions, snap impact point to ground
     local finalImpactPoint = impactPoint
@@ -873,11 +901,13 @@ end
         local groundHeight = land.getHeight({x = impactPoint.x, y = impactPoint.z})
         if impactPoint.y - groundHeight > 50 then return end --Skip if more than 50m above ground
     end
+
     --Adjust spread points for MK77mod0-WPN (30% more)
     local spreadPointsCount = splash_damage_options.napalm_spread_points
     if weaponName == "MK77mod0-WPN" then
         spreadPointsCount = math.floor(spreadPointsCount * 1.3 + 0.5) --30% more, rounded
     end
+
     --Use horizontal velocity for MK77, full velocity for others
     local spreadVelocity = velocity
     if weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN" then
@@ -931,7 +961,7 @@ end
             removeNapalm(name)
         end, napalmName, timer.getTime() + 0.12)
         if splash_damage_options.napalm_phosphor_enabled then
-            timer.scheduleFunction(phosphor, point, timer.getTime() + 0.12)
+            timer.scheduleFunction(napalm_phosphor, point, timer.getTime() + 0.12)
         end
         --Add flame effect if enabled
         if splash_damage_options.napalm_addflame then
@@ -973,7 +1003,7 @@ end
     end
     spawnAndExplode(1)
 end
-  
+ 
 --Cluster-specific helper functions from Rockeye script
 local function normalizeVector(vec)
     local mag = math.sqrt(vec.x^2 + vec.z^2)
@@ -1000,16 +1030,10 @@ local function calculate_dispersion(velocity, burst_altitude)
     return math.max(splash_damage_options.cluster_min_length, math.min(splash_damage_options.cluster_max_length, length_jitter)),
            math.max(splash_damage_options.cluster_min_width, math.min(splash_damage_options.cluster_max_width, width_jitter))
 end
-
-
-
-
-
-
-
-
-
-----[[ ##### End of HELPER/UTILITY FUNCTIONS ##### ]]----
+--[[
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-
+    ##### End of HELPER/UTILITY FUNCTIONS #####     ##### End of HELPER/UTILITY FUNCTIONS #####     ##### End of HELPER/UTILITY FUNCTIONS #####
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 giantExplosionTargets = {}
 giantExplosionTestTargets = {}
 cargoEffectsQueue = {}
@@ -1041,9 +1065,9 @@ local function processObject(obj)
             end
         end
     end
-    -- Iterate over all coalitions
+    --Iterate over all coalitions
     for coa = 0, 2 do
-        -- Process units
+        --Process units
         local groups = coalition.getGroups(coa)
         if groups then
             for _, group in pairs(groups) do
@@ -1055,7 +1079,7 @@ local function processObject(obj)
                 end
             end
         end
-        -- Process static objects
+        --Process static objects
         local statics = coalition.getStaticObjects(coa)
         if statics then
             for _, static in pairs(statics) do
@@ -1486,6 +1510,7 @@ end
 ----[[ ##### Updated track_wpns() Function ##### ]]----
 local recentExplosions = {}
 
+
 --function to schedule flares for cook-offs
 function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor)
     local flareCount = math.floor(cookOffCount * splash_damage_options.cookoff_flare_count_modifier)
@@ -1506,6 +1531,8 @@ function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor
         end, {i, offset, flareColor, azimuth}, timer.getTime() + delay)
     end
 end
+
+
 function track_wpns()
     local weaponsToRemove = {} --Delay removal to ensure all weapons are checked
     for wpn_id_, wpnData in pairs(tracked_weapons) do   
@@ -1560,7 +1587,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                         base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
                     --Log modifier only once per weapon
                     --if splash_damage_options.track_groundunitordnance_debug and not wpnData.debugLogged then
-                        --  debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
+                        --debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
                        --wpnData.debugLogged = true --Mark as logged
                     --end
                 end
@@ -1689,11 +1716,11 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
             --Check if weapon is napalm
             local isNapalm = false
 				--Check for napalm override weapons
-            if splash_damage_options.napalmoverride_enabled then
-                local napalmWeapons = {}
-                for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
-                    napalmWeapons[trim(weapon)] = true
-                end
+				if splash_damage_options.napalmoverride_enabled then
+					local napalmWeapons = {}
+					for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
+						napalmWeapons[trim(weapon)] = true
+					end
 					if napalmWeapons[wpnData.name] then
 						isNapalm = true
 						debugMsg("Napalm override triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
@@ -1701,13 +1728,14 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 						table.insert(weaponsToRemove, wpn_id_)
 					end
 				end
+
 				--Check for MK77 weapons independently
 				if splash_damage_options.napalm_mk77_enabled and (wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN") then
 					isNapalm = true
 					debugMsg("MK77 napalm triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
 					napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
 					table.insert(weaponsToRemove, wpn_id_)
-            end
+				end
             if not isNapalm then
 			if splash_damage_options.ordnance_protection then
                 local checkVol = { id = world.VolumeType.SPHERE, params = { point = explosionPoint, radius = splash_damage_options.ordnance_protection_radius } }
@@ -2646,16 +2674,11 @@ function toggleSplashDamageSetting(setting)
     end
 end
 
-function addValueAdjustmentCommands(menu, setting)
-    missionCommands.addCommand("+0.1", menu, updateSplashDamageSetting, setting, 0.1)
-    missionCommands.addCommand("+1", menu, updateSplashDamageSetting, setting, 1)
-    missionCommands.addCommand("+10", menu, updateSplashDamageSetting, setting, 10)
-    missionCommands.addCommand("+100", menu, updateSplashDamageSetting, setting, 100)
-
-    missionCommands.addCommand("-0.1", menu, updateSplashDamageSetting, setting, -0.1)
-    missionCommands.addCommand("-1", menu, updateSplashDamageSetting, setting, -1)
-    missionCommands.addCommand("-10", menu, updateSplashDamageSetting, setting, -10)
-    missionCommands.addCommand("-100", menu, updateSplashDamageSetting, setting, -100)
+function addValueAdjustmentCommands(menu, setting, increments)
+    for _, inc in ipairs(increments) do
+        missionCommands.addCommand("+" .. inc, menu, updateSplashDamageSetting, setting, inc)
+        missionCommands.addCommand("-" .. inc, menu, updateSplashDamageSetting, setting, -inc)
+    end
 end
 
 function exitSplashDamageMenu()
@@ -2674,108 +2697,211 @@ function addSplashDamageMenu()
 
     splash_damage_menu = missionCommands.addSubMenu("Splash Damage Settings")
 
-    --Page 1: Debug & General Settings
-    local debugGeneralMenu = missionCommands.addSubMenu("Debug & General Settings", splash_damage_menu)
-    missionCommands.addCommand("Toggle Game Messages", debugGeneralMenu, toggleSplashDamageSetting, "game_messages")
-    missionCommands.addCommand("Toggle Debug Messages", debugGeneralMenu, toggleSplashDamageSetting, "debug")
-    missionCommands.addCommand("Toggle Weapon Missing Messages", debugGeneralMenu, toggleSplashDamageSetting, "weapon_missing_message")
-    missionCommands.addCommand("Toggle Pre-Explosion Debug", debugGeneralMenu, toggleSplashDamageSetting, "track_pre_explosion_debug")
-    missionCommands.addCommand("Toggle Damage Model", debugGeneralMenu, toggleSplashDamageSetting, "damage_model")
-    missionCommands.addCommand("Toggle Blast Stun", debugGeneralMenu, toggleSplashDamageSetting, "blast_stun")
-    local unitDisabledMenu = missionCommands.addSubMenu("Unit Disabled Health", debugGeneralMenu)
-    addValueAdjustmentCommands(unitDisabledMenu, "unit_disabled_health")
-    local unitCantFireMenu = missionCommands.addSubMenu("Unit Cant Fire Health", debugGeneralMenu)
-    addValueAdjustmentCommands(unitCantFireMenu, "unit_cant_fire_health")
-    local infantryCantFireMenu = missionCommands.addSubMenu("Infantry Cant Fire Health", debugGeneralMenu)
-    addValueAdjustmentCommands(infantryCantFireMenu, "infantry_cant_fire_health")
-    local rocketMultiplierMenu = missionCommands.addSubMenu("Rocket Multiplier", debugGeneralMenu)
-    addValueAdjustmentCommands(rocketMultiplierMenu, "rocket_multiplier")
-	
-    --Page 2: Explosions
-	
-    local explosionCargoMenu = missionCommands.addSubMenu("Explosion Settings", splash_damage_menu)
-    local staticDamageMenu = missionCommands.addSubMenu("Static Damage Boost", explosionCargoMenu)
-    addValueAdjustmentCommands(staticDamageMenu, "static_damage_boost")
-    missionCommands.addCommand("Toggle Wave Explosions", explosionCargoMenu, toggleSplashDamageSetting, "wave_explosions")
-    missionCommands.addCommand("Toggle Larger Explosions", explosionCargoMenu, toggleSplashDamageSetting, "larger_explosions")
-    local blastRadiusMenu = missionCommands.addSubMenu("Blast Search Radius", explosionCargoMenu)
-    addValueAdjustmentCommands(blastRadiusMenu, "blast_search_radius")
+    --1. Debug and Messages
+    local debugMenu = missionCommands.addSubMenu("Debug and Messages", splash_damage_menu)
+    local debugSettings = {
+        "game_messages",
+        "debug",
+        "weapon_missing_message",
+        "track_pre_explosion_debug",
+        "track_groundunitordnance_debug"
+    }
+    for _, setting in ipairs(debugSettings) do
+        missionCommands.addCommand("Toggle " .. setting:gsub("_", " "), debugMenu, toggleSplashDamageSetting, setting)
+    end
 
-    local overallScalingMenu = missionCommands.addSubMenu("Overall Scaling", explosionCargoMenu)
-    addValueAdjustmentCommands(overallScalingMenu, "overall_scaling")
-    missionCommands.addCommand("Toggle Shaped Charge Effects", explosionCargoMenu, toggleSplashDamageSetting, "apply_shaped_charge_effects")
-    local shapedChargeMenu = missionCommands.addSubMenu("Shaped Charge Multiplier", explosionCargoMenu)
-    addValueAdjustmentCommands(shapedChargeMenu, "shaped_charge_multiplier")
-    missionCommands.addCommand("Toggle Dynamic Blast Radius", explosionCargoMenu, toggleSplashDamageSetting, "use_dynamic_blast_radius")
-    local dynamicBlastMenu = missionCommands.addSubMenu("Dynamic Blast Radius Modifier", explosionCargoMenu)
-    addValueAdjustmentCommands(dynamicBlastMenu, "dynamic_blast_radius_modifier")
-	
-   --Page 2: Cascade	
-   
-    local explosionCascMenu = missionCommands.addSubMenu("Cascade Settings", splash_damage_menu)
-    local cascadeScalingMenu = missionCommands.addSubMenu("Cascade Scaling", explosionCascMenu)
-    addValueAdjustmentCommands(cascadeScalingMenu, "cascade_scaling")
-    local cascadeExplodeThresholdMenu = missionCommands.addSubMenu("Cascade Explode Threshold", explosionCascMenu)
-    addValueAdjustmentCommands(cascadeExplodeThresholdMenu, "cascade_explode_threshold")
-    local cascadeThresholdMenu = missionCommands.addSubMenu("Cascade Damage Threshold", explosionCascMenu)
-    addValueAdjustmentCommands(cascadeThresholdMenu, "cascade_damage_threshold")
-    missionCommands.addCommand("Toggle Always Cascade Explode", explosionCascMenu, toggleSplashDamageSetting, "always_cascade_explode")
-    
-	--Page 4: Cargo and Ordnance Protection 
-    local explosionCargoMenu = missionCommands.addSubMenu("Cargo and Ordnance", splash_damage_menu)
-    missionCommands.addCommand("Toggle Tracking & Cargo Effects", explosionCargoMenu, toggleSplashDamageSetting, "track_pre_explosion")
-    local cargoThresholdMenu = missionCommands.addSubMenu("Cargo Damage Threshold", explosionCargoMenu)
-    addValueAdjustmentCommands(cargoThresholdMenu, "cargo_damage_threshold")
-    missionCommands.addCommand("Toggle Ordnance Protection", explosionCargoMenu, toggleSplashDamageSetting, "ordnance_protection")
-    local ordnanceRadiusMenu = missionCommands.addSubMenu("Ordnance Protection Radius", explosionCargoMenu)
-    addValueAdjustmentCommands(ordnanceRadiusMenu, "ordnance_protection_radius")
-    missionCommands.addCommand("Toggle Snap To Ground If Destroyed By LE", explosionCargoMenu, toggleSplashDamageSetting, "snap_to_ground_if_destroyed_by_large_explosion")
-    local ordnanceRadiusMenu = missionCommands.addSubMenu("Ordnance Protection Radius", explosionCargoMenu)
-	local cargoThresholdMenu = missionCommands.addSubMenu("Max Snap Height", explosionCargoMenu)
-    addValueAdjustmentCommands(cargoThresholdMenu, "max_snapped_height")
-    missionCommands.addCommand("Toggle Recent Expl Track Snap", explosionCargoMenu, toggleSplashDamageSetting, "recent_large_explosion_snap")	
+    --2. Basic Splash Settings
+    local splashMenu = missionCommands.addSubMenu("Basic Splash Settings", splash_damage_menu)
+    local splashToggles = {
+        "wave_explosions",
+        "larger_explosions",
+        "damage_model",
+        "blast_stun"
+    }
+    for _, setting in ipairs(splashToggles) do
+        missionCommands.addCommand("Toggle " .. setting:gsub("_", " "), splashMenu, toggleSplashDamageSetting, setting)
+    end
+    local staticDamageMenu = missionCommands.addSubMenu("Static Damage Boost", splashMenu)
+    addValueAdjustmentCommands(staticDamageMenu, "static_damage_boost", {100, 500, 1000})
 
-	 
-	--Page 5: Debris Settings 
-    local debrisMenu = missionCommands.addSubMenu("Debris Settings", splash_damage_menu)
-    missionCommands.addCommand("Toggle Debris Effects", debrisMenu, toggleSplashDamageSetting, "debris_effects")
-    local debrisCountMinMenu = missionCommands.addSubMenu("Min Debris Count", debrisMenu)
-    addValueAdjustmentCommands(debrisCountMinMenu, "debris_count_min")
-    local debrisCountMaxMenu = missionCommands.addSubMenu("Max Debris Count", debrisMenu)
-    addValueAdjustmentCommands(debrisCountMaxMenu, "debris_count_max")
-    local debrisDistanceMenu = missionCommands.addSubMenu("Max Debris Distance", debrisMenu)
-    addValueAdjustmentCommands(debrisDistanceMenu, "debris_max_distance")
-    local debrisPowerMenu = missionCommands.addSubMenu("Debris Power", debrisMenu)
-    addValueAdjustmentCommands(debrisPowerMenu, "debris_power")
+    --Submenu: Scaling and Cascading
+    local scalingMenu = missionCommands.addSubMenu("Scaling and Cascading", splashMenu)
+    local scalingSettings = {
+        {name = "Overall Scaling", setting = "overall_scaling", increments = {0.1, 0.5, 1}},
+        {name = "Rocket Multiplier", setting = "rocket_multiplier", increments = {0.1, 0.5, 1}},
+        {name = "Cascade Scaling", setting = "cascade_scaling", increments = {0.1, 0.5, 1}},
+        {name = "Cascade Damage Threshold", setting = "cascade_damage_threshold", increments = {0.01, 0.05, 0.1}},
+        {name = "Cascade Explode Threshold", setting = "cascade_explode_threshold", increments = {5, 10, 25}}
+    }
+    for _, s in ipairs(scalingSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, scalingMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+    missionCommands.addCommand("Toggle Always Cascade Explode", scalingMenu, toggleSplashDamageSetting, "always_cascade_explode")
 
-    --Page 6: Cluster Settings
-    local clusterMenu = missionCommands.addSubMenu("Cluster Settings", splash_damage_menu)
+    --Submenu: Blast Radius & Shaped Charge
+    local blastMenu = missionCommands.addSubMenu("Blast Radius & Shaped Charge", splashMenu)
+    local blastRadiusMenu = missionCommands.addSubMenu("Blast Search Radius", blastMenu)
+    addValueAdjustmentCommands(blastRadiusMenu, "blast_search_radius", {5, 10, 25})
+    missionCommands.addCommand("Toggle Dynamic Blast Radius", blastMenu, toggleSplashDamageSetting, "use_dynamic_blast_radius")
+    local dynamicBlastMenu = missionCommands.addSubMenu("Dynamic Blast Radius Modifier", blastMenu)
+    addValueAdjustmentCommands(dynamicBlastMenu, "dynamic_blast_radius_modifier", {0.1, 0.5, 1})
+    missionCommands.addCommand("Toggle Shaped Charge Effects", blastMenu, toggleSplashDamageSetting, "apply_shaped_charge_effects")
+    local shapedChargeMenu = missionCommands.addSubMenu("Shaped Charge Multiplier", blastMenu)
+    addValueAdjustmentCommands(shapedChargeMenu, "shaped_charge_multiplier", {0.1, 0.5, 1})
+
+    --Submenu: Units
+    local unitsMenu = missionCommands.addSubMenu("Units", splashMenu)
+    local unitSettings = {
+        {name = "Unit Disabled Health", setting = "unit_disabled_health", increments = {5, 10, 25}},
+        {name = "Unit Can't Fire Health", setting = "unit_cant_fire_health", increments = {5, 10, 25}},
+        {name = "Infantry Can't Fire Health", setting = "infantry_cant_fire_health", increments = {5, 10, 25}}
+    }
+    for _, s in ipairs(unitSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, unitsMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+
+    --Submenu: Ground Ordnance Tracking
+    local groundOrdnanceMenu = missionCommands.addSubMenu("Ground Ordnance Tracking", splashMenu)
+    missionCommands.addCommand("Toggle Ground Ordnance Tracking", groundOrdnanceMenu, toggleSplashDamageSetting, "track_groundunitordnance")
+    local groundSettings = {
+        {name = "Damage Modifier", setting = "groundunitordnance_damage_modifier", increments = {0.1, 0.5, 1}},
+        {name = "Blastwave Modifier", setting = "groundunitordnance_blastwave_modifier", increments = {0.1, 0.5, 1}},
+        {name = "Max Tracked Count", setting = "groundunitordnance_maxtrackedcount", increments = {5, 10, 25}}
+    }
+    for _, s in ipairs(groundSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, groundOrdnanceMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+    missionCommands.addCommand("Toggle 50m Scan", groundOrdnanceMenu, toggleSplashDamageSetting, "scan_50m_for_groundordnance")
+
+    --3. Cargo Cook-off & Fuel Explosion
+    local cargoMenu = missionCommands.addSubMenu("Cargo Cook-off & Fuel Explosion", splash_damage_menu)
+    missionCommands.addCommand("Toggle Track Pre-Explosion", cargoMenu, toggleSplashDamageSetting, "track_pre_explosion")
+    missionCommands.addCommand("Toggle Cargo Effects", cargoMenu, toggleSplashDamageSetting, "enable_cargo_effects")
+    local cargoThresholdMenu = missionCommands.addSubMenu("Cargo Damage Threshold", cargoMenu)
+    addValueAdjustmentCommands(cargoThresholdMenu, "cargo_damage_threshold", {5, 10, 25})
+    missionCommands.addCommand("Toggle Debris Effects", cargoMenu, toggleSplashDamageSetting, "debris_effects")
+    local debrisSettings = {
+        {name = "Debris Power", setting = "debris_power", increments = {1, 5, 10}},
+        {name = "Min Debris Count", setting = "debris_count_min", increments = {1, 5, 10}},
+        {name = "Max Debris Count", setting = "debris_count_max", increments = {1, 5, 10}},
+        {name = "Max Debris Distance", setting = "debris_max_distance", increments = {1, 5, 10}}
+    }
+    for _, s in ipairs(debrisSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, cargoMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+
+    --Submenu: Cook-off Flares
+    local flareMenu = missionCommands.addSubMenu("Cook-off Flares", cargoMenu)
+    missionCommands.addCommand("Toggle Cook-off Flares", flareMenu, toggleSplashDamageSetting, "cookoff_flares_enabled")
+    local flareColorMenu = missionCommands.addSubMenu("Flare Color", flareMenu)
+    local flareColors = {
+        {name = "Green", value = 0},
+        {name = "White", value = 1},
+        {name = "Red", value = 2},
+        {name = "Yellow", value = 3}
+    }
+    for _, color in ipairs(flareColors) do
+        missionCommands.addCommand(color.name, flareColorMenu, function()
+            splash_damage_options.cookoff_flare_color = color.value
+            trigger.action.outText("Cook-off flare color set to " .. color.name, 5)
+        end)
+    end
+    local flareCountMenu = missionCommands.addSubMenu("Flare Count Modifier", flareMenu)
+    addValueAdjustmentCommands(flareCountMenu, "cookoff_flare_count_modifier", {0.1, 0.5, 1})
+    local flareOffsetMenu = missionCommands.addSubMenu("Flare Offset", flareMenu)
+    addValueAdjustmentCommands(flareOffsetMenu, "cookoff_flare_offset", {1, 5, 10})
+
+    --Submenu: All Vehicles Options
+    local allVehiclesMenu = missionCommands.addSubMenu("All Vehicles Options", cargoMenu)
+    local vehicleToggles = {
+        "smokeandcookoffeffectallvehicles",
+        "allunits_enable_smoke",
+        "allunits_enable_cookoff"
+    }
+    for _, setting in ipairs(vehicleToggles) do
+        missionCommands.addCommand("Toggle " .. setting:gsub("_", " "), allVehiclesMenu, toggleSplashDamageSetting, setting)
+    end
+    local vehicleSettings = {
+        {name = "Explosion Power", setting = "allunits_explode_power", increments = {5, 10, 25}},
+        {name = "Default Flame Size", setting = "allunits_default_flame_size", increments = {1, 5, 10}},
+        {name = "Default Flame Duration", setting = "allunits_default_flame_duration", increments = {5, 10, 25}},
+        {name = "Cook-off Count", setting = "allunits_cookoff_count", increments = {1, 5, 10}},
+        {name = "Cook-off Duration", setting = "allunits_cookoff_duration", increments = {5, 10, 25}},
+        {name = "Cook-off Power", setting = "allunits_cookoff_power", increments = {5, 10, 25}},
+        {name = "Cook-off Power Random", setting = "allunits_cookoff_powerrandom", increments = {5, 10, 25}}
+    }
+    for _, s in ipairs(vehicleSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, allVehiclesMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+
+    --4. Ordnance Protection & Cluster
+    local ordnanceMenu = missionCommands.addSubMenu("Ordnance Protection & Cluster", splash_damage_menu)
+    local ordnanceToggles = {
+        "ordnance_protection",
+        "detect_ordnance_destruction",
+        "snap_to_ground_if_destroyed_by_large_explosion",
+        "recent_large_explosion_snap"
+    }
+    for _, setting in ipairs(ordnanceToggles) do
+        missionCommands.addCommand("Toggle " .. setting:gsub("_", " "), ordnanceMenu, toggleSplashDamageSetting, setting)
+    end
+    local ordnanceSettings = {
+        {name = "Ordnance Protection Radius", setting = "ordnance_protection_radius", increments = {5, 10, 25}},
+        {name = "Max Snapped Height", setting = "max_snapped_height", increments = {5, 10, 25}},
+        {name = "Recent Explosion Range", setting = "recent_large_explosion_range", increments = {5, 10, 25}},
+        {name = "Recent Explosion Time", setting = "recent_large_explosion_time", increments = {1, 5, 10}}
+    }
+    for _, s in ipairs(ordnanceSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, ordnanceMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+
+    --Submenu: Cluster Bombs
+    local clusterMenu = missionCommands.addSubMenu("Cluster Bombs", ordnanceMenu)
     missionCommands.addCommand("Toggle Cluster Enabled", clusterMenu, toggleSplashDamageSetting, "cluster_enabled")
-    local clusterBaseLengthMenu = missionCommands.addSubMenu("Cluster Base Length", clusterMenu)
-    addValueAdjustmentCommands(clusterBaseLengthMenu, "cluster_base_length")
-    local clusterBaseWidthMenu = missionCommands.addSubMenu("Cluster Base Width", clusterMenu)
-    addValueAdjustmentCommands(clusterBaseWidthMenu, "cluster_base_width")
-    local clusterMaxLengthMenu = missionCommands.addSubMenu("Cluster Max Length", clusterMenu)
-    addValueAdjustmentCommands(clusterMaxLengthMenu, "cluster_max_length")
-    local clusterMaxWidthMenu = missionCommands.addSubMenu("Cluster Max Width", clusterMenu)
-    addValueAdjustmentCommands(clusterMaxWidthMenu, "cluster_max_width")
-    local clusterMinLengthMenu = missionCommands.addSubMenu("Cluster Min Length", clusterMenu)
-    addValueAdjustmentCommands(clusterMinLengthMenu, "cluster_min_length")
-    local clusterMinWidthMenu = missionCommands.addSubMenu("Cluster Min Width", clusterMenu)
-    addValueAdjustmentCommands(clusterMinWidthMenu, "cluster_min_width")
-    missionCommands.addCommand("Toggle Bomblet Reduction Modifier", clusterMenu, toggleSplashDamageSetting, "cluster_bomblet_reductionmodifier")
-    local clusterBombletDamageMenu = missionCommands.addSubMenu("Bomblet Damage Modifier", clusterMenu)
-    addValueAdjustmentCommands(clusterBombletDamageMenu, "cluster_bomblet_damage_modifier")
-	
---Page 7: Giant Explosion Settings
-    local giantExplosionMenu = missionCommands.addSubMenu("Giant Explosion Settings", splash_damage_menu)
-    missionCommands.addCommand("Toggle Giant Explosion", giantExplosionMenu, toggleSplashDamageSetting, "giant_explosion_enabled")
-    missionCommands.addCommand("Toggle Static Target", giantExplosionMenu, toggleSplashDamageSetting, "giant_explosion_target_static")
-    missionCommands.addCommand("Toggle On Damage", giantExplosionMenu, toggleSplashDamageSetting, "giantexplosion_ondamage")
-    missionCommands.addCommand("Toggle On Death", giantExplosionMenu, toggleSplashDamageSetting, "giantexplosion_ondeath")
-    missionCommands.addCommand("Toggle Test Mode", giantExplosionMenu, toggleSplashDamageSetting, "giantexplosion_testmode")
+    local clusterSettings = {
+        {name = "Cluster Base Length", setting = "cluster_base_length", increments = {25, 50, 100}},
+        {name = "Cluster Base Width", setting = "cluster_base_width", increments = {25, 50, 100}},
+        {name = "Cluster Max Length", setting = "cluster_max_length", increments = {25, 50, 100}},
+        {name = "Cluster Max Width", setting = "cluster_max_width", increments = {25, 50, 100}},
+        {name = "Cluster Min Length", setting = "cluster_min_length", increments = {25, 50, 100}},
+        {name = "Cluster Min Width", setting = "cluster_min_width", increments = {25, 50, 100}},
+        {name = "Bomblet Damage Modifier", setting = "cluster_bomblet_damage_modifier", increments = {1, 5, 10}}
+    }
+    for _, s in ipairs(clusterSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, clusterMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+    missionCommands.addCommand("Toggle Bomblet Reduction", clusterMenu, toggleSplashDamageSetting, "cluster_bomblet_reductionmodifier")
+
+    --5. Giant Explosions
+    local giantExplosionMenu = missionCommands.addSubMenu("Giant Explosions", splash_damage_menu)
+    local giantToggles = {
+        "giant_explosion_enabled",
+        "giant_explosion_target_static",
+        "giantexplosion_ondamage",
+        "giantexplosion_ondeath",
+    }
+    for _, setting in ipairs(giantToggles) do
+        missionCommands.addCommand("Toggle " .. setting:gsub("_", " "), giantExplosionMenu, toggleSplashDamageSetting, setting)
+    end
+    local giantSettings = {
+        {name = "Explosion Power", setting = "giant_explosion_power", increments = {500, 1000, 2000}},
+        {name = "Size Scale", setting = "giant_explosion_scale", increments = {0.1, 0.5, 1, 2}},
+        {name = "Duration", setting = "giant_explosion_duration", increments = {0.1, 0.5, 1, 2}},
+        {name = "Explosion Count", setting = "giant_explosion_count", increments = {25, 50, 100}},
+    }
+    for _, s in ipairs(giantSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, giantExplosionMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+    local testExplosionMenu = missionCommands.addSubMenu("Test Explosions", giantExplosionMenu)
     if splash_damage_options.giantexplosion_testmode then
-	    local testExplosionMenu = missionCommands.addSubMenu("Test Giant Explosion", giantExplosionMenu)
         for _, target in ipairs(giantExplosionTestTargets) do
             missionCommands.addCommand("Detonate " .. target.name, testExplosionMenu, function()
                 triggerGiantExplosion({
@@ -2799,63 +2925,38 @@ function addSplashDamageMenu()
             end
         end)
     end
-    local powerMenu = missionCommands.addSubMenu("Explosion Power", giantExplosionMenu)
-	missionCommands.addCommand("+1000", powerMenu, updateSplashDamageSetting, "giant_explosion_power", 1000)
-    missionCommands.addCommand("+500", powerMenu, updateSplashDamageSetting, "giant_explosion_power", 500)
-	missionCommands.addCommand("+100", powerMenu, updateSplashDamageSetting, "giant_explosion_power", 100)
-	missionCommands.addCommand("-1000", powerMenu, updateSplashDamageSetting, "giant_explosion_power", -1000)
-    missionCommands.addCommand("-500", powerMenu, updateSplashDamageSetting, "giant_explosion_power", -500)
-	missionCommands.addCommand("-100", powerMenu, updateSplashDamageSetting, "giant_explosion_power", -100)
-    local scaleMenu = missionCommands.addSubMenu("Size Scale", giantExplosionMenu)
-    missionCommands.addCommand("+0.1", scaleMenu, updateSplashDamageSetting, "giant_explosion_scale", 0.1)
-    missionCommands.addCommand("+0.5", scaleMenu, updateSplashDamageSetting, "giant_explosion_scale", 0.5)
-    missionCommands.addCommand("-0.1", scaleMenu, updateSplashDamageSetting, "giant_explosion_scale", -0.1)
-    missionCommands.addCommand("-0.5", scaleMenu, updateSplashDamageSetting, "giant_explosion_scale", -0.5)
-    local durationMenu = missionCommands.addSubMenu("Duration", giantExplosionMenu)
-    missionCommands.addCommand("+0.25s", durationMenu, updateSplashDamageSetting, "giant_explosion_duration", 0.25)
-    missionCommands.addCommand("-0.25s", durationMenu, updateSplashDamageSetting, "giant_explosion_duration", -0.25)
-    local countMenu = missionCommands.addSubMenu("Explosion Count", giantExplosionMenu)
-    addValueAdjustmentCommands(countMenu, "giant_explosion_count")
 
+    --6. Napalm
+    local napalmMenu = missionCommands.addSubMenu("Napalm", splash_damage_menu)
+    local napalmToggles = {
+        "napalm_mk77_enabled",
+        "napalmoverride_enabled",
+        "napalm_phosphor_enabled",
+        "napalm_addflame"
+    }
+    for _, setting in ipairs(napalmToggles) do
+        missionCommands.addCommand("Toggle " .. setting:gsub("_", " "), napalmMenu, toggleSplashDamageSetting, setting)
+    end
+    local napalmSettings = {
+        {name = "Spread Points", setting = "napalm_spread_points", increments = {1, 2, 3}},
+        {name = "Spread Spacing", setting = "napalm_spread_spacing", increments = {1, 5, 10}},
+        {name = "Phosphor Multiplier", setting = "napalm_phosphor_multiplier", increments = {0.1, 0.5, 1}},
+        {name = "Flame Duration", setting = "napalm_addflame_duration", increments = {10, 30, 60}}
+    }
+    for _, s in ipairs(napalmSettings) do
+        local subMenu = missionCommands.addSubMenu(s.name, napalmMenu)
+        addValueAdjustmentCommands(subMenu, s.setting, s.increments)
+    end
+    local napalmFlameSizeMenu = missionCommands.addSubMenu("Flame Size", napalmMenu)
+    for i = 1, 8 do
+        missionCommands.addCommand("Set " .. i, napalmFlameSizeMenu, function()
+            splash_damage_options.napalm_addflame_size = i
+            trigger.action.outText("Napalm flame size set to " .. i, 5)
+        end)
+    end
 
-    --Page 8: Ground Ordnance and All Vehicles Smoke Settings
-    local groundOrdnanceMenu = missionCommands.addSubMenu("Ground Ordnance and All Vehicles Smoke Settings", splash_damage_menu)
-    missionCommands.addCommand("Toggle Ground Ordnance Tracking", groundOrdnanceMenu, toggleSplashDamageSetting, "track_groundunitordnance")
-    missionCommands.addCommand("Toggle Ground Ordnance Debug", groundOrdnanceMenu, toggleSplashDamageSetting, "track_groundunitordnance_debug")
-    local damageModifierMenu = missionCommands.addSubMenu("Damage Modifier", groundOrdnanceMenu)
-    missionCommands.addCommand("+0.1", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", 0.1)
-    missionCommands.addCommand("+0.5", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", 0.5)
-    missionCommands.addCommand("+1.0", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", 1.0)
-    missionCommands.addCommand("-0.1", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", -0.1)
-    missionCommands.addCommand("-0.5", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", -0.5)
-    missionCommands.addCommand("-1.0", damageModifierMenu, updateSplashDamageSetting, "groundunitordnance_damage_modifier", -1.0)
-    local blastwaveModifierMenu = missionCommands.addSubMenu("Blast Wave Modifier", groundOrdnanceMenu)
-    missionCommands.addCommand("+0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", 0.1)
-    missionCommands.addCommand("+0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", 0.5)
-    missionCommands.addCommand("+1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", 1.0)
-    missionCommands.addCommand("-0.1", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.1)
-    missionCommands.addCommand("-0.5", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -0.5)
-    missionCommands.addCommand("-1.0", blastwaveModifierMenu, updateSplashDamageSetting, "groundunitordnance_blastwave_modifier", -1.0)
-    --New commands for smokeandcookoffeffectallvehicles
-    missionCommands.addCommand("Toggle Smoke All Vehicles", groundOrdnanceMenu, toggleSplashDamageSetting, "smokeandcookoffeffectallvehicles")
-    local smokeSizeMenu = missionCommands.addSubMenu("Smoke Size", groundOrdnanceMenu)
-    missionCommands.addCommand("Set Size 1", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 1)
-    missionCommands.addCommand("Set Size 2", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 2)
-    missionCommands.addCommand("Set Size 3", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 3)
-    missionCommands.addCommand("Set Size 4", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 4)
-    missionCommands.addCommand("Set Size 5", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 5)
-    missionCommands.addCommand("Set Size 6", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 6)
-    missionCommands.addCommand("Set Size 7", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 7)
-    missionCommands.addCommand("Set Size 8", smokeSizeMenu, updateSplashDamageSetting, "allunits_default_flame_size", nil, 8)
-    local smokeDurationMenu = missionCommands.addSubMenu("Smoke Duration", groundOrdnanceMenu)
-    missionCommands.addCommand("+10s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", 10)
-    missionCommands.addCommand("+30s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", 30)
-    missionCommands.addCommand("+60s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", 60)
-    missionCommands.addCommand("-10s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", -10)
-    missionCommands.addCommand("-30s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", -30)
-    missionCommands.addCommand("-60s", smokeDurationMenu, updateSplashDamageSetting, "allunits_default_flame_duration", -60)
-
-
+    --7. Exit Menu
+    missionCommands.addCommand("Exit Splash Damage Menu", splash_damage_menu, exitSplashDamageMenu)
 end
 
 if (script_enable == 1) then
@@ -2878,7 +2979,9 @@ if (script_enable == 1) then
     addSplashDamageMenu()
 end
 
---[[
+--[[-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=
+                            		##### Changelog #####
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=
    
     x x 2025 (Stevey666) - 3.3
 	  - Added changed JF17 ordnance to weapons table (thanks to Kurdes)
@@ -2992,4 +3095,7 @@ end
       FrozenDroid:
       - Added error handling to all event handler and scheduled functions. Lua script errors can no longer bring the server down.
       - Added some extra checks to which weapons to handle, make sure they actually have a warhead (how come S-8KOM's don't have a warhead field...?)
---]]
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=
+                            		##### END of Changelog #####
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
