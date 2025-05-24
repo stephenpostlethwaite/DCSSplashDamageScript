@@ -43,7 +43,7 @@ splash_damage_options = {
     ---------------------------------------------------------------------- Debug -----------------------------------------------------------------------------
     ["game_messages"] = true, --enable some messages on screen
     ["debug"] = false,  --enable debugging messages 
-    ["weapon_missing_message"] = true, --false disables messages alerting you to weapons missing from the explTable
+    ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
     ["napalm_unitdamage_debug"] = false, --Enable detailed debug messages for napalm unit damage tracking
@@ -164,7 +164,7 @@ splash_damage_options = {
     ["napalmoverride_enabled"] = false, --If true, enables napalm effects for weapons in napalm_override_weapons
     ["napalm_override_weapons"] = "Mk_82,SAMP125LD", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
  
-    ["napalm_spread_points"] = 4, --Number of points of explosion per each bomb (aka spawns of dummy fuel tank), so 1 bomb can have 4 fireballs as such.  The MK77 is bigger and will do a % more by default
+    ["napalm_spread_points"] = 4, --Number of points of explosion per each bomb (aka spawns of dummy fuel tank), so 1 bomb can have 4 fireballs as such.  The MK77 0 is bigger and will do a % more by default (i.e 5 instead of 4)
     ["napalm_spread_spacing"] = 25, --Distance m between the points
     ["napalm_phosphor_enabled"] = true, --If true, enables phosphor flare effects for napalm weapons
     ["napalm_phosphor_multiplier"] = 0.5, --Multiplier for number of phosphor flares that shoot out, there is a level of randomisation in the code already
