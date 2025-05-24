@@ -139,7 +139,7 @@ splash_damage_options = {
     
 
     ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
-    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
+    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
     ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
