@@ -2,27 +2,25 @@
                                                                 Latest Changes                                       
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
 
-    x x 2025 - 3.3
+    24th May 2025 - 3.3
 
 		(Stevey666) 
 		
-	  - Added naval weapons into explosive table
+	  - Added some naval weapons into weapon/expl table
 	  - Added some ground unit ordnance to explosive table and allowing a wider area to be tracked
 	  - Game_mesages and enable_radio_menu options defaulted to false. 
 			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
 			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
 	  - Overhauled the radio options
 	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled). Not sure if I like this one so leaving in as optional
+	  - Reduced cargo cook off initial explosion values as they were a little too high
 	  - New feature: Napalm. MK77 A4 Skyhawk Napalm and Optional Napalm weapon override - Allows napalm effects, overriding specific weapons set in options is possible too.
 	  		- This feature has been adapated from titi69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , credit to him and the Olympus mod team for the Napalm method
-	  
-	**** TO DO BEFORE RELEASING *****
-		further napalm testing/refinements?
-		document napalm usage and shortcomings
+
 
 	    (Sniex)
 	    
-	  - Added weapon types to the expltable
+	  - Added weapon types in the weapon/expl
 	  - Adjusted some rocket explosive power numbers (+1 or 2)
 	  - Adjusted explosive power for anti radar, ship missile, cruise missile and some others
 	  - Increased script readability
@@ -141,7 +139,7 @@ splash_damage_options = {
     
 
     ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
-    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
+    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
     ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
@@ -181,8 +179,9 @@ splash_damage_options = {
     ["napalm_doublewide_spread"] = 15, --Meters either side of bomb vector either side to spawn a fuel tank
 	
     ["napalm_unitdamage_enable"] = true, --Enable/disable napalm unit damage
-    ["napalm_unitdamage_infantryfire"] = true, --Enable flame effect on infantry
-    ["napalm_unitdamage_scandistance"] = 60, --Scan radius in meters
+    ["napalm_unitdamage_scandistance"] = 70, --Scan radius in meters
+    ["napalm_unitdamage_startdelay"] = 0.1, --Seconds between Napalm exploding and explosion occurring (can be 0 for no delay)
+    ["napalm_unitdamage_spreaddelay"] = 0, --If startdelay is greater than 0, explosions are ordered by distance with this gap between each unit
 }
 
 local script_enable = 1
@@ -213,7 +212,7 @@ flamesize:
     ["r11_volvo_drivable"] = { 
         cargoExplosion = true,
         cargoExplosionMult = 2.0,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
         cookOffPower = 0,
@@ -229,7 +228,7 @@ flamesize:
     ["ATMZ-5"] = {
         cargoExplosion = true,
         cargoExplosionMult = 2.0,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
         cookOffPower = 0,
@@ -245,7 +244,7 @@ flamesize:
     ["ATZ-10"] = {
         cargoExplosion = true,
         cargoExplosionMult = 2,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
         cookOffPower = 0,
@@ -261,7 +260,7 @@ flamesize:
     ["ATZ-5"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1.8,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
         cookOffPower = 0,
@@ -277,7 +276,7 @@ flamesize:
     ["M978 HEMTT Tanker"] = {
         cargoExplosion = true,
         cargoExplosionMult = 2.0,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
         cookOffPower = 0,
@@ -293,7 +292,7 @@ flamesize:
     ["GAZ-66"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 4,
         cookOffPower = 1,
@@ -309,7 +308,7 @@ flamesize:
     ["Ural-375"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 4,
         cookOffPower = 1,
@@ -324,7 +323,7 @@ flamesize:
     ["ZIL-135"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 200,
+		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 5,
         cookOffPower = 1,
@@ -343,7 +342,7 @@ flamesize:
 	    ["Cargo06"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 100,
+		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 5,
         cookOffPower = 1,
@@ -377,7 +376,7 @@ flamesize:
 	    ["Cargo05"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 100,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 5,
         cookOffPower = 1,
@@ -394,7 +393,7 @@ flamesize:
 	    ["APFC fuel"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 100,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 5,
         cookOffPower = 1,
@@ -411,7 +410,7 @@ flamesize:
 	    ["Oil Barrel"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 100,
+		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 5,
         cookOffPower = 1,
@@ -429,7 +428,7 @@ flamesize:
 	    ["FARP Ammo Dump Coating"] = {
         cargoExplosion = true,
         cargoExplosionMult = 1,
-		cargoExplosionPower = 100,
+		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 5,
         cookOffPower = 1,
@@ -768,7 +767,9 @@ explTable = {
 	["weapons.shells.PJ26_76_PFHE"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE-PF shell, PJ-26 (~0.8-1.1 kg TNT equiv)
 	["weapons.shells.53-UOR-281U"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
 	["weapons.shells.MK75_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, Mk 75 (~0.8-1.1 kg TNT equiv)
-
+	
+	--*** Bismark Mod Weapon ***
+    ["weapons.shells.Breda_37_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
 	--*** Bismark Mod Weapons ***
 	["weapons.shells.380mm_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
 	["weapons.shells.SK_C_33_105_HE"] = { explosive = 15, shaped_charge = false, groundordnance = true }, --105mm HE shell, SK C/33 (~12-16 kg TNT equiv)
@@ -779,20 +780,32 @@ explTable = {
 }
 
 napalm_unitcat_tabl = {
-    ["Infantry"] = { maxDamageDistance = 50, explosionPower = 2 }, 
+    ["Infantry"] = { maxDamageDistance = 50, explosionPower = 0.5 }, 
     ["Tank"] = { maxDamageDistance = 30, explosionPower = 5 }, 
     ["Artillery"] = { maxDamageDistance = 40, explosionPower = 5 }, 
     ["Armored Vehicle"] = { maxDamageDistance = 35, explosionPower = 5 }, 
     ["Anti-Air"] = { maxDamageDistance = 35, explosionPower = 5 }, 
     ["Helicopter"] = { maxDamageDistance = 45, explosionPower = 5 }, 
     ["Airplane"] = { maxDamageDistance = 40, explosionPower = 5 },
-    ["Structure"] = { maxDamageDistance = 60, explosionPower = 300 }
+    ["Structure"] = { maxDamageDistance = 60, explosionPower = 60 }
 }
 
 local effectSmokeId = 1
 
 ----[[ ##### HELPER/UTILITY FUNCTIONS ##### ]]----
 
+--Global table to track processed unit IDs
+local processedUnitIds = {}
+
+--Function to clear processed unit IDs after a delay
+function clearProcessedUnitIds(unitId)
+    if processedUnitIds[unitId] then
+        processedUnitIds[unitId] = nil
+        if splash_damage_options.napalm_unitdamage_debug then
+            env.info("scanUnitsForNapalm: Cleared unit ID " .. unitId .. " from processedUnitIds")
+        end
+    end
+end
 
 local function debugMsg(str)
     if splash_damage_options.debug == true then
@@ -881,7 +894,12 @@ function Vhead(speedVec)
 end
 
 function explodeNapalm(vec3)
-    trigger.action.explosion(vec3, 10)
+    local explosionPos = {
+        x = vec3.x,
+        y = vec3.y + 1.6, --Add 1.6m to the ground height
+        z = vec3.z
+    }
+    trigger.action.explosion(explosionPos, 10)
 end
  
 -- Helper function to calculate 2D distance
@@ -891,7 +909,7 @@ local function getDistance(point1, point2)
     return math.sqrt(dX * dX + dZ * dZ)
 end
 
--- Scan for units in the specified area
+--Scan for units around the napalm explosions and apply damage if required
 function scanUnitsForNapalm(posX, posY, posZ)
     if not splash_damage_options.napalm_unitdamage_enable then 
         if splash_damage_options.napalm_unitdamage_debug then
@@ -988,31 +1006,73 @@ function scanUnitsForNapalm(posX, posY, posZ)
     end)
     
     if not status and splash_damage_options.napalm_unitdamage_debug then
-        env.info("scanUnitsForNapalm: Error during unit scan: " .. tostring(err))
+        env.info("scanUnitsForNapalm: Error during scan: " .. tostring(err))
         return
     end
     
     table.sort(foundUnits, function(a, b) return a.distance < b.distance end)
     
     if splash_damage_options.napalm_unitdamage_debug then
-        env.info("scanUnitsForNapalm: Scan completed, found " .. #foundUnits .. " units within " .. splash_damage_options.napalm_unitdamage_scandistance .. " meters at position (X: " .. posX .. ", Y: " .. posY .. ", Z: " .. posZ .. ")")
-    end
-    if #foundUnits > 0 then
+        env.info("scanUnitsForNapalm: Scan completed, found " .. #foundUnits .. " objects within " .. splash_damage_options.napalm_unitdamage_scandistance .. " meters at position (X: " .. posX .. ", Y: " .. posY .. ", Z: " .. posZ .. ")")
+        -- Log all found objects
         for _, unitData in ipairs(foundUnits) do
-            if splash_damage_options.napalm_unitdamage_debug then
-                env.info("scanUnitsForNapalm: Found unit ID " .. unitData.id .. " of type: " .. unitData.type .. ", Category: " .. unitData.category .. ", Distance: " .. string.format("%.2f", unitData.distance) .. " meters, Position: (X: " .. string.format("%.2f", unitData.position.x) .. ", Y: " .. string.format("%.2f", unitData.position.y) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ")")
-            end
+            env.info("scanUnitsForNapalm: Found object ID " .. tostring(unitData.id) .. " of type: " .. unitData.type .. ", Category: " .. unitData.category .. ", Distance: " .. string.format("%.2f", unitData.distance) .. " meters, Position: (X: " .. string.format("%.2f", unitData.position.x) .. ", Y: " .. string.format("%.2f", unitData.position.y) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ")")
+        end
+    end
+    
+    if #foundUnits > 0 then
+        local processedPositions = {} -- Track processed coordinates for this scan
+        local explosionIndex = 0
+        for _, unitData in ipairs(foundUnits) do
             if napalm_unitcat_tabl[unitData.category] and unitData.distance <= napalm_unitcat_tabl[unitData.category].maxDamageDistance then
-                local power = napalm_unitcat_tabl[unitData.category].explosionPower
-                if splash_damage_options.napalm_unitdamage_debug then
-                    env.info("scanUnitsForNapalm: Triggering explosion on unit ID " .. unitData.id .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") with power " .. power)
+                -- Check if unit ID has already been processed
+                if not processedUnitIds[unitData.id] then
+                    -- Check for duplicate position (within 1 meter)
+                    local posKey = string.format("%.0f_%.0f_%.0f", unitData.position.x, unitData.position.y, unitData.position.z)
+                    if not processedPositions[posKey] then
+                        -- Check if unit is still alive (for units) or exists (for statics)
+                        local isAlive = unitData.unit:isExist() and (unitData.category == "Structure" or unitData.unit:getLife() > 0)
+                        if isAlive then
+                            processedPositions[posKey] = true
+                            processedUnitIds[unitData.id] = true
+                            local power = napalm_unitcat_tabl[unitData.category].explosionPower
+                            -- Calculate delay
+                            local delay = splash_damage_options.napalm_unitdamage_startdelay
+                            if splash_damage_options.napalm_unitdamage_startdelay > 0 then
+                                delay = delay + (explosionIndex * splash_damage_options.napalm_unitdamage_spreaddelay)
+                                explosionIndex = explosionIndex + 1
+                            end
+                            -- Adjust position for infantry to reduce ground interaction
+                            local explosionPos = unitData.position
+                            if unitData.category == "Infantry" then
+                                explosionPos = {
+                                    x = unitData.position.x,
+                                    y = land.getHeight({x = unitData.position.x, y = unitData.position.z}) + 1.6,
+                                    z = unitData.position.z
+                                }
+                            end
+                            if splash_damage_options.napalm_unitdamage_debug then
+                                env.info("scanUnitsForNapalm: Scheduling explosion on unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", explosionPos.x) .. ", Z: " .. string.format("%.2f", explosionPos.z) .. ") with power " .. power .. " after " .. string.format("%.2f", delay) .. "s")
+                            end
+                            timer.scheduleFunction(function(params)
+                                trigger.action.explosion(params.position, params.power)
+                            end, {position = explosionPos, power = power}, timer.getTime() + delay)
+                            -- Schedule cleanup for this unit ID 20 seconds after its explosion
+                            timer.scheduleFunction(clearProcessedUnitIds, unitData.id, timer.getTime() + delay + 20)
+                        elseif splash_damage_options.napalm_unitdamage_debug then
+                            env.info("scanUnitsForNapalm: Skipped explosion for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") because unit is not alive (isExist: " .. tostring(unitData.unit:isExist()) .. ", life: " .. (unitData.category == "Structure" and "N/A" or tostring(unitData.unit:getLife())) .. ")")
+                        end
+                    elseif splash_damage_options.napalm_unitdamage_debug then
+                        env.info("scanUnitsForNapalm: Skipped explosion for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") due to duplicate position")
+                    end
+                elseif splash_damage_options.napalm_unitdamage_debug then
+                    env.info("scanUnitsForNapalm: Skipped explosion for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") due to already processed unit ID")
                 end
-                trigger.action.explosion(unitData.position, power)
             end
         end
     else
         if splash_damage_options.napalm_unitdamage_debug then
-            env.info("scanUnitsForNapalm: No units found in scan area")
+            env.info("scanUnitsForNapalm: No objects found in scan area")
         end
     end
 end
@@ -3212,6 +3272,11 @@ function addSplashDamageMenu()
     missionCommands.addCommand("Toggle Infantry Fire", unitDamageMenu, toggleSplashDamageSetting, "napalm_unitdamage_infantryfire")
     local scanDistanceMenu = missionCommands.addSubMenu("Scan Distance", unitDamageMenu)
     addValueAdjustmentCommands(scanDistanceMenu, "napalm_unitdamage_scandistance", {20, 25, 50})
+    local startDelayMenu = missionCommands.addSubMenu("Start Delay", unitDamageMenu)
+    addValueAdjustmentCommands(startDelayMenu, "napalm_unitdamage_startdelay", {0.1, 0.2, 0.5})
+    local spreadDelayMenu = missionCommands.addSubMenu("Spread Delay", unitDamageMenu)
+    addValueAdjustmentCommands(spreadDelayMenu, "napalm_unitdamage_spreaddelay", {0.1, 0.2, 0.5})
+
 
     --7. Exit Menu
     missionCommands.addCommand("Exit Splash Damage Menu", splash_damage_menu, exitSplashDamageMenu)
@@ -3241,28 +3306,24 @@ end
                             		##### Changelog #####
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- =--=-=-=-=-=-=-=
    
-    x x 2025 - 3.3
+    24th May 2025 - 3.3
 
 		(Stevey666) 
 		
-	  - Added changed JF17 ordnance to weapons table (thanks to Kurdes)
-	  - Added naval weapons into explosive table
+	  - Added some naval weapons into weapon/expl table
 	  - Added some ground unit ordnance to explosive table and allowing a wider area to be tracked
 	  - Game_mesages and enable_radio_menu options defaulted to false. 
 			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
 			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
 	  - Overhauled the radio options
 	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled). Not sure if I like this one so leaving in as optional
+	  - Reduced cargo cook off initial explosion values as they were a little too high
 	  - New feature: Napalm. MK77 A4 Skyhawk Napalm and Optional Napalm weapon override - Allows napalm effects, overriding specific weapons set in options is possible too.
 	  		- This feature has been adapated from titi69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , credit to him and the Olympus mod team for the Napalm method
-	  
-	**** TO DO BEFORE RELEASING *****
-		further napalm testing/refinements?
-		document napalm usage and shortcomings
 
 	    (Sniex)
 	    
-	  - Added weapon types to the expltable
+	  - Added weapon types in the weapon/expl
 	  - Adjusted some rocket explosive power numbers (+1 or 2)
 	  - Adjusted explosive power for anti radar, ship missile, cruise missile and some others
 	  - Increased script readability
