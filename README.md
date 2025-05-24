@@ -21,6 +21,7 @@ Please see the wiki for some notes on features
 			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
 	  - Overhauled the radio options
 	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled). Not sure if I like this one so leaving in as optional
+	  - Reduced cargo cook off initial explosion values as they were a little too high
 	  - New feature: Napalm. MK77 A4 Skyhawk Napalm and Optional Napalm weapon override - Allows napalm effects, overriding specific weapons set in options is possible too.
 	  		- This feature has been adapated from titi69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , credit to him and the Olympus mod team for the Napalm method
 
