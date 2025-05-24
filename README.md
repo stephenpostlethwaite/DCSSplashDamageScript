@@ -2,13 +2,41 @@
 
 # Installation
 Download the script.
-In mission editor have a mission start trigger with the action "DO SCRIPT FILE" an point it to this script.
+In mission editor have a mission start trigger with the action "DO SCRIPT FILE" and point it to this script.
+
+Please see the wiki for some notes on features
 
 # Release Notes
 
 --[[
 
+    24th May 2025 - 3.3
 
+		(Stevey666) 
+		
+	  - Added some naval weapons into weapon/expl table
+	  - Added some ground unit ordnance to explosive table and allowing a wider area to be tracked
+	  - Game_mesages and enable_radio_menu options defaulted to false. 
+			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
+			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
+	  - Overhauled the radio options
+	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled). Not sure if I like this one so leaving in as optional
+	  - New feature: Napalm. MK77 A4 Skyhawk Napalm and Optional Napalm weapon override - Allows napalm effects, overriding specific weapons set in options is possible too.
+	  		- This feature has been adapated from titi69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , credit to him and the Olympus mod team for the Napalm method
+
+	    (Sniex)
+	    
+	  - Added weapon types in the weapon/expl
+	  - Adjusted some rocket explosive power numbers (+1 or 2)
+	  - Adjusted explosive power for anti radar, ship missile, cruise missile and some others
+	  - Increased script readability
+	  
+	    (Kurdes)
+	    
+	  - Added changed/missing JF17 ordnance to weapons table
+	  - Added JF29 mod ordnance to the weapons table
+
+   
     10 May 2025 (Stevey666) - 3.2
 	  - New feature (user request): ground ordnance tracking, this tracks ground artillery etc if in the explosives table, set to false by default.
 	  - New feature (user request): option to create additional smoke and cargo cookoff effect for all ground vehicles initially destroyed by your ordnance or the script, set to false by default.
