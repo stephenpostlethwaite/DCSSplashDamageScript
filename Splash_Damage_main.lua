@@ -2,34 +2,13 @@
                                                                 Latest Changes                                       
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
 
-    24th May 2025 - 3.3
+    x x 2025 - 3.4
 
 		(Stevey666) 
 		
-	  - Added some naval weapons into weapon/expl table
-	  - Added some ground unit ordnance to explosive table and allowing a wider area to be tracked
-	  - Game_mesages and enable_radio_menu options defaulted to false. 
-			-Please be advised that the non debug script has these two defaulted to false, so that users don't see that the script is in use nor can they access the test/config radio options.  
-			-Set either to true as required.   The notice that the Splash Damage 3.x is running uses game_messsages.
-	  - Overhauled the radio options
-	  - Added optional cook-off effect - signal flares firing at random throughout the cook-off (see cookoff_flares_enabled). Not sure if I like this one so leaving in as optional
-	  - Reduced cargo cook off initial explosion values as they were a little too high
-	  - New feature: Napalm. MK77 A4 Skyhawk Napalm and Optional Napalm weapon override - Allows napalm effects, overriding specific weapons set in options is possible too.
-	  		- This feature has been adapated from titi69's Napalm script https://www.digitalcombatsimulator.com/en/files/3340469/ , credit to him and the Olympus mod team for the Napalm method
-
-
-	    (Sniex)
-	    
-	  - Added weapon types in the weapon/expl
-	  - Adjusted some rocket explosive power numbers (+1 or 2)
-	  - Adjusted explosive power for anti radar, ship missile, cruise missile and some others
-	  - Increased script readability
-	  
-	    (Kurdes)
-	    
-	  - Added changed/missing JF17 ordnance to weapons table
-	  - Added JF29 mod ordnance to the weapons table
-	  
+	  - Added an optional kill feed feature, this will try to display kills from DCS engine and kills from the additional explosions by checking pre/post scans of the explosion area
+	  - Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required to be enabled for this
+	  - Added AGM_45B to expl table
 	  
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
                                                                 Full Changelog at the bottom of the script
@@ -40,16 +19,18 @@
                                                                 ##### SCRIPT CONFIGURATION #####
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 splash_damage_options = {
-    ---------------------------------------------------------------------- Debug -----------------------------------------------------------------------------
-    ["game_messages"] = true, --enable some messages on screen
+    ---------------------------------------------------------------------- Debug and Messages ----------------------------------------------------------------
+    ["game_messages"] = false, --enable some messages on screen
     ["debug"] = false,  --enable debugging messages 
     ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
     ["napalm_unitdamage_debug"] = false, --Enable detailed debug messages for napalm unit damage tracking
+    ["damage_model_game_messages"] = false, --ground unit movement and weapons disabled notification
+    ["killfeed_debug"] = false, --Enable detailed debug messages for killfeed
 	
     ---------------------------------------------------------------------- Radio -----------------------------------------------------------------------------
-    ["enable_radio_menu"] = true, --enables the in-game radio menu for modifying settings
+    ["enable_radio_menu"] = false, --enables the in-game radio menu for modifying settings
     
 
     ---------------------------------------------------------------------- Basic Splash Settings -------------------------------------------------------------
@@ -139,7 +120,7 @@ splash_damage_options = {
     
 
     ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
-    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance (shells)
+    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
     ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
@@ -182,6 +163,13 @@ splash_damage_options = {
     ["napalm_unitdamage_scandistance"] = 70, --Scan radius in meters
     ["napalm_unitdamage_startdelay"] = 0.1, --Seconds between Napalm exploding and explosion occurring (can be 0 for no delay)
     ["napalm_unitdamage_spreaddelay"] = 0, --If startdelay is greater than 0, explosions are ordered by distance with this gap between each unit
+    ---------------------------------------------------------------------- Kill Feed  ------------------------------------------------------------------------
+    ["killfeed_enable"] = false, --Enable killfeed logging and messaging
+    ["killfeed_game_messages"] = false, --Show killfeed
+    ["killfeed_game_message_duration"] = 15, --Duration in seconds for game messages (killfeed and SplashKillFeed) - note the message will be delayed to let DCS catch up as per next option
+    ["killfeed_splashdelay"] = 8, --Duration in seconds delay to allow dcs to see that units are dead before saying the splash damage got them instead of the the players weapon
+    ["killfeed_lekas_foothold_integration"] = false, --Enable Lekas Foothold integration
+    ["killfeed_lekas_contribution_delay"] = 240, -- Delay in seconds before processing splash kills into Lekas contributions (default 240 seconds/4mins)
 }
 
 local script_enable = 1
@@ -637,6 +625,7 @@ explTable = {
     ["AGM_122"] = { explosive = 12, shaped_charge = false },
     ["LD-10"] = { explosive = 75, shaped_charge = false },
     ["AGM_45A"] = { explosive = 66, shaped_charge = false },
+    ["AGM_45B"] = { explosive = 66, shaped_charge = false },
     ["X_58"] = { explosive = 149, shaped_charge = false },
     ["X_25MP"] = { explosive = 90, shaped_charge = false },
     ["X_31P"]    = { explosive = 90,  shaped_charge = false },
@@ -794,8 +783,11 @@ local effectSmokeId = 1
 
 ----[[ ##### HELPER/UTILITY FUNCTIONS ##### ]]----
 
---Global table to track processed unit IDs
+--Global tables
 local processedUnitIds = {}
+local killfeedTable = {}
+local splashKillfeedTable = {}
+local splashKillfeedTemp = {}
 
 --Function to clear processed unit IDs after a delay
 function clearProcessedUnitIds(unitId)
@@ -1918,7 +1910,9 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                     health = foundObject:getLife() or 0,
                                     position = foundObject:getPoint(),
                                     maxHealth = (category == Object.Category.UNIT and foundObject:getDesc().life) or foundObject:getLife() or 0,
-                                    unit = foundObject
+                                    unit = foundObject,
+                                    id = foundObject:getID(),
+                                    unitName = foundObject:getName() or "Unknown"
                                 })
                         end
                     end
@@ -2252,6 +2246,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                         local preExplosionTargets = innerArgs[3] or {}
                         local weaponName = innerArgs[4]
                         local weaponPower = innerArgs[5]
+                        local playerName = innerArgs[6]
 						    if splash_damage_options.debug == true then
                                 debugMsg("Starting post-explosion analysis for " .. weaponName .. " at " .. timer.getTime() .. "s")
 							end
@@ -2277,7 +2272,9 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                             health = foundObject:getLife() or 0,
                                             position = foundObject:getPoint(),
                                             maxHealth = (category == Object.Category.UNIT and foundObject:getDesc().life) or foundObject:getLife() or 0,
-                                            distance = distance
+                                            distance = distance,
+                                            id = foundObject:getID(),
+                                            unitName = foundObject:getName() or "Unknown"
                                         })
                                             end
                                 end
@@ -2310,6 +2307,30 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 
                             if not found or postHealth <= 0 then
                                 status = "WAS FULLY DESTROYED"
+								--killfeed make sure its not an unknown weapon or an ai
+									if splash_damage_options.killfeed_enable and explTable[weaponName] and playerName ~= "unknown" then
+										local status, isPlayer = pcall(function()
+											local playerList = net.get_player_list() or {}
+											for _, pid in ipairs(playerList) do
+												local pinfo = net.get_player_info(pid)
+												if pinfo and pinfo.name == playerName then
+													return true
+												end
+											end
+											return false
+										end)
+										if status and isPlayer then
+											table.insert(splashKillfeedTemp, {
+												playerName = playerName,
+												weaponName = weaponName,
+												unitName = preTarget.unitName,
+												unitType = preTarget.name,
+												unitId = preTarget.id,
+												time = timer.getTime(),
+												position = coords
+											})
+										end
+									end
                             elseif healthPercent < splash_damage_options.cargo_damage_threshold then
                                 status = "WAS DAMAGED BELOW THRESHOLD"
                             else
@@ -2526,7 +2547,11 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 
                         debugMsg(msg)
                         env.info("SplashDamage Post-Explosion: " .. msg)
-                    end, {finalPos, blastRadius, chosenTargets, weaponName, explosionPower}, timer.getTime() + 1)
+                        -- Schedule splashKillFeed if there are entries
+                        if #splashKillfeedTemp > 0 and splash_damage_options.killfeed_enable then
+                            timer.scheduleFunction(splashKillFeed, {}, timer.getTime() + splash_damage_options.killfeed_splashdelay)
+                        end
+                    end, {finalPos, blastRadius, chosenTargets, weaponName, explosionPower, wpnData.init}, timer.getTime() + 1)
                         end
                     end)
                     if not status then
@@ -2582,11 +2607,30 @@ function onWpnEvent(event)
                 return
             end
  
-            if splash_damage_options.debug then
-                env.info("Weapon fired: [" .. typeName .. "]")
-                debugMsg("Weapon fired: [" .. typeName .. "]")
-            end
 
+            local playerName = "Unknown"
+            if event.initiator then
+                local status, playerNameResult = pcall(function() return event.initiator:getPlayerName() end)
+                if status and playerNameResult then
+                    playerName = playerNameResult
+                else
+                    local status, unitId = pcall(function() return event.initiator:getID() end)
+                    if status and unitId then
+                        local playerList = net.get_player_list() or {}
+                        for _, pid in ipairs(playerList) do
+                            local pinfo = net.get_player_info(pid)
+                            if pinfo and pinfo.ucid and (tonumber(pinfo.slot) == unitId or pinfo.slot == event.initiator:getName()) then
+                                    playerName = pinfo.name or "Unknown"
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            if splash_damage_options.debug then
+                env.info("Weapon [" .. typeName .. "] fired by player " .. playerName)
+                debugMsg("Weapon [" .. typeName .. "] fired by player " .. playerName)
+            end
 		if splash_damage_options.napalmoverride_enabled then
 			local napalmWeapons = {}
 			for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
@@ -2608,7 +2652,7 @@ function onWpnEvent(event)
 		if isNapalm then
 			tracked_weapons[event.weapon.id_] = { 
 				wpn = ordnance, 
-				init = event.initiator and event.initiator:getName() or "unknown", 
+                    init = playerName, 
 				pos = ordnance:getPoint(), 
 				dir = ordnance:getPosition().x, 
 				name = typeName, 
@@ -2652,7 +2696,7 @@ function onWpnEvent(event)
                     end
                     tracked_weapons[event.weapon.id_] = { 
                         wpn = ordnance, 
-                        init = event.initiator and event.initiator:getName() or "unknown", 
+                        init = playerName, 
                         pos = ordnance:getPoint(), 
                         dir = ordnance:getPosition().x, 
                         name = typeName, 
@@ -2673,7 +2717,7 @@ function onWpnEvent(event)
                         if (ordnance:getDesc().MissileCategory ~= 1 and ordnance:getDesc().MissileCategory ~= 2) then --Exclude AAM and SAM
                             tracked_weapons[event.weapon.id_] = { 
                                 wpn = ordnance, 
-                                init = event.initiator:getName(), 
+                                init = playerName, 
                                 pos = ordnance:getPoint(), 
                                 dir = ordnance:getPosition().x, 
                                 name = typeName, 
@@ -2684,7 +2728,7 @@ function onWpnEvent(event)
                     else --Rockets, bombs, etc.
                         tracked_weapons[event.weapon.id_] = { 
                             wpn = ordnance, 
-                            init = event.initiator:getName(), 
+                            init = playerName, 
                             pos = ordnance:getPoint(), 
                             dir = ordnance:getPosition().x, 
                             name = typeName, 
@@ -2718,7 +2762,414 @@ function onWpnEvent(event)
             end
         end
 
+function splashKillFeed()
+    if not splash_damage_options.killfeed_enable then return end
+
+    local status, err = pcall(function()
+        local tempTable = splashKillfeedTemp
+        splashKillfeedTemp = {}
+        local processedUnitIds = {} -- Track unit IDs processed in this batch
+
+        for _, entry in ipairs(tempTable) do
+            local unitId = entry.unitId
+            local unitName = entry.unitName
+            local unitType = entry.unitType
+            local playerName = entry.playerName
+            local weaponName = entry.weaponName
+            local position = entry.position
+            --Check if unit ID was already processed in this batch
+            if processedUnitIds[unitId] then
+                if splash_damage_options.killfeed_debug then
+                    env.info(string.format("SplashKillFeed: Skipped duplicate splash kill in batch for unit ID %s (%s) by %s with %s at %.2f",
+                        unitId, unitType, playerName, weaponName, timer.getTime()))
+                end
+                return --Skip to next iteration
+            end
+
+            local unitExists = false
+            local status, exists = pcall(function()
+                local obj = Unit.getByName(unitName) or StaticObject.getByName(unitName)
+                return obj and obj:isExist()
+            end)
+            if status and not exists then
+                unitExists = false
+            elseif status then
+                unitExists = true
+            else
+                if splash_damage_options.killfeed_debug then
+                    env.info("SplashKillFeed: Error checking existence of unit ID " .. tostring(unitId) .. ": " .. tostring(exists))
+                end
+            end
+
+            if not unitExists then
+                local isDuplicate = false
+                for _, killEntry in ipairs(killfeedTable) do
+                    if killEntry.unitID == unitId then
+                        isDuplicate = true
+                        if splash_damage_options.killfeed_debug then
+                            env.info(string.format("SplashKillFeed: Skipped duplicate splash kill for unit ID %s (%s) by %s with %s at %.2f",
+                                unitId, unitType, playerName, weaponName, timer.getTime()))
+                        end
+                        break
+                    end
+                end
+
+                if not isDuplicate then
+                    local msg = string.format("%s destroyed by %s's %s Splash Damage", unitType, playerName, weaponName)
+                    if splash_damage_options.killfeed_game_messages then
+                        local status, err = pcall(function()
+                            trigger.action.outTextForCoalition(2, msg, splash_damage_options.killfeed_game_message_duration)
+                        end)
+                        if not status then
+                            trigger.action.outText(msg, splash_damage_options.killfeed_game_message_duration)
+                            if splash_damage_options.killfeed_debug then
+                                env.info("SplashKillFeed: Failed coalition message: " .. tostring(err))
+                            end
+                        end
+                    end
+
+                    table.insert(splashKillfeedTable, {
+                        unitName = unitName,
+                        unitType = unitType,
+                        unitId = unitId,
+                        playerName = playerName,
+                        weaponName = weaponName,
+                        time = timer.getTime(),
+                        position = position
+                    })
+
+                    if splash_damage_options.killfeed_debug then
+                        env.info(string.format("SplashKillFeed: %s destroyed by %s's %s Splash Damage [ID: %s] at %.2f",
+                            unitType, playerName, weaponName, unitId, timer.getTime()))
+                    end
+                    processedUnitIds[unitId] = true --Mark unit ID as processed
+                end
+            elseif splash_damage_options.killfeed_debug then
+                env.info(string.format("SplashKillFeed: Unit ID %s (%s) still exists, skipping splash kill at %.2f",
+                    unitId, unitType, timer.getTime()))
+            end
+        end
+    end)
+
+    if not status and splash_damage_options.killfeed_debug then
+        env.info("SplashKillFeed: Error: " .. tostring(err))
+    end
+end
+
+local function processSplashKillfeed()
+  if not splash_damage_options.killfeed_enable or not splash_damage_options.killfeed_lekas_foothold_integration then
+        if splash_damage_options.killfeed_debug then
+            env.info("SplashDamage: processSplashKillfeed skipped")
+        end
+        return timer.getTime() + 60
+    end
+
+    if not bc or type(bc) ~= "table" or not bc.addTempStat then
+        if splash_damage_options.killfeed_debug then
+            env.info("SplashDamage: bc is not accessible or missing addTempStat")
+        end
+        return timer.getTime() + 60
+    end
+
+    local currentTime = timer.getTime()
+    local entriesToRemove = {}
+    local processedCount = 0
+
+    -- Log bc table state before processing
+    if splash_damage_options.killfeed_debug then
+        env.info("SplashDamage: processSplashKillfeed started at " .. string.format("%.2f", currentTime))
+        env.info("SplashDamage: bc table state: " .. (bc and "exists" or "nil"))
+        env.info("SplashDamage: bc.addTempStat: " .. (bc.addTempStat and "exists" or "nil"))
+        env.info("SplashDamage: bc.context: " .. (bc.context and "exists" or "nil"))
+        if bc.context then
+            env.info("SplashDamage: bc.context.playerContributions: " .. (bc.context.playerContributions and "exists" or "nil"))
+            if bc.context.playerContributions then
+                env.info("SplashDamage: bc.context.playerContributions[2]: " .. (bc.context.playerContributions[2] and "exists" or "nil"))
+            end
+        end
+    end
+
+    for i, entry in ipairs(splashKillfeedTable) do
+        if currentTime - entry.time >= splash_damage_options.killfeed_lekas_contribution_delay then
+            local playerName = entry.playerName
+            local unitType = entry.unitType
+            local unitId = entry.unitId
+
+            -- Log entry details
+            if splash_damage_options.killfeed_debug then
+                env.info(string.format("SplashDamage: Processing splash kill entry %d: unitId=%s, unitType=%s, player=%s, time=%.2f",
+                    i, unitId, unitType, playerName, entry.time))
+            end
+
+            local status, result = pcall(function()
+                local statName = "Ground Units"
+                local points = 10
+                if unitType:find("Plane") then
+                    statName = "Air"
+                    points = 30
+                elseif unitType:find("Helicopter") then
+                    statName = "Helo"
+                    points = 30
+                elseif unitType:find("SAM") then
+                    statName = "SAM"
+                    points = 30
+                elseif unitType:find("Infantry") then
+                    statName = "Infantry"
+                    points = 10
+                elseif unitType:find("Ship") then
+                    statName = "Ship"
+                    points = 250
+                elseif unitType:find("Building") then
+                    statName = "Structure"
+                    points = 30
+                end
+                bc:addTempStat(playerName, statName, 1)
+                if splash_damage_options.killfeed_debug then
+                    env.info(string.format("SplashDamage: Added temp stat for %s: stat=%s, count=1", playerName, statName))
+                end
+                if bc.context and type(bc.context) == "table" and bc.context.playerContributions and type(bc.context.playerContributions) == "table" then
+                    bc.context.playerContributions[2] = bc.context.playerContributions[2] or {}
+                    local oldPoints = bc.context.playerContributions[2][playerName] or 0
+                    bc.context.playerContributions[2][playerName] = oldPoints + points
+                    if splash_damage_options.killfeed_debug then
+                        env.info(string.format("SplashDamage: Updated contributions for %s: old=%d, new=%d, added=%d",
+                            playerName, oldPoints, bc.context.playerContributions[2][playerName], points))
+                    end
+                else
+                    if splash_damage_options.killfeed_debug then
+                        env.info("SplashDamage: Skipped contribution update for " .. playerName .. ": bc.context or bc.context.playerContributions is nil")
+                    end
+                end
+                processedCount = processedCount + 1
+                if splash_damage_options.killfeed_debug then
+                    env.info(string.format("SplashDamage: Processed splash kill for %s by %s: stat=%s, points=%d, unitId=%s",
+                        unitType, playerName, statName, points, unitId))
+                end
+            end)
+            if not status and splash_damage_options.killfeed_debug then
+                env.info("SplashDamage: Error processing splash kill for unitId=" .. tostring(unitId) .. ": " .. tostring(result))
+            end
+            table.insert(entriesToRemove, i)
+        end
+    end
+
+    for i = #entriesToRemove, 1, -1 do
+        table.remove(splashKillfeedTable, entriesToRemove[i])
+    end
+
+    if splash_damage_options.killfeed_debug then
+        if bc.tempStats and type(bc.tempStats) == "table" then
+            env.info("SplashDamage: tempStats contents:")
+            for playerName, stats in pairs(bc.tempStats) do
+                local statStr = ""
+                for statKey, value in pairs(stats) do
+                    statStr = statStr .. statKey .. "=" .. tostring(value) .. ", "
+                end
+                env.info("SplashDamage:   " .. playerName .. ": " .. (statStr ~= "" and statStr or "empty"))
+            end
+            if not next(bc.tempStats) then
+                env.info("SplashDamage:   tempStats is empty")
+            end
+        else
+            env.info("SplashDamage: bc.tempStats is nil or not a table")
+        end
+    end
+
+    if splash_damage_options.killfeed_debug and processedCount > 0 then
+        env.info("SplashDamage: Processed " .. processedCount .. " splash kills, remaining: " .. #splashKillfeedTable)
+    end
+
+    return timer.getTime() + 60
+end
+
+function onKillEvent(event)
+    if not splash_damage_options.killfeed_enable or event.id ~= world.event.S_EVENT_KILL then return end
+
+    local status, err = pcall(function()
+        local killedUnit = event.target
+        local killer = event.initiator
+
+        if not killedUnit then
+            if splash_damage_options.killfeed_debug then
+                env.info(string.format("KillFeed: Skipped, no target at %.2f", timer.getTime()))
+            end
+            return
+        end
+
+        local unitName = "Unknown"
+        local unitType = "Unknown"
+        local unitID = 0
+        local position = {x=0, y=0, z=0}
+        local status, result = pcall(function()
+            unitName = killedUnit:getName() or "Unknown"
+            unitType = killedUnit:getTypeName() or "Unknown"
+            unitID = killedUnit:getID() or 0
+            position = killedUnit:getPoint() or {x=0, y=0, z=0}
+        end)
+        if not status and splash_damage_options.killfeed_debug then
+            env.info(string.format("KillFeed: Failed to get target details at %.2f: %s", timer.getTime(), tostring(result)))
+        end
+
+        local killerName = "Unknown"
+        local killerUnitName = "Unknown"
+        if killer then
+            local status, unitNameResult = pcall(function() return killer:getName() end)
+            if status and unitNameResult then
+                killerUnitName = unitNameResult
+            end
+            local status, playerNameResult = pcall(function() return killer:getPlayerName() end)
+            if status and playerNameResult then
+                killerName = playerNameResult
+            else
+                local status, unitId = pcall(function() return killer:getID() end)
+                if status and unitId then
+                    local playerList = net.get_player_list() or {}
+                    for _, pid in ipairs(playerList) do
+                        local pinfo = net.get_player_info(pid)
+                        if pinfo and pinfo.ucid then
+                            local slotUnitId = tonumber(pinfo.slot) or pinfo.slot
+                            if slotUnitId == unitId or pinfo.slot == killerUnitName then
+                                killerName = pinfo.name or killerUnitName
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            if splash_damage_options.killfeed_debug then
+                env.info(string.format("KillFeed: Killer UnitName: %s, PlayerName: %s, UnitID: %s, Type: %s, Slot: %s",
+                    killerUnitName, killerName, unitID, unitType, killer.getID and killer:getID() or "unknown"))
+            end
+        elseif splash_damage_options.killfeed_debug then
+            env.info(string.format("KillFeed: Unit ID %s (%s) killed with no initiator at %.2f",
+                unitID, unitType, timer.getTime()))
+        end
+
+        -- Log bc table state for direct kill
+        if splash_damage_options.killfeed_debug then
+            env.info("KillFeed: bc table state for direct kill: " .. (bc and "exists" or "nil"))
+            env.info("KillFeed: bc.addTempStat: " .. (bc.addTempStat and "exists" or "nil"))
+            env.info("KillFeed: bc.context: " .. (bc.context and "exists" or "nil"))
+            if bc.context then
+                env.info("KillFeed: bc.context.playerContributions: " .. (bc.context.playerContributions and "exists" or "nil"))
+                if bc.context.playerContributions then
+                    env.info("KillFeed: bc.context.playerContributions[2]: " .. (bc.context.playerContributions[2] and "exists" or "nil"))
+                end
+            end
+        end
+
+        -- Check if unitID is in splashKillfeedTable
+        local splashIndex = nil
+        for i, entry in ipairs(splashKillfeedTable) do
+            if entry.unitId == unitID then
+                splashIndex = i
+                break
+            end
+        end
+        if splashIndex then
+            local dupeMsg = string.format("Duplicate kill: %s (%s) [ID: %s]", unitName, unitType, unitID)
+            if splash_damage_options.killfeed_game_messages then
+                local status, err = pcall(function()
+                    trigger.action.outTextForCoalition(2, dupeMsg, splash_damage_options.killfeed_game_message_duration)
+                end)
+                if not status then
+                    trigger.action.outText(dupeMsg, splash_damage_options.killfeed_game_message_duration)
+                    if splash_damage_options.killfeed_debug then
+                        env.info("KillFeed: Failed coalition message for duplicate: " .. tostring(err))
+                    end
+                end
+            end
+            if splash_damage_options.killfeed_debug then
+                env.info(string.format("KillFeed: %s at %.2f", dupeMsg, timer.getTime()))
+            end
+            table.remove(splashKillfeedTable, splashIndex)
+            if splash_damage_options.killfeed_debug then
+                env.info(string.format("SplashKillFeed: Removed duplicate entry for unit ID %s (%s) from splashKillfeedTable at %.2f",
+                    unitID, unitType, timer.getTime()))
+            end
+        else
+            -- Process direct kill contribution
+            if killerName ~= "Unknown" and splash_damage_options.killfeed_lekas_foothold_integration then
+                local status, result = pcall(function()
+                    local statName = "Ground Units"
+                    local points = 10
+                    if unitType:find("Plane") then
+                        statName = "Air"
+                        points = 30
+                    elseif unitType:find("Helicopter") then
+                        statName = "Helo"
+                        points = 30
+                    elseif unitType:find("SAM") then
+                        statName = "SAM"
+                        points = 30
+                    elseif unitType:find("Infantry") then
+                        statName = "Infantry"
+                        points = 10
+                    elseif unitType:find("Ship") then
+                        statName = "Ship"
+                        points = 250
+                    elseif unitType:find("Building") then
+                        statName = "Structure"
+                        points = 30
+                    end
+                    bc:addTempStat(killerName, statName, 1)
+                    if splash_damage_options.killfeed_debug then
+                        env.info(string.format("KillFeed: Added temp stat for %s: stat=%s, count=1", killerName, statName))
+                    end
+                    if bc.context and type(bc.context) == "table" and bc.context.playerContributions and type(bc.context.playerContributions) == "table" then
+                        bc.context.playerContributions[2] = bc.context.playerContributions[2] or {}
+                        local oldPoints = bc.context.playerContributions[2][killerName] or 0
+                        bc.context.playerContributions[2][killerName] = oldPoints + points
+                        if splash_damage_options.killfeed_debug then
+                            env.info(string.format("KillFeed: Updated contributions for %s: old=%d, new=%d, added=%d",
+                                killerName, oldPoints, bc.context.playerContributions[2][killerName], points))
+                        end
+                    else
+                        if splash_damage_options.killfeed_debug then
+                            env.info("KillFeed: Skipped contribution update for " .. killerName .. ": bc.context or bc.context.playerContributions is nil")
+                        end
+                    end
+                end)
+                if not status and splash_damage_options.killfeed_debug then
+                    env.info("KillFeed: Error processing direct kill for unitId=" .. tostring(unitID) .. ": " .. tostring(result))
+                end
+            end
+        end
+
+        table.insert(killfeedTable, {
+            unitName = unitName,
+            unitType = unitType,
+            unitID = unitID,
+            killer = killerName,
+            time = timer.getTime(),
+            position = position
+        })
+
+        if splash_damage_options.killfeed_game_messages and not splashIndex then
+            local msg = string.format("%s destroyed by %s", unitType, killerName)
+            local status, err = pcall(function()
+                trigger.action.outTextForCoalition(2, msg, splash_damage_options.killfeed_game_message_duration)
+            end)
+            if not status then
+                trigger.action.outText(msg, splash_damage_options.killfeed_game_message_duration)
+                if splash_damage_options.killfeed_debug then
+                    env.info("KillFeed: Failed coalition message: " .. tostring(err))
+                end
+            end
+        end
+
+        if splash_damage_options.killfeed_debug then
+            env.info(string.format("KillFeed: %s destroyed by %s [ID: %s] at %.2f",
+                unitType, killerName, unitID, timer.getTime()))
+        end
+    end)
+
+    if not status and splash_damage_options.killfeed_debug then
+        env.info("KillFeed: Error: " .. tostring(err))
+    end
+end
   
+
 local function protectedCall(...)
     local status, retval = pcall(...)
     if not status then
@@ -2730,6 +3181,139 @@ function WpnHandler:onEvent(event)
     protectedCall(onWpnEvent, event)
 end
   
+	function onKillEvent(event)
+		if not splash_damage_options.killfeed_enable or event.id ~= world.event.S_EVENT_KILL then return end
+
+		local status, err = pcall(function()
+			local killedUnit = event.target
+			local killer = event.initiator
+
+			--Check if killedUnit is valid
+			if not killedUnit then
+				if splash_damage_options.killfeed_debug then
+					env.info(string.format("KillFeed: Skipped, no target at %.2f", timer.getTime()))
+				end
+				return
+			end
+
+			local unitName = "Unknown"
+			local unitType = "Unknown"
+			local unitID = 0
+			local position = {x=0, y=0, z=0}
+			local status, result = pcall(function()
+				unitName = killedUnit:getName() or "Unknown"
+				unitType = killedUnit:getTypeName() or "Unknown"
+				unitID = killedUnit:getID() or 0
+				position = killedUnit:getPoint() or {x=0, y=0, z=0}
+			end)
+			if not status and splash_damage_options.killfeed_debug then
+				env.info(string.format("KillFeed: Failed to get target details at %.2f: %s", timer.getTime(), tostring(result)))
+			end
+
+			--Get killer name
+			local killerName = "Unknown"
+			local killerUnitName = "Unknown"
+			if killer then
+				local status, unitNameResult = pcall(function() return killer:getName() end)
+				if status and unitNameResult then
+					killerUnitName = unitNameResult
+				end
+				local status, playerNameResult = pcall(function() return killer:getPlayerName() end)
+				if status and playerNameResult then
+					killerName = playerNameResult
+				else
+					--Fallback to net.get_player_info
+					local status, unitId = pcall(function() return killer:getID() end)
+					if status and unitId then
+						local playerList = net.get_player_list() or {}
+						for _, pid in ipairs(playerList) do
+							local pinfo = net.get_player_info(pid)
+							if pinfo and pinfo.ucid then
+								local slotUnitId = tonumber(pinfo.slot) or pinfo.slot
+								if slotUnitId == unitId or pinfo.slot == killerUnitName then
+									killerName = pinfo.name or killerUnitName
+									break
+								end
+							end
+						end
+					end
+				end
+				if splash_damage_options.killfeed_debug then
+					env.info(string.format("KillFeed: Killer UnitName: %s, PlayerName: %s, UnitID: %s, Type: %s, Slot: %s",
+						killerUnitName, killerName, unitID, unitType, killer.getID and killer:getID() or "unknown"))
+				end
+			elseif splash_damage_options.killfeed_debug then
+				env.info(string.format("KillFeed: Unit ID %s (%s) killed with no initiator at %.2f",
+					unitID, unitType, timer.getTime()))
+			end
+
+			-- Check if unitID is in splashKillfeedTable
+			local splashIndex = nil
+			for i, entry in ipairs(splashKillfeedTable) do
+				if entry.unitId == unitID then
+					splashIndex = i
+					break
+				end
+			end
+			if splashIndex then
+				--local dupeMsg = string.format("Duplicate kill: %s (%s) [ID: %s]", unitName, unitType, unitID)
+				if splash_damage_options.killfeed_game_messages then
+					local status, err = pcall(function()
+						trigger.action.outTextForCoalition(2, dupeMsg, splash_damage_options.killfeed_game_message_duration)
+					end)
+					if not status then
+						trigger.action.outText(dupeMsg, splash_damage_options.killfeed_game_message_duration)
+						if splash_damage_options.killfeed_debug then
+							env.info("KillFeed: Failed coalition message for duplicate: " .. tostring(err))
+						end
+					end
+				end
+				if splash_damage_options.killfeed_debug then
+					env.info(string.format("KillFeed: %s at %.2f", dupeMsg, timer.getTime()))
+				end
+				table.remove(splashKillfeedTable, splashIndex)
+            if splash_damage_options.killfeed_debug then
+                env.info(string.format("SplashKillFeed: Removed duplicate entry for unit ID %s (%s) from splashKillfeedTable at %.2f",
+                    unitID, unitType, timer.getTime()))
+            end
+			end
+
+			--Store in killfeedTable
+			table.insert(killfeedTable, {
+				unitName = unitName,
+				unitType = unitType,
+				unitID = unitID,
+				killer = killerName,
+				time = timer.getTime(),
+				position = position
+			})
+
+			--Output game message if enabled (for non-duplicates)
+			if splash_damage_options.killfeed_game_messages and not splashIndex then
+				local msg = string.format("%s destroyed by %s", unitType, killerName)
+				local status, err = pcall(function()
+					trigger.action.outTextForCoalition(2, msg, splash_damage_options.killfeed_game_message_duration)
+				end)
+				if not status then
+					trigger.action.outText(msg, splash_damage_options.killfeed_game_message_duration)
+					if splash_damage_options.killfeed_debug then
+						env.info("KillFeed: Failed coalition message: " .. tostring(err))
+					end
+				end
+			end
+
+			--Debug logging
+			if splash_damage_options.killfeed_debug then
+				env.info(string.format("KillFeed: %s destroyed by %s [ID: %s] at %.2f",
+					unitType, killerName, unitID, timer.getTime()))
+			end
+		end)
+
+		if not status and splash_damage_options.killfeed_debug then
+			env.info("KillFeed: Error: " .. tostring(err))
+		end
+	end
+
 function explodeObject(args)
     local point = args[1]
     local distance = args[2]
@@ -2925,12 +3509,12 @@ function modelUnitDamage(units)
             if unit:getDesc().category == Unit.Category.GROUND_UNIT and (not unit:hasAttribute("Infantry")) and health > 0 then
                 if health <= splash_damage_options.unit_cant_fire_health then
                     unit:getController():setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
-                    gameMsg(unit:getTypeName() .. " weapons disabled")
+                    --gameMsg(unit:getTypeName() .. " weapons disabled")
                 end
                 if health <= splash_damage_options.unit_disabled_health and health > 0 then
                     unit:getController():setTask({id = 'Hold', params = {}})
                     unit:getController():setOnOff(false)
-                    gameMsg(unit:getTypeName() .. " disabled")
+                    --gameMsg(unit:getTypeName() .. " disabled")
                 end
             end
         end
@@ -3297,9 +3881,22 @@ if (script_enable == 1) then
             timer.scheduleFunction(updateGiantExplosionPositions, {}, timer.getTime() + 1.0)
         end
     end
+	
+	if splash_damage_options.killfeed_enable then
+        world.addEventHandler({ onEvent = function(self, event) protectedCall(onKillEvent, event) end }) --Add kill event handler
+    end
 
     world.addEventHandler(WpnHandler)
     addSplashDamageMenu()
+	
+	--Lekas integration
+	if splash_damage_options.killfeed_enable and splash_damage_options.killfeed_lekas_foothold_integration then
+		timer.scheduleFunction(processSplashKillfeed, {}, timer.getTime() + 60)
+		if splash_damage_options.killfeed_debug then
+			env.info("SplashDamage: Scheduled processSplashKillfeed for Lekas Foothold integration")
+		end
+	end	
+
 end
 
 --[[-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=
