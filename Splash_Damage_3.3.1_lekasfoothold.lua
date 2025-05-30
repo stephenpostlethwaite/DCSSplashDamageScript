@@ -141,7 +141,7 @@ splash_damage_options = {
 
 
     ---------------------------------------------------------------------- Napalm  ---------------------------------------------------------------------------
-    ["napalm_mk77_enabled"] = false, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
+    ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
     ["napalmoverride_enabled"] = false, --If true, enables napalm effects for weapons in napalm_override_weapons
     ["napalm_override_weapons"] = "Mk_82,SAMP125LD", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
  
