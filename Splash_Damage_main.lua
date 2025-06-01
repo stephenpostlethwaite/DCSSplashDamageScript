@@ -10,11 +10,6 @@
 			    --SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP for now)
 	  - Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required to be enabled for this
 	  - Added AGM_45B to expl table
-	  - Reworked tracking for Giant Explosion, Cookoffs
-	  - Mission Maker Friendly Options
-			-
-			
-	  - New Feature: IED.  If a unit is called IEDTarget(*) it will 
 	  
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
                                                                 Full Changelog at the bottom of the script
