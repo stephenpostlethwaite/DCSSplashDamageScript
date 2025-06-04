@@ -193,9 +193,9 @@ splash_damage_options = {
     ["vehicleied_power_variance"] = 0.3, --Power variation for secondary explosions (±30%)
     ["vehicleied_radius"] = 35, -- Max radius for secondary explosions (meters)
     ["vehicleied_explosion_delay_max"] = 0.4, -- Max delay multiplier for secondary explosions multiplier
-    ["vehicleied_fueltankspawn"] = false, -- Spawn a fuel tank at the location of the explosion for explosion effect and fire/smoke
-    ["vehicleied_destroy_vehicle"] = true, -- Option to attempt to instantly destroy the vehicle (doesnt always work, thanks DCS, requires vehicleied_explode_on_hit to be true )
-    ["vehicleied_explode_on_hit"] = false, --Will it explode instantly on hit event or only on death/kill/when vehice stops moving and no longer "alive"
+    ["vehicleied_fueltankspawn"] = true, -- Spawn a fuel tank at the location of the explosion for explosion effect and fire/smoke
+    ["vehicleied_destroy_vehicle"] = true, -- Option to attempt to instantly destroy the vehicle (can sometimes leave a ghost smoke vortex or fire)
+    ["vehicleied_explode_on_hit"] = true, --Will it explode instantly on hit event or only on death/kill/when vehice stops moving and no longer "alive"
 
 ---------------------------------------------------------------------- A10 Murder Mode  ------------------------------------------------------------------	
 	["A10MurderMode"] = false,
