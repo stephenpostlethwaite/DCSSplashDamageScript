@@ -198,8 +198,8 @@ splash_damage_options = {
     ["vehicleied_explode_on_hit"] = true, --Will it explode instantly on hit event or only on death/kill/when vehice stops moving and no longer "alive"
 
 ---------------------------------------------------------------------- A10 Murder Mode  ------------------------------------------------------------------	
-	["A10MurderMode"] = false,
-	["A10MurderMode_Power"] = 5,
+	["A10MurderMode"] = false, --This tracks hit events, if the initiator is an A10 it will spawn and explosion on the target
+	["A10MurderMode_Power"] = 5,  --Power of the explosion
 
 
 }
