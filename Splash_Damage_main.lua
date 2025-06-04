@@ -6,13 +6,12 @@
 
 		(Stevey666) 
 		
-	  - Moved blastwave/wave explosion to floor level + 0.1m
 	  - Added in optional kill feed feature, this will try to display kills from DCS engine and kills from the additional explosions by checking pre/post scans of the explosion area
 			    --SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP for now)
 	  - Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required to be enabled for this
 	  - Added AGM_45B to expl table
 	  - Added optional A10 murder mode which adds a configurable explosion to every hit event with the a10 as an initiator
-	  - New Feature: IED.  If a unit is called IEDTarget(*) it will explode 
+	  - New Feature: IED.  If a unit is called VehicleIEDTarget(*) it will explode 
 	  - Mission Maker Friendly Options
 			-TBD - planning on having cookoff and fuel explosion effects by unit name too so they will trigger not just for tracked weapons (i.e bombs)
 			
