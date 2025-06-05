@@ -93,7 +93,7 @@ splash_damage_options = {
     ["cookoff_flare_instant"] = true, --If true, spawns flares instantly using napalm phosphor style; if false, spawns over time
     ["cookoff_flare_instant_count"] = 4, --Number of instant flares when cookoff_flare_instant is true
     ["cookoff_flare_count_modifier"] = 1, --Multiplier for non instant flare count (e.g., 1x, 2x cookOffCount from the vehicle table)
-    ["cookoff_flare_offset"] = 1, --Max offset distance for flares in meters (horizontal)
+    ["cookoff_flare_offset"] = 0.5, --Max offset distance for flares in meters (horizontal)
 
 
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
@@ -1887,15 +1887,19 @@ function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor
     if flareCount < 1 then return end --Skip if no flares
     debugMsg("Scheduling flares for cook-off at X: " .. string.format("%.0f", coords.x) .. ", Z: " .. string.format("%.0f", coords.z))
     if splash_damage_options.cookoff_flare_instant then
-        -- Use napalm phosphor-style instant flares
-        local scaledFlareCount = math.max(1, splash_damage_options.cookoff_flare_instant_count)
+        --Use evenly distributed azimuths for instant flares
+        local scaledFlareCount = splash_damage_options.cookoff_flare_instant_count
         debugMsg("Spawning " .. scaledFlareCount .. " instant flares")
+        local angleStep = 360 / scaledFlareCount -- Divide circle into equal segments
         for i = 1, scaledFlareCount do
-            local randomAzimuth = math.random(0, 359)
+            -- Base azimuth for this flare, with a small random offset within ±20 degrees
+            local baseAzimuth = (i - 1) * angleStep
+            local randomAzimuth = baseAzimuth + math.random(-33, 40)
+            randomAzimuth = randomAzimuth % 360 -- Normalize to [0, 359]
             local offsetX = math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
             local offsetZ = math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
             local flarePos = { x = coords.x + offsetX, y = coords.y, z = coords.z + offsetZ }
-            debugMsg("Spawning instant flare #" .. i .. " at X: " .. string.format("%.0f", flarePos.x) .. ", Z: " .. string.format("%.0f", flarePos.z) .. " with color " .. flareColor)
+            debugMsg("Spawning instant flare #" .. i .. " at X: " .. string.format("%.0f", flarePos.x) .. ", Z: " .. string.format("%.0f", flarePos.z) .. " with color " .. flareColor .. " and azimuth " .. randomAzimuth)
             trigger.action.signalFlare(flarePos, flareColor, randomAzimuth)
         end
     else
@@ -2597,6 +2601,14 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                 end
                                             debugMsg("Checking cook-off for " .. effect.name .. ": cookOff=" .. tostring(effect.cookOff) .. ", count=" .. tostring(effect.cookOffCount))
 					if effect.cookOff and effect.cookOffCount > 0 then
+                            timer.scheduleFunction(function(params)
+                                scheduleCookOffFlares(params.coords, params.cookOffCount, params.cookOffDuration, params.flareColor)
+                            end, {
+                                coords = effect.coords,
+                                cookOffCount = effect.cookOffCount,
+                                cookOffDuration = effect.cookOffDuration,
+                                flareColor = splash_damage_options.cookoff_flare_color
+                            }, timer.getTime() + 0.2)
 						debugMsg("Scheduling " .. effect.cookOffCount .. " cook-off explosions for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m over " .. effect.cookOffDuration .. "s starting at " .. effectIndex .. "s")
 						for i = 1, effect.cookOffCount do
 							local delay = effect.cookOffRandomTiming and math.random() * effect.cookOffDuration or (i - 1) * (effect.cookOffDuration / effect.cookOffCount)
@@ -2610,9 +2622,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
 								debugMsg("Executing cook-off at " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", pos.x, pos.y, pos.z) .. " with power " .. power)
 								trigger.action.explosion(pos, power)
 							end, {effect.coords, cookOffPower}, timer.getTime() + effectIndex + delay)
-						end
-           					if splash_damage_options.cookoff_flares_enabled then
-                					scheduleCookOffFlares(effect.coords, effect.cookOffCount, effect.cookOffDuration, splash_damage_options.cookoff_flare_color)
+							
 						end
 						--Debris burst only if cook-off is true and enabled
 						if splash_damage_options.debris_effects then
