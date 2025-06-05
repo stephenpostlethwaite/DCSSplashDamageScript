@@ -743,6 +743,16 @@ explTable = {
     ["LS_6_100"] = { explosive = 45, shaped_charge = false },
     ["LS_6"] = { explosive = 100, shaped_charge = false },
     ["LS_6_500"] = { explosive = 274, shaped_charge = false },
+    ["Type_200A"] = { explosive = 107, shaped_charge = false },
+    ["C_802AK"] = { explosive = 500, shaped_charge = false },
+    ["CM_802AKG"] = { explosive = 240, shaped_charge = false },    
+    
+    --*** JF39 Mod by Whisky.Actual as per Kurdes ***
+    ["Brimstone Laser Guided Missile x3"] = { explosive = 38, shaped_charge = true },    
+    ["MAR-1 High Speed Anti-Radiation Missile"] = { explosive = 75, shaped_charge = false },
+    ["GBU-39 SDB 285lb Guided Glide-Bomb"] = { explosive = 45, shaped_charge = false },
+    ["SPEAR-3 Air-to-Ground Glide Missile"] = { explosive = 38, shaped_charge = false },
+    ["Spear EW"] = { explosive = 0, shaped_charge = false },
 	
     --==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--
 	                        --*** Vehicle/Ship based ***--	
@@ -3347,7 +3357,7 @@ function VehicleIEDTrigger(coords, unit)
         if splash_damage_options.vehicleied_debug then
             env.info("VehicleIEDTrigger: No explosion points generated, triggering single fallback explosion")
         end
-        local point = {x = coords.x, y = land.getHeight({x = coords.x, y = coords.z}) + 0.5, z = coords.z}
+        local point = {x = coords.x, y = land.getHeight({x = coords.x, y = coords.z}), z = coords.z}
         --trigger.action.explosion(point, splash_damage_options.vehicleied_central_power * scaling) -- Apply scaling
     end
 
@@ -4149,17 +4159,13 @@ function explodeObject(args)
 end
   
 function blastWave(_point, _radius, weapon, power, isShapedCharge)
-    --Adjust _point.y to ground level
-    _point.y = land.getHeight({x = _point.x, z = _point.z}) + 0.1
-    
-    
     if isShapedCharge then
         _radius = _radius * splash_damage_options.shaped_charge_multiplier
     end
     if splash_damage_options.use_dynamic_blast_radius then
         local dynamicRadius = math.pow(power, 1/3) * 5 * splash_damage_options.dynamic_blast_radius_modifier
         _radius = isShapedCharge and dynamicRadius * splash_damage_options.shaped_charge_multiplier or dynamicRadius
-        end
+    end
     if splash_damage_options.debug then
         debugMsg("blastWave called for weapon '" .. weapon .. "' at X: " .. _point.x .. ", Y: " .. _point.y .. ", Z: " .. _point.z .. " with power " .. power .. " and radius " .. _radius .. "m")
     end
