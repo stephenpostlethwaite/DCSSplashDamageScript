@@ -7,9 +7,11 @@
 		(Stevey666) 
 		
 	  - Added in optional kill feed feature, this will try to display kills from DCS engine and kills from the additional explosions by checking pre/post scans of the explosion area
-			    --SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP for now)
+			    --SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP if you want to see it)
 	  - Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required to be enabled for this
 	  - Added AGM_45B to expl table
+	  - Added instant phosphor/signal flares option to cook off events
+	  - Added in missing JF17/JAS39 weapons as per Kurdes
 	  - Added optional A10 murder mode which adds a configurable explosion to every hit event with the a10 as an initiator
 	  - New Feature: IED.  If a unit is called VehicleIEDTarget(*) it will explode 
 	  - Mission Maker Friendly Options
@@ -88,7 +90,9 @@ splash_damage_options = {
 	
     ["cookoff_flares_enabled"] = false, --Enable/disable flare effects for cook-offs
     ["cookoff_flare_color"] = 2, 
-    ["cookoff_flare_count_modifier"] = 1, --Multiplier for flare count (e.g., 1x, 2x cookOffCount from the vehicle table)
+    ["cookoff_flare_instant"] = true, --If true, spawns flares instantly using napalm phosphor style; if false, spawns over time
+    ["cookoff_flare_instant_count"] = 4, --Number of instant flares when cookoff_flare_instant is true
+    ["cookoff_flare_count_modifier"] = 1, --Multiplier for non instant flare count (e.g., 1x, 2x cookOffCount from the vehicle table)
     ["cookoff_flare_offset"] = 1, --Max offset distance for flares in meters (horizontal)
 
 
@@ -1881,7 +1885,22 @@ local recentExplosions = {}
 function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor)
     local flareCount = math.floor(cookOffCount * splash_damage_options.cookoff_flare_count_modifier)
     if flareCount < 1 then return end --Skip if no flares
-    debugMsg("Scheduling " .. flareCount .. " flares for cook-off at X: " .. string.format("%.0f", coords.x) .. ", Z: " .. string.format("%.0f", coords.z) .. " over " .. cookOffDuration .. "s")
+    debugMsg("Scheduling flares for cook-off at X: " .. string.format("%.0f", coords.x) .. ", Z: " .. string.format("%.0f", coords.z))
+    if splash_damage_options.cookoff_flare_instant then
+        -- Use napalm phosphor-style instant flares
+        local scaledFlareCount = math.max(1, splash_damage_options.cookoff_flare_instant_count)
+        debugMsg("Spawning " .. scaledFlareCount .. " instant flares")
+        for i = 1, scaledFlareCount do
+            local randomAzimuth = math.random(0, 359)
+            local offsetX = math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
+            local offsetZ = math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
+            local flarePos = { x = coords.x + offsetX, y = coords.y, z = coords.z + offsetZ }
+            debugMsg("Spawning instant flare #" .. i .. " at X: " .. string.format("%.0f", flarePos.x) .. ", Z: " .. string.format("%.0f", flarePos.z) .. " with color " .. flareColor)
+            trigger.action.signalFlare(flarePos, flareColor, randomAzimuth)
+        end
+    else
+        -- Original time-based flare spawning
+        debugMsg("Spawning " .. flareCount .. " flares over " .. cookOffDuration .. " seconds")
     for i = 1, flareCount do
         local delay = math.random() * cookOffDuration --Random time within cook-off duration
         local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
@@ -1895,6 +1914,7 @@ function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor
             debugMsg("Spawning flare #" .. params[1] .. " at X: " .. string.format("%.0f", params[2].x) .. ", Y: " .. string.format("%.0f", params[2].y) .. ", Z: " .. string.format("%.0f", params[2].z) .. " with color " .. params[3])
             trigger.action.signalFlare(params[2], params[3], params[4])
         end, {i, offset, flareColor, azimuth}, timer.getTime() + delay)
+    end
     end
 end
 
