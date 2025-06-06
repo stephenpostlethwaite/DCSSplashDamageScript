@@ -14,13 +14,11 @@ local TrophyConfig = {
     interceptRange = 30,         --Interception range in meters (default: 30) you can reduce this to 20 to make it more realistic but script will struggle tracking fast missiles i.e vikhr_m, it might even struggle at 30
     frontRightRounds = 4,        --Initial front-right launcher rounds (default: 4)
     backLeftRounds = 4,          --Initial back-left launcher rounds (default: 4)
-    failureChance = 0.05,     --Failure chance for interception (0.0 to 1.0 0% to 100%, default: 0.05 for 5%)
-	trackingspeed = "distance and (distance <= 100 and 0.02 or (distance <= 200 and 0.05 or (distance <= 1000 and 0.1 or 1))) or 1", --Tracking interval expression
-		--This checks the weapons location/distance from the trophy unit - over 1000m check every 1 second, under 1000 every 0.1 seconds, under 200 meter 0.05 seconds, under 100m 0.02 seconds
-    debugmode = false             --Debug mode enabled
+    failureChance = 0.00,     	 --Failure chance for interception (0.0 to 1.0 0% to 100%, i.e 0.05 for 5%)
+    debugmode = true             --Debug mode enabled
 	
 	
-	--Either have "TrophyAPS" in the units name somewhere to activate it for that unit or add specific vehicles to the AllUnitType table (.e M-1 Abrams check the datamine for vehicle names if needed) to add it for all units of that type
+	--Either have "TrophyAPS" in the units name somewhere to activate it for that unit or add specific vehicles to the AllUnitType table (.e M-1 Abrams check the datamine for vehicle names if needed)
 }
 --[[-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
@@ -157,7 +155,8 @@ local function findTrophyVehicles(weaponPos, weaponName)
     end
     local trophyUnits = {}
     local unitIds = {} --Track unique unit IDs
-    local searchRadius = trophyWeapons[weaponName] and trophyWeapons[weaponName].range or 16093 --Default to 10 miles if no range
+    local weaponNameLower = string.lower(weaponName)
+    local searchRadius = trophyWeaponsLookup[weaponNameLower] and trophyWeaponsLookup[weaponNameLower].range or 16093 -- Default to 10 miles if no range
     debugTrophy("Search radius: " .. searchRadius .. " meters")
     local function searchUnit(unit)
         if unit then
@@ -403,17 +402,17 @@ local function trackWeapon(weapon, weaponName, initTime, targetUnit)
                     angle = angle * 180 / math.pi
                     if angle < 0 then angle = angle + 360 end
                     debugTrophy("Threat angle: " .. angle .. " degrees (relative to vehicle heading)")
-                    --Select launcher based on angle (270-360 and 0-90: front-right, 90-270: back-left)
                     local offsetDistance = TrophyConfig.explosionOffsetDistance
                     local explosionX, explosionZ
                     local launcher
                     --Rotate offsets based on tank heading
                     local rightX, rightZ = -headingZ, headingX --Perpendicular to heading (right vector)
-                    if (angle >= 270 and angle <= 360) or (angle >= 0 and angle < 90) then
+                    if (angle >= 315 or angle <= 135) then
                         --Front-right launcher (forward + right)
                         explosionX = unitPos.x + headingX * offsetDistance + rightX * offsetDistance
                         explosionZ = unitPos.z + headingZ * offsetDistance + rightZ * offsetDistance
                         launcher = "FR"
+                        debugTrophy("Selected front-right launcher for angle " .. angle)
                         if trophyAmmo[unitId].FR > 0 then
                             trophyAmmo[unitId].FR = trophyAmmo[unitId].FR - 1
                             debugTrophy("Using front-right launcher for " .. tostring(weaponName) .. ", unit " .. unitId .. " FR rounds left: " .. trophyAmmo[unitId].FR)
@@ -426,6 +425,7 @@ local function trackWeapon(weapon, weaponName, initTime, targetUnit)
                         explosionX = unitPos.x - headingX * offsetDistance - rightX * offsetDistance
                         explosionZ = unitPos.z - headingZ * offsetDistance - rightZ * offsetDistance
                         launcher = "BL"
+                        debugTrophy("Selected back-left launcher for angle " .. angle)
                         if trophyAmmo[unitId].BL > 0 then
                             trophyAmmo[unitId].BL = trophyAmmo[unitId].BL - 1
                             debugTrophy("Using back-left launcher for " .. tostring(weaponName) .. ", unit " .. unitId .. " BL rounds left: " .. trophyAmmo[unitId].BL)
@@ -478,8 +478,8 @@ local function trackWeapon(weapon, weaponName, initTime, targetUnit)
                 end
             end
 
-            --Continue tracking with fast (0.1s) at under 1000m or slow at more than 1000m (1s) interval based on distance. Even faster at 200m or less
-            local trackInterval = distance and (distance <= 200 and 0.05 or (distance <= 1000 and 0.1 or 1)) or 1
+            --Continue tracking with fast (0.1s) at under 1000m or slow at more than 1000m (1s) interval based on distance. Even faster at 200m/100m or less
+            local trackInterval = distance and (distance <= 100 and 0.02 or (distance <= 200 and 0.05 or (distance <= 1000 and 0.1 or 1))) or 1
             debugTrophy("Scheduling next track for " .. tostring(weaponName) .. " in " .. trackInterval .. " seconds")
             timer.scheduleFunction(function(args)
                 local wpn, wpnName, unit = args[1], args[2], args[3]
