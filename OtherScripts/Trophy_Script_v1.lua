@@ -18,6 +18,9 @@ local TrophyConfig = {
 	trackingspeed = "distance and (distance <= 100 and 0.02 or (distance <= 200 and 0.05 or (distance <= 1000 and 0.1 or 1))) or 1", --Tracking interval expression
 		--This checks the weapons location/distance from the trophy unit - over 1000m check every 1 second, under 1000 every 0.1 seconds, under 200 meter 0.05 seconds, under 100m 0.02 seconds
     debugmode = false             --Debug mode enabled
+	
+	
+	--Either have "TrophyAPS" in the units name somewhere to activate it for that unit or add specific vehicles to the AllUnitType table (.e M-1 Abrams check the datamine for vehicle names if needed) to add it for all units of that type
 }
 --[[-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
