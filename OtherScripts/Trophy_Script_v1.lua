@@ -18,7 +18,7 @@ local TrophyConfig = {
     debugmode = false,             --Debug mode enabled
 	
 	
-	--Either have "TrophyAPS" in the units name somewhere to activate it for that unit or add specific vehicles to the AllUnitType table (.e M-1 Abrams check the datamine for vehicle names if needed)
+	--Either have "TrophyAPS" in the unit's name somewhere to activate it for that unit or add specific vehicles to the AllUnitType table (.e M-1 Abrams check the datamine for vehicle names if needed)
 }
 --[[-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
