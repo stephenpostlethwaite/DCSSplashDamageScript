@@ -8,10 +8,10 @@ local success, errorMsg = pcall(function()
 local TrophyConfig = {
     enabled = true,              --Enable/disable Trophy APS (true/false)
     selfExplosionSize = 1,       --Explosion size near vehicle, mimicking trophy location (default: 1)
-	explosionOffsetDistance = 2, --Launcher offset from vehicle center (default: 2 meters)
+    explosionOffsetDistance = 2, --Launcher offset from vehicle center (default: 2 meters)
     weaponExplosionSize = 20,    --Explosion size to destroy weapon (default: 20)
     detectRange = 200,           --Detection range in meters (default: 20) when in detection range speed up the location checks of the weapon
-    interceptRange = 30,         --Interception range in meters (default: 30) you can reduce this to 20 to make it more realistic but script will struggle tracking fast missiles i.e vikhr_m, it might even struggle at 30
+    interceptRange = 30,         --Interception range in meters (default: 30) you can reduce this to 20 to make it more realistic but the script may struggle hitting fast missiles
     frontRightRounds = 4,        --Initial front-right launcher rounds (default: 4)
     backLeftRounds = 4,          --Initial back-left launcher rounds (default: 4)
     failureChance = 0.00,     	 --Failure chance for interception (0.0 to 1.0 0% to 100%, i.e 0.05 for 5%)
@@ -33,7 +33,7 @@ local trophyWeapons = {
     --For weapon types: typeName:gsub("^weapons%.missiles%.", ""):gsub("^weapons%.nurs%.", ""), other types not supported in code currently. shells were too fast.
     ["AGM_114K"] = { range = 8000 }, --Hellfire missile
     ["AGM_114"] = { range = 8000 }, --Hellfire 
-	["vikhr_m"] = { range = 10000 }, --Vikhr ATGM
+    ["vikhr_m"] = { range = 10000 }, --Vikhr ATGM
     ["Vikhr_9M127_1"] = { range = 10000 }, --Vikhr ATGM 
     ["AT_6"] = { range = 5000 }, --Shturm ATGM
     ["Ataka_9M120"] = { range = 6000 }, --Ataka ATGM
