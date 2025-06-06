@@ -15,7 +15,7 @@ local TrophyConfig = {
     frontRightRounds = 4,        --Initial front-right launcher rounds (default: 4)
     backLeftRounds = 4,          --Initial back-left launcher rounds (default: 4)
     failureChance = 0.00,     	 --Failure chance for interception (0.0 to 1.0 0% to 100%, i.e 0.05 for 5%)
-    debugmode = false,             --Debug mode enabled
+    debugmode = false,            --Debug mode enabled
 	
 	
 	--Either have "TrophyAPS" in the unit's name somewhere to activate it for that unit or add specific vehicles to the AllUnitType table (.e M-1 Abrams check the datamine for vehicle names if needed)
