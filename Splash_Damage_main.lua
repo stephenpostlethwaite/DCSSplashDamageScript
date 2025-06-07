@@ -3815,8 +3815,28 @@ function logEvent(eventName, eventData)
     --Handle A10MurderMode for non-VehicleIEDTarget units
     if splash_damage_options.A10MurderMode and eventName == "HIT" and eventData.initiator then
         local initiatorType = safeGet(function() return eventData.initiator:getTypeName() end, "unknown")
+        -- Extract unit data for A10MurderMode
+        local unitID, unitName, unitType, unitPosition, unitLife, rawCoords
+        local status, err = pcall(function()
+            local tgt = eventData.target
+            unitID = safeGet(function() return tgt:getID() end, "unavailable")
+            unitName = safeGet(function() return tgt:getName() end, "unknown")
+            unitType = safeGet(function() return tgt:getTypeName() end, "unknown")
+            unitPosition = safeGet(function()
+                local pos = tgt:getPosition().p
+                return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+            end, "unavailable")
+            rawCoords = safeGet(function()
+                local pos = tgt:getPosition().p
+                return {x = pos.x, y = pos.y, z = pos.z}
+            end, {x = 0, y = 0, z = 0})
+            unitLife = safeGet(function() return tgt:getLife() end, "Alive")
+        end)
+        if not status and splash_damage_options.A10MurderMode_debug then
+            env.info("A10MurderMode: Error extracting unit data for HIT event: " .. tostring(err))
+        end
         if splash_damage_options.A10MurderMode_debug then
-            env.info("A10MurderMode: Checking initiator type: " .. initiatorType .. " for target: " .. (unitName or "unknown"))
+            env.info("A10MurderMode: Checking initiator type: " .. initiatorType .. " for target: " .. unitName)
         end
         if initiatorType:match("A%-10") then
             local coords = {
@@ -3824,12 +3844,16 @@ function logEvent(eventName, eventData)
                 y = tonumber(unitPosition:match("y=(.-),")),
                 z = tonumber(unitPosition:match("z=(.-)$"))
             }
-            if splash_damage_options.A10MurderMode_debug then
-                env.info("A10MurderMode: A-10 initiator detected, triggering explosion for target: " .. (unitName or "unknown"))
+            if coords.x and coords.y and coords.z then
+                if splash_damage_options.A10MurderMode_debug then
+                    env.info("A10MurderMode: A-10 initiator detected, triggering explosion for target: " .. unitName)
+                end
+                A10MurderMode(coords)
+            elseif splash_damage_options.A10MurderMode_debug then
+                env.info("A10MurderMode: Invalid coordinates for target: " .. unitName .. ", skipping explosion")
             end
-            A10MurderMode(coords)
         elseif splash_damage_options.A10MurderMode_debug then
-            env.info("A10MurderMode: Initiator not an A-10, skipping for target: " .. (unitName or "unknown"))
+            env.info("A10MurderMode: Initiator not an A-10, skipping for target: " .. unitName)
         end
     end
 end
