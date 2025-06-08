@@ -7,6 +7,8 @@ https://forum.dcs.world/topic/370261-splash-damage-3x-script-now-with-more-explo
 User Files:
 https://www.digitalcombatsimulator.com/en/files/3344761/
 
+Any issues/suggestions etc feel free to post on the forum or DM me in Discord - stevey9062
+
 
     x x 2025 - 3.4
 
