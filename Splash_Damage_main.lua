@@ -10,6 +10,16 @@ https://www.digitalcombatsimulator.com/en/files/3344761/
 Any issues/suggestions etc feel free to post on the forum or DM me in Discord - stevey9062
 
 
+TO DO: 
+Before 3.4 release -
+
+cargocook off movement tracking review
+test moving vehicles + cargocookoff - and all vehicles mode, to see what we can do about is moving checks -reduce them so things blow up faster for example, or detect that its not moving over 2 frames an thats good enough, shorter frame tracking
+cargocookoff on dead/killed review
+test test test
+isolate ground tracking weapons into a different table and gated behind the enable, so that the extra explosion effects etc dont auto apply
+	change missing weapon function to check both ground and expl tables
+
     x x 2025 - 3.4
 
 		(Stevey666) 
@@ -20,12 +30,19 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 	  - Added AGM_45B to expl table
 	  - Added instant phosphor/signal flares option to cook off events
 	  - Added in missing JF17/JAS39 weapons as per Kurdes
-	  - Added optional A10 murder mode which adds a configurable explosion to every hit event with the a10 as an initiator
-	  - New Feature: IED.  If a unit is called VehicleIEDTarget(*) it will explode 
-	  - Mission Maker Friendly Options
-			-TBD - planning on having cookoff and fuel explosion effects by unit name too so they will trigger not just for tracked weapons (i.e bombs)
-			
-			
+	  - New Feature: A-10 Murder Mode, Named Unit Murder Mode (disabled by default) 
+			- adds a configurable sized explosion to every hit event with the a10 or the named unit with the name MurderMode in it as an initiator
+	  - New Feature: Trophy APS System (disabled by default)
+	  - New Feature: Vehicle IEDs.  If a unit is called VehicleIEDTarget(*) it will explode bigly
+	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
+	  - New Feature: Ground Unit Explosion On Death. 
+			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
+	  - New Feature: CBU Bomblet Hit Explosion - on a hit event from a bomblet against a unit it will trigger an explosion the size as per the clusterSubMunTable table
+	  - New Feature: Strobe Marker - generates a tiny explosion above a unit, no smoke but sound + light appears - can be used as a marker for planes
+			- Generates on an active and living unit with "Strobe" in the name
+			- Visible to eye/FLIR(TV mode)
+	  - New trigger for cookoff - Cookoff can be enabled for a single target by calling it "CargoCookoffTarget"
+	  - Effects (i.e cookoff) no longer only bound by damage from tracked weapons.  Gun cannon kills will now count!			
 
 	  
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
@@ -46,9 +63,16 @@ splash_damage_options = {
     ["napalm_unitdamage_debug"] = false, --Enable detailed debug messages for napalm unit damage tracking
     ["damage_model_game_messages"] = false, --ground unit movement and weapons disabled notification
     ["killfeed_debug"] = false, --Enable detailed debug messages for killfeed
-    ["events_debug"] = false, --enable debugging for event handling
+    ["events_debug"] = false, --enable debugging for event handling (logevent function) - you will get a lot of logs if you set this to true
     ["vehicleied_debug"] = false, --enable debugging for event handling
-    ["A10MurderMode_debug"] = false,
+    ["MurderMode_debug"] = false,
+    ["trophy_debug"] = false,	--Debug mode for trophy aps
+    ["cargocookoff_debug"] = false,	--Debug mode for cargo cookoff
+    ["CriticalComponent_debug"] = false, --Toggle debug logging
+    ["GU_Explode_debug"] = false, --Toggle debug logging
+    ["CBU_Bomblet_Hit_debug"] = false, --Toggle debug logging
+    ["StrobeMarker_debug"] = false, --Logging for StrobeMarker
+	
     ---------------------------------------------------------------------- Radio -----------------------------------------------------------------------------
     ["enable_radio_menu"] = false, --enables the in-game radio menu for modifying settings
     
@@ -89,6 +113,7 @@ splash_damage_options = {
     
     ["track_pre_explosion"] = true, --Toggle to enable/disable pre-explosion tracking
     ["enable_cargo_effects"] = true, --Toggle for enabling/disabling cargo explosions and cook-offs  
+    ["cargo_effects_chance"] = 1, -- Chance of cargo effects occurring. 0.1 = 10%, 1 = 100%
     ["cargo_damage_threshold"] = 60, --Health % below which cargo explodes (0 = destroyed only)
     ["debris_effects"] = true, --Enable debris from cargo cook-offs
     ["debris_power"] = 1, --Power of each debris explosion
@@ -96,14 +121,28 @@ splash_damage_options = {
     ["debris_count_max"] = 12, --Maximum debris pieces per cook-off
     ["debris_max_distance"] = 10, --Max distance debris can travel (meters), the min distance from the vehicle will be 10% of this
 	
-    ["cookoff_flares_enabled"] = false, --Enable/disable flare effects for cook-offs
+    ["cookoff_flares_enabled"] = true, --Enable/disable flare effects for cook-offs
     ["cookoff_flare_color"] = 2, 
     ["cookoff_flare_instant"] = true, --If true, spawns flares instantly using napalm phosphor style; if false, spawns over time
     ["cookoff_flare_instant_count"] = 4, --Number of instant flares when cookoff_flare_instant is true
     ["cookoff_flare_count_modifier"] = 1, --Multiplier for non instant flare count (e.g., 1x, 2x cookOffCount from the vehicle table)
     ["cookoff_flare_offset"] = 0.5, --Max offset distance for flares in meters (horizontal)
 
-
+    --All Vehicles Section
+		--If a Unit is called CookOffTarget it will trigger a cookoff with the below effects
+		
+    ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
+    ["allunits_enable_smoke"] = true, -- Enable /disable smoke effects if smokeandcookoffeffectallvehicles is true
+    ["allunits_enable_cookoff"] = true, -- Enable /disable cookoffs if smokeandcookoffeffectallvehicles is true
+    ["allunits_explode_power"] = 50, --Initial power of vehicle exploding
+    ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
+    ["allunits_default_flame_duration"] = 60, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
+    ["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
+    ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
+    ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
+    ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
+    ["allunits_cookoff_chance"] = 1, -- Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
+	
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
     ["ordnance_protection_radius"] = 10, --Distance in meters to protect nearby bombs
@@ -114,8 +153,7 @@ splash_damage_options = {
     ["recent_large_explosion_range"] = 100, --range its looking for in meters for a recent large_explosion generated by the script
     ["recent_large_explosion_time"] = 4, --in seconds how long ago there was a recent large_explosion generated by the script
 
-
-    ---------------------------------------------------------------------- Cluster Bombs ---------------------------------------------------------------------
+    ---------------------------------------------------------------------- Cluster Bombs Spread Mimic  -------------------------------------------------------
     ["cluster_enabled"] = false,
     ["cluster_base_length"] = 150,           --Base forward spread (meters)
     ["cluster_base_width"] = 200,            --Base lateral spread (meters)
@@ -142,25 +180,12 @@ splash_damage_options = {
     
 
     ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
-    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance (shells)
+    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance for larger explosion function and blastwave cookoffs(shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
     ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
     ["scan_50m_for_groundordnance"] = true, --If true, uses a 50m scan radius for ground ordnance instead of dynamic blast radius
 	
-	
-    ---------------------------------------------------------------------- Smoke and Cookoff For All Vehicles  -----------------------------------------------
-    ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
-    ["allunits_enable_smoke"] = false, -- Enable /disable smoke effects
-    ["allunits_enable_cookoff"] = false, -- Enable /disable cookoffs
-    ["allunits_explode_power"] = 50, --Initial power of vehicle exploding
-    ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
-    ["allunits_default_flame_duration"] = 60, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
-    ["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
-    ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
-    ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
-    ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
-
 
     ---------------------------------------------------------------------- Napalm  ---------------------------------------------------------------------------
     ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
@@ -195,7 +220,7 @@ splash_damage_options = {
     ["killfeed_lekas_contribution_delay"] = 240, -- Delay in seconds before processing splash kills into Lekas contributions (default 240 seconds/4mins)
 	
     ---------------------------------------------------------------------- Vehicle IEDs  ---------------------------------------------------------------------	
-    ["vehicleied_enabled"] = true,
+    ["vehicleied_enabled"] = false,
     ["vehicleied_scaling"] = 1, --For easy changing - scaling of explosion powers, counts, radius
     ["vehicleied_central_power"] = 600, --Power of central explosion
     ["vehicleied_explosion_power"] = 400, --Base power for secondary explosions
@@ -208,11 +233,46 @@ splash_damage_options = {
     ["vehicleied_destroy_vehicle"] = true, -- Option to attempt to instantly destroy the vehicle (can sometimes leave a ghost smoke vortex or fire)
     ["vehicleied_explode_on_hit"] = true, --Will it explode instantly on hit event or only on death/kill/when vehice stops moving and no longer "alive"
 
----------------------------------------------------------------------- A10 Murder Mode  ------------------------------------------------------------------	
-	["A10MurderMode"] = false, --This tracks hit events, if the initiator is an A10 it will spawn and explosion on the target
-	["A10MurderMode_Power"] = 5,  --Power of the explosion
+    ---------------------------------------------------------------------- Murder Mode  ----------------------------------------------------------------------	
+    ["A10MurderMode"] = false, --This tracks hit events, if the initiator is an A10 it will spawn and explosion on the target
+    ["A10MurderMode_Power"] = 5,  --Power of the explosion
+    ["A10MurderMode__Chance"] = 1, -- Percent chance a vehicle explodes on hit (0.05 = 5%, 0.5 = 50%)
+    ["NamedUnitMurderMode"] = false, --This tracks hit events, if the initiator has "MurderMode" in their name, every hit event from them will put an explosion of the below power at the target's coords
+    ["NamedUnitMurderMode_Power"] = 5,  --Power of the explosion from the named unit
+    ["NamedUnitMurderMode_Chance"] = 1, -- Percent chance a vehicle explodes on hit (0.05 = 5%, 0.5 = 50%)
+	
+    ---------------------------------------------------------------------- Trophy APS  -----------------------------------------------------------------------	
+    ["trophy_enabled"] = false,              --Enable/disable Trophy APS (true/false)
+    ["trophy_selfExplosionSize"] = 1,       --Explosion size near vehicle, mimicking trophy location (default: 1)
+    ["trophy_explosionOffsetDistance"] = 2, --Launcher offset from vehicle center (default: 2 meters)
+    ["trophy_weaponExplosionSize"] = 20,    --Explosion size to destroy weapon (default: 20)
+    ["trophy_detectRange"] = 200,           --Detection range in meters (default: 200) when in detection range speed up the location checks of the weapon
+    ["trophy_interceptRange"] = 30,         --Interception range in meters (default: 30) you can reduce this to 20 to make it more realistic but the script may struggle hitting fast missiles
+    ["trophy_frontRightRounds"] = 4,        --Initial front-right launcher rounds (default: 4)
+    ["trophy_backLeftRounds"] = 4,          --Initial back-left launcher rounds (default: 4)
+    ["trophy_failureChance"] = 0.00,     	--Failure chance for interception (0.0 to 1.0 0% to 100%, i.e 0.05 for 5%)
 
+    ---------------------------------------------------------------------- Critical Component ----------------------------------------------------------------
+    ["CriticalComponent"] = false, -- Toggle to enable CriticalComponent Feature - % Chance a vehicle is destroyed from a single hit
+    ["CriticalComponent_Chance"] = 0.01, -- Percent chance a vehicle explodes on hit (0.01 = 1%, 0.5 = 50%)
+    ["CriticalComponent_Explosion_Power"] = 50, --Explosion power for CriticalComponent
+    ["CriticalComponent_Specific_Weapons_Only"] = {}, -- {} means all weapons.  List of specific weapons to trigger CriticalComponent, i.e {"GAU8_30_HE", "GAU8_30_AP", "GAU8_30_TP"}
 
+    ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
+    ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage
+    ["GU_Explode_on_Death_Chance"] = 1, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
+    ["GU_Explode_on_Death_Explosion_Power"] = 80, --Explosion power for explode on death	
+    ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
+	
+    ---------------------------------------------------------------------- CBU Bomblet Hit Explosion ---------------------------------------------------------
+    ["CBU_Bomblet_Hit_Explosion"] = false, --Enable/Disable - on a hit even by a bomblet it will trigger a small explosion at the units location
+    ["CBU_Bomblet_Hit_Explosion_Scaling"] = 1, --Multiplier for the bomblet damage in the explTable
+	
+    ---------------------------------------------------------------------- Strobe Marker ---------------------------------------------------------	
+    ["StrobeMarker_enabled"] = false, --Enable/Disable Strobe Marker - spawns a tiny explosion above a unit with Strobe in its name
+    ["StrobeMarker_interval"] = 3, --Interval in seconds for Strobe Marker explosions
+
+	
 }
 
 local script_enable = 1
@@ -220,6 +280,9 @@ refreshRate = 0.1
 ----[[ ##### End of SCRIPT CONFIGURATION ##### ]]----
 
 --Helper function: Trim whitespace.
+
+
+
 local function trim(s)
     return s:match("^%s*(.-)%s*$")
 end
@@ -242,7 +305,6 @@ flamesize:
     --1) M92 R11 Volvo driveable (Fuel Truck Tanker)
     ["r11_volvo_drivable"] = { 
         cargoExplosion = true,
-        cargoExplosionMult = 2.0,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
@@ -258,7 +320,6 @@ flamesize:
     --2) Refueler ATMZ-5
     ["ATMZ-5"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 2.0,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
@@ -274,7 +335,6 @@ flamesize:
     --3) Refueler ATZ-10
     ["ATZ-10"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 2,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
@@ -290,7 +350,6 @@ flamesize:
     --4) Refueler ATZ-5 
     ["ATZ-5"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1.8,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
@@ -306,7 +365,6 @@ flamesize:
     --5) Refueler M978 HEMTT (Fuel truck tanker)
     ["M978 HEMTT Tanker"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 2.0,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 0,
@@ -322,7 +380,6 @@ flamesize:
     --##### AMMO CARRIERS #####
     ["GAZ-66"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 4,
@@ -338,7 +395,6 @@ flamesize:
 --#Called Ural-4320 in game, but in code its Ural-375
     ["Ural-375"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 4,
@@ -353,7 +409,6 @@ flamesize:
 
     ["ZIL-135"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 5,
@@ -372,7 +427,6 @@ flamesize:
 	
 	    ["Cargo06"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 5,
@@ -389,7 +443,6 @@ flamesize:
 	
 	    ["Cargo03"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 10,
         cargoCookOff = true,
         cookOffCount = 10,
@@ -406,7 +459,6 @@ flamesize:
 	
 	    ["Cargo05"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 5,
@@ -423,7 +475,6 @@ flamesize:
 	
 	    ["APFC fuel"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 5,
@@ -440,7 +491,6 @@ flamesize:
 	
 	    ["Oil Barrel"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = false,
         cookOffCount = 5,
@@ -458,7 +508,6 @@ flamesize:
 	
 	    ["FARP Ammo Dump Coating"] = {
         cargoExplosion = true,
-        cargoExplosionMult = 1,
 		cargoExplosionPower = 50,
         cargoCookOff = true,
         cookOffCount = 5,
@@ -574,6 +623,7 @@ explTable = {
   
     --*** CLUSTER BOMBS (CBU) ***
 	--I don't have most of these so can't test them with debug on
+	--For the CBU_Bomblet_Hit_Explosion feature, see a different table called "clusterSubMunTable"
     ["MK77mod0-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
     ["MK77mod1-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
     ["CBU_99"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye variant, confirmed 247 Mk 118 bomblets
@@ -594,6 +644,7 @@ explTable = {
     ["RBK_500U_OAB_2_5RT"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
     ["RBK_500_255_PTO_1M"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 126, submunition_explosive = 0.5, submunition_name = "PTO_1M" },
     ["RBK_500_255_ShO"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 565, submunition_explosive = 0.1, submunition_name = "ShO" },  
+
     --*** INS/GPS BOMBS (JDAM) ***
     ["GBU_31"] = { explosive = 582, shaped_charge = false },
     ["GBU_31_V_3B"] = { explosive = 582, shaped_charge = false },
@@ -815,10 +866,7 @@ explTable = {
 	--*** Bismark Mod Weapons ***
 	["weapons.shells.380mm_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
 	["weapons.shells.SK_C_33_105_HE"] = { explosive = 15, shaped_charge = false, groundordnance = true }, --105mm HE shell, SK C/33 (~12-16 kg TNT equiv)
-	
-	
-	
-	
+
 }
 
 napalm_unitcat_tabl = {
@@ -832,23 +880,139 @@ napalm_unitcat_tabl = {
     ["Structure"] = { maxDamageDistance = 60, explosionPower = 60 }
 }
 
+--Table for cluster submunitions
+clusterSubMunTable = {
+    ["Mk 118"] = { explosive = 2 }, --Fired from Rockeye/CBU99
+    ["BLU_97B"] = { explosive = 0.5 }, --Fired from CBU_87/CBU_103
+    ["BLU_108"] = { explosive = 15 }, --Fired from CBU_97/CBU_105
+    ["grenade_AC"] = { explosive = 0.3 }, --Fired from BELOUGA/BLG66_BELOUGA
+    ["BL_755_bomblet"] = { explosive = 0.4 }, --Fired from BL_755
+    ["PTAB_25M"] = { explosive = 0.5 }, --Fired from RBK_250
+    ["AO_1SCh"] = { explosive = 0.2 }, --Fired from RBK_250_275_AO_1SCH
+    ["PTAB_10_5"] = { explosive = 0.5 }, --Fired from RBK_500
+    ["OAB_25RT"] = { explosive = 0.2 }, --Fired from RBK_500U/RBK_500U_OAB_2_5RT
+    ["AO_25RT"] = { explosive = 0.5 }, --Fired from RBK_500AO
+    ["PTO_1M"] = { explosive = 0.5 }, --Fired from RBK_500_255_PTO_1M
+    ["ShO"] = { explosive = 0.1 }, --Fired from RBK_500_255_ShO
+    ["M77"] = { explosive = 0.1 }, --Fired from M26
+}
+
+--Unit types eligible for Trophy APS
+local TrophyAllUnitType = {
+    --["M-1 Abrams"] = true,    --Example unit, uncomment to enable Trophy APS for all M1A2 Abrams units as opposed to only name searching.  You can add units too.
+}
+
+--Weapons to be tracked by script and max range to be tracked from
+local trophyWeapons = {
+    --For weapon types: typeName:gsub("^weapons%.missiles%.", ""):gsub("^weapons%.nurs%.", ""), other types not supported in code currently. shells were too fast.
+    ["AGM_114K"] = { range = 8000 }, --Hellfire missile
+    ["AGM_114"] = { range = 8000 }, --Hellfire 
+	["vikhr_m"] = { range = 10000 }, --Vikhr ATGM
+    ["Vikhr_9M127_1"] = { range = 10000 }, --Vikhr ATGM 
+    ["AT_6"] = { range = 5000 }, --Shturm ATGM
+    ["Ataka_9M120"] = { range = 6000 }, --Ataka ATGM
+    ["Ataka_9M120F"] = { range = 6000 }, --Ataka ATGM
+    ["P_9M117"] = { range = 5000 }, --AT-10 Stabber
+    ["9M133"] = { range = 5500 }, --Kornet ATGM
+    ["9M120"] = { range = 6000 }, --Ataka ATGM
+    ["HOT3"] = { range = 4300 }, --HOT-3 ATGM
+    ["PG_16V"] = { range = 800 }, --RPG-16 HEAT
+    ["HYDRA_70_M151"] = { range = 8000 }, --Hydra 70 M151 HE
+    ["HYDRA_70_M282"] = { range = 8000 }, --Hydra 70 M282 Multi-Purpose Penetrator
+    ["HYDRA_70_MK5"] = { range = 8000 }, --Hydra 70 Mk5 HEAT
+    ["S_8KOM"] = { range = 4000 }, --S-8KOM HEAT rocket
+    ["S_5M"] = { range = 3000 }, --S-5M HE rocket
+    ["S_24B"] = { range = 4000 }, --S-24B HE rocket
+    ["C_25"] = { range = 3000 }, --S-25-OFM rocket
+    ["3BK18M"] = { range = 4000 }, --125mm HEAT round
+    ["M456"] = { range = 3000 }, --105mm HEAT round
+    ["HYDRA_70M15"] = { range = 4000 },
+    ["HYDRA_70_MK1"] = { range = 4000 },
+    ["HYDRA_70_MK5"] = { range = 4000 },
+    ["HYDRA_70_M151"] = { range = 4000 },
+    ["HYDRA_70_M151_M433"] = { range = 4000 },
+    ["HYDRA_70_M229"] = { range = 8000 }, --Hydra 70 M229
+    ["FFAR Mk1 HE"] = { range = 8000 }, --FFAR Mk1 HE
+    ["FFAR Mk5 HEAT"] = { range = 8000 }, --FFAR Mk5 HEAT
+    ["HVAR"] = { range = 8000 }, --HVAR rocket
+    ["Zuni_127"] = { range = 8000 }, --Zuni 127mm rocket
+    ["ARAKM70BHE"] = { range = 8000 }, --ARAK M70B HE
+    ["ARAKM70BAP"] = { range = 8000 }, --ARAK M70B AP
+    ["SNEB_TYPE251_F1B"] = { range = 4000 }, --SNEB Type 251
+    ["SNEB_TYPE252_F1B"] = { range = 4000 }, --SNEB Type 252
+    ["SNEB_TYPE253_F1B"] = { range = 4000 }, --SNEB Type 253
+    ["SNEB_TYPE256_F1B"] = { range = 4000 }, --SNEB Type 256
+    ["SNEB_TYPE257_F1B"] = { range = 4000 }, --SNEB Type 257
+    ["SNEB_TYPE251_F4B"] = { range = 4000 }, --SNEB Type 251 F4B
+    ["SNEB_TYPE252_F4B"] = { range = 4000 }, --SNEB Type 252 F4B
+    ["SNEB_TYPE253_F4B"] = { range = 4000 }, --SNEB Type 253 F4B
+    ["SNEB_TYPE256_F4B"] = { range = 4000 }, --SNEB Type 256 F4B
+    ["SNEB_TYPE257_F4B"] = { range = 4000 }, --SNEB Type 257 F4B
+    ["SNEB_TYPE251_H1"] = { range = 4000 }, --SNEB Type 251 H1
+    ["SNEB_TYPE252_H1"] = { range = 4000 }, --SNEB Type 252 H1
+    ["SNEB_TYPE253_H1"] = { range = 4000 }, --SNEB Type 253 H1
+    ["SNEB_TYPE256_H1"] = { range = 4000 }, --SNEB Type 256 H1
+    ["SNEB_TYPE257_H1"] = { range = 4000 }, --SNEB Type 257 H1
+    ["MATRA_F4_SNEBT251"] = { range = 4000 }, --Matra SNEB Type 251
+    ["MATRA_F4_SNEBT253"] = { range = 4000 }, --Matra SNEB Type 253
+    ["MATRA_F4_SNEBT256"] = { range = 4000 }, --Matra SNEB Type 256
+    ["MATRA_F1_SNEBT253"] = { range = 4000 }, --Matra SNEB Type 253 F1
+    ["MATRA_F1_SNEBT256"] = { range = 4000 }, --Matra SNEB Type 256 F1
+    ["TELSON8_SNEBT251"] = { range = 4000 }, --Telson 8 SNEB Type 251
+    ["TELSON8_SNEBT253"] = { range = 4000 }, --Telson 8 SNEB Type 253
+    ["TELSON8_SNEBT256"] = { range = 4000 }, --Telson 8 SNEB Type 256
+    ["TELSON8_SNEBT257"] = { range = 4000 }, --Telson 8 SNEB Type 257
+    ["ARF8M3API"] = { range = 4000 }, --ARF-8/M3 API rocket
+    ["UG_90MM"] = { range = 4000 }, --UG 90mm rocket
+    ["S-24A"] = { range = 4000 },
+    ["S-25OF"] = { range = 4000 },
+    ["S-25OFM"] = { range = 4000 },
+    ["S-25O"] = { range = 4000 },
+    ["S-25-O"] = { range = 4000 },
+    ["S_25L"] = { range = 4000 },
+    ["S-5M"] = { range = 4000 },
+    ["C_5"] = { range = 4000 },
+    ["C5"] = { range = 4000 },
+    ["C_8"] = { range = 4000 },
+    ["C_8OFP2"] = { range = 4000 },
+    ["C_13"] = { range = 4000 },
+    ["C_24"] = { range = 4000 },
+    ["C_25"] = { range = 4000 },
+}
+
 local effectSmokeId = 1
 
-----[[ ##### HELPER/UTILITY FUNCTIONS ##### ]]----
+----[[ ##### HELPER/UTILITY FUNCTIONS/TABLES ##### ]]----
 
---Global tables
+
+--Global tables and value setting
 local processedUnitIds = {}
 local killfeedTable = {}
 local splashKillfeedTable = {}
 local splashKillfeedTemp = {}
-local LogEventProcessedUnitTable = {}
 local HitEventTempTable = {}
 local VehicleIEDPendingTable = {}
+local CargoCookOffPendingTable = {}
 
 local fuelTankSpawnQueue = {}
 local lastSpawnTime = 0
 local SPAWN_INTERVAL = 0.1 --0.1s gap between spawns
 
+local trophyAmmo = {} --Trophy Ammo tracking table: { unitId = { FR = count, BL = count } }
+local trophyHandler = {}
+local trophyWeaponsLookup = {}
+local recentExplosions = {}
+local strobeUnits = {}
+
+giantExplosionTargets = {}
+giantExplosionTestTargets = {}
+cargoEffectsQueue = {}
+WpnHandler = {}
+tracked_target_position = nil --Store the last known position of TargetUnit for giant explosion
+tracked_weapons = {}
+local processedUnitsGlobal = {}
+napalmCounter = 1
+local recentExplosions = {}
 
 -- Helper function to dump table contents (for undocumented event fields)
 local function dumpTable(t, indent)
@@ -888,12 +1052,47 @@ function clearProcessedUnitIds(unitId)
     end
 end
 
+--Debug functions
 local function debugMsg(str)
     if splash_damage_options.debug == true then
         debugCounter = (debugCounter or 0) + 1
         local uniqueStr = str .. " [" .. timer.getTime() .. " - " .. debugCounter .. "]"
         trigger.action.outText(uniqueStr, 5)
         env.info("DEBUG: " .. uniqueStr)
+    end
+end
+
+local function debugTrophy(str)
+    if splash_damage_options.trophy_debug then
+        trophydebugCounter = (trophydebugCounter or 0) + 1
+        local uniqueStr = str .. " [" .. timer.getTime() .. " - " .. debugCounter .. "]"
+        --trigger.action.outText(uniqueStr, 5) --uncomment to show messages ingame too
+        env.info("[Trophy Debug:] " .. uniqueStr)
+    end
+end
+
+local function debugCargoCookOff(str)
+    if splash_damage_options.cargocookoff_debug then
+        cargocookoffdebugCounter = (cargocookoffdebugCounter or 0) + 1
+        local uniqueStr = str .. " [" .. timer.getTime() .. " - " .. cargocookoffdebugCounter .. "]"
+        --trigger.action.outText(uniqueStr, 5) --uncomment to show messages ingame too
+        env.info("[CargoCookoff Debug:] " .. uniqueStr)
+    end
+end
+
+local function debugCBUBombletHit(str)
+    if splash_damage_options.CBU_Bomblet_Hit_debug then
+        cbubombletdebugCounter = (cbubombletdebugCounter or 0) + 1
+        local uniqueStr = str .. "[" .. timer.getTime() .. " - " .. cbubombletdebugCounter .. "]"
+        env.info("[CBU Bomblet Hit Debug:] " .. uniqueStr)
+    end
+end
+
+local function debugStrobeMarker(str)
+    if splash_damage_options.StrobeMarker_debug then
+        strobeMarkerDebugCounter = (strobeMarkerDebugCounter or 0) + 1
+        local uniqueStr = str .. " [" .. timer.getTime() .. " - " .. strobeMarkerDebugCounter .. "]"
+        env.info("[StrobeMarker Debug:] " .. uniqueStr)
     end
 end
 
@@ -961,18 +1160,6 @@ local function getSpreadPoints(impactPoint, velocity, numPoints, spacing)
     return points
 end
 
-
-function V3Mag(speedVec)
-    local mag = speedVec.x*speedVec.x + speedVec.y*speedVec.y+speedVec.z*speedVec.z
-    mag = math.sqrt(mag)
-    return mag
-end
-  
-function Vhead(speedVec)
-    local speed = V3Mag(speedVec)
-    local dist = speed * refreshRate * 1.5 
-    return dist
-end
 
 function explodeNapalm(vec3)
     local explosionPos = {
@@ -1159,12 +1346,9 @@ function scanUnitsForNapalm(posX, posY, posZ)
 end
 
 
- 
 function removeNapalm(staticName) 
     StaticObject.getByName(staticName):destroy()
 end
-
-
 
 local function tableHasKey(table, key)
     return table[key] ~= nil
@@ -1369,12 +1553,7 @@ function napalmOnImpact(impactPoint, velocity, weaponName)
     spawnAndExplode(1)
 end
 
- 
- 
- 
- 
- 
---Cluster-specific helper functions from Rockeye script
+
 local function normalizeVector(vec)
     local mag = math.sqrt(vec.x^2 + vec.z^2)
     if mag > 0 then
@@ -1383,6 +1562,7 @@ local function normalizeVector(vec)
         return { x = 1, z = 0 }
     end
 end
+
 local function calculate_drop_angle(velocity)
     local horizontal_speed = math.sqrt((velocity.x or 0)^2 + (velocity.z or 0)^2)
     local vertical_speed = math.abs(velocity.y or 0)
@@ -1390,6 +1570,7 @@ local function calculate_drop_angle(velocity)
     local angle_rad = math.atan(vertical_speed / horizontal_speed)
     return math.deg(angle_rad)
 end
+
 local function calculate_dispersion(velocity, burst_altitude)
     local velocity_magnitude = math.sqrt((velocity.x or 0)^2 + (velocity.z or 0)^2)
     local drop_angle = calculate_drop_angle(velocity)
@@ -1412,15 +1593,575 @@ end
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-
     ##### End of HELPER/UTILITY FUNCTIONS #####     ##### End of HELPER/UTILITY FUNCTIONS #####     ##### End of HELPER/UTILITY FUNCTIONS #####
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
-giantExplosionTargets = {}
-giantExplosionTestTargets = {}
-cargoEffectsQueue = {}
-WpnHandler = {}
-tracked_target_position = nil --Store the last known position of TargetUnit for giant explosion
-tracked_weapons = {}
-local processedUnitsGlobal = {}
-napalmCounter = 1
-napalmCounter = 1
+
+--Function to schedule cargo cook-off effects
+local function scheduleCargoEffects(unitType, unitName, unitID, finalCoords, effectIndex)
+--It will use the all unit figures unless an entry is found in the table
+--It will only be called if allunits is enabled or an entry is found in the table before this is called
+    local cargoData = cargoUnits[unitType] or {
+        cargoExplosionPower = splash_damage_options.allunits_explode_power,
+        cargoExplosion = true,
+        cargoCookOff = splash_damage_options.allunits_enable_cookoff,
+        cookOffCount = splash_damage_options.allunits_cookoff_count,
+        cookOffPower = splash_damage_options.allunits_cookoff_power,
+        cookOffDuration = splash_damage_options.allunits_cookoff_duration,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = splash_damage_options.allunits_cookoff_powerrandom,
+        isTanker = splash_damage_options.allunits_enable_smoke,
+        flameSize = splash_damage_options.allunits_default_flame_size,
+        flameDuration = splash_damage_options.allunits_default_flame_duration
+    }
+
+    --Check cargo_effects_chance
+    if math.random() > (splash_damage_options.cargo_effects_chance or 1) then
+        debugCargoCookOff("scheduleCargoEffects: Skipped effects for unit " .. unitName .. " (ID: " .. unitID .. ") due to cargo_effects_chance (" .. (splash_damage_options.cargo_effects_chance or 1) .. ")")
+        return
+    end
+
+    --Check allunits_cookoff_chance for non-cargoUnits vehicles
+    local isAllUnitsVehicle = not cargoUnits[unitType] and splash_damage_options.smokeandcookoffeffectallvehicles
+    if isAllUnitsVehicle and math.random() > (splash_damage_options.allunits_cookoff_chance or 1) then
+        debugCargoCookOff("scheduleCargoEffects: Skipped cook-off effects for all-units vehicle " .. unitName .. " (ID: " .. unitID .. ") due to allunits_cookoff_chance (" .. (splash_damage_options.allunits_cookoff_chance or 1) .. ")")
+        cargoData.cargoCookOff = false -- Disable cook-off effects
+    end
+
+    table.insert(cargoEffectsQueue, {
+        name = unitType,
+        distance = 0,
+        coords = finalCoords,
+        power = cargoData.cargoExplosionPower or splash_damage_options.allunits_explode_power,
+        explosion = cargoData.cargoExplosion,
+        cookOff = cargoData.cargoCookOff,
+        cookOffCount = cargoData.cookOffCount,
+        cookOffPower = cargoData.cookOffPower,
+        cookOffDuration = cargoData.cookOffDuration,
+        cookOffRandomTiming = cargoData.cookOffRandomTiming,
+        cookOffPowerRandom = cargoData.cookOffPowerRandom,
+        isTanker = cargoData.isTanker,
+        flameSize = cargoData.flameSize,
+        flameDuration = cargoData.flameDuration
+    })
+    debugCargoCookOff("Queued effects for unit " .. unitName .. " (ID: " .. unitID .. ") at X: " .. finalCoords.x .. ", Z: " .. finalCoords.z)
+
+    local processedCargoUnits = {}
+    local flamePositions = {}
+    for _, effect in ipairs(cargoEffectsQueue) do
+        local unitKey = effect.name .. "_" .. effect.coords.x .. "_" .. effect.coords.z
+        if not processedUnitsGlobal[unitKey] and not processedCargoUnits[unitKey] then
+            if effect.explosion then
+                timer.scheduleFunction(function(params)
+                    trigger.action.explosion(params[1], params[2])
+                end, {effect.coords, effect.power}, timer.getTime() + effectIndex + 0.1)
+            end
+            if effect.isTanker and effect.explosion then
+                local flameSize = effect.flameSize or 3
+                local flameDuration = effect.flameDuration
+                local flameDensity = 1.0
+                local effectId = effectSmokeId
+                effectSmokeId = effectSmokeId + 1
+                local isDuplicate = false
+                for _, pos in pairs(flamePositions) do
+                    if getDistance3D(effect.coords, pos) < 3 then
+                        isDuplicate = true
+                        break
+                    end
+                end
+                if not isDuplicate then
+                    timer.scheduleFunction(function(params)
+                        local terrainHeight = land.getHeight({x = params[1].x, y = params[1].z})
+                        local adjustedCoords = {x = params[1].x, y = terrainHeight + 2, z = params[1].z}
+                        trigger.action.explosion(adjustedCoords, 10)
+                        trigger.action.effectSmokeBig(adjustedCoords, params[2], params[3], params[4])
+                    end, {effect.coords, flameSize, flameDensity, effectId}, timer.getTime() + effectIndex + 0.2)
+                    timer.scheduleFunction(function(id)
+                        trigger.action.effectSmokeStop(id)
+                    end, effectId, timer.getTime() + effectIndex + flameDuration + 0.2)
+                    table.insert(flamePositions, effect.coords)
+                end
+            end
+            if effect.cookOff and effect.cookOffCount > 0 then
+                timer.scheduleFunction(function(params)
+                    scheduleCookOffFlares(params.coords, params.cookOffCount, params.cookOffDuration, params.flareColor)
+                end, {
+                    coords = effect.coords,
+                    cookOffCount = effect.cookOffCount,
+                    cookOffDuration = effect.cookOffDuration,
+                    flareColor = splash_damage_options.cookoff_flare_color
+                }, timer.getTime() + 0.2)
+                for i = 1, effect.cookOffCount do
+                    local delay = effect.cookOffRandomTiming and math.random() * effect.cookOffDuration or (i - 1) * (effect.cookOffDuration / effect.cookOffCount)
+                    local basePower = effect.cookOffPower
+                    local powerVariation = effect.cookOffPowerRandom / 100
+                    local cookOffPower = effect.cookOffPowerRandom == 0 and basePower or basePower * (1 + powerVariation * (math.random() * 2 - 1))
+                    timer.scheduleFunction(function(params)
+                        trigger.action.explosion(params[1], params[2])
+                    end, {effect.coords, cookOffPower}, timer.getTime() + effectIndex + delay)
+                end
+                if splash_damage_options.debris_effects then
+                    local debrisCount = math.random(splash_damage_options.debris_count_min, splash_damage_options.debris_count_max)
+                    for j = 1, debrisCount do
+                        local theta = math.random() * 2 * math.pi
+                        local phi = math.acos(math.random() * 2 - 1)
+                        local minDist = splash_damage_options.debris_max_distance * 0.1
+                        local maxDist = splash_damage_options.debris_max_distance
+                        local r = math.random() * (maxDist - minDist) + minDist
+                        local debrisX = effect.coords.x + r * math.sin(phi) * math.cos(theta)
+                        local debrisZ = effect.coords.z + r * math.sin(phi) * math.sin(theta)
+                        local terrainY = land.getHeight({x = debrisX, y = debrisZ})
+                        local debrisY = terrainY + math.random() * maxDist
+                        local debrisPos = {x = debrisX, y = debrisY, z = debrisZ}
+                        local debrisPower = splash_damage_options.debris_power
+                        local debrisDelay = (j - 1) * (effect.cookOffDuration / debrisCount)
+                        timer.scheduleFunction(function(debrisArgs)
+                            trigger.action.explosion(debrisArgs[1], debrisArgs[2])
+                        end, {debrisPos, debrisPower}, timer.getTime() + effectIndex + debrisDelay)
+                    end
+                end
+            end
+            processedCargoUnits[unitKey] = true
+            processedUnitsGlobal[unitKey] = true
+            effectIndex = effectIndex + 3
+        end
+    end
+    cargoEffectsQueue = {}
+end
+
+
+--Function to check if a weapon is in the Trophy APS target list
+local function isTrophyWeapon(weaponName)
+    debugTrophy("Checking weapon: " .. tostring(weaponName))
+    if not weaponName then
+        debugTrophy("Weapon name is nil")
+        return false
+    end
+    local weaponNameLower = string.lower(weaponName)
+    if trophyWeaponsLookup[weaponNameLower] then
+        debugTrophy("Weapon " .. weaponNameLower .. " is a Trophy target")
+        return true
+    end
+    debugTrophy("Weapon " .. weaponNameLower .. " is not a Trophy target")
+    return false
+end
+
+--Function to find TrophyAPS vehicles within weapon's max range
+local function findTrophyVehicles(weaponPos, weaponName)
+    debugTrophy("Finding TrophyAPS vehicles for " .. tostring(weaponName))
+    if not weaponPos then
+        debugTrophy("Weapon position is nil")
+        return {}
+    end
+    local trophyUnits = {}
+    local unitIds = {} --Track unique unit IDs
+    local weaponNameLower = string.lower(weaponName)
+    local searchRadius = trophyWeaponsLookup[weaponNameLower] and trophyWeaponsLookup[weaponNameLower].range or 16093 -- Default to 10 miles if no range
+    debugTrophy("Search radius: " .. searchRadius .. " meters")
+    local function searchUnit(unit)
+        if unit then
+            local success, errorMsg = pcall(function()
+                if unit:isExist() and unit:getLife() > 1 then
+                    local unitType = unit:getTypeName()
+                    local unitName = unit:getName()
+                    if TrophyAllUnitType[unitType] or string.find(unitName, "TrophyAPS") then
+                        local unitId = unit:getID()
+                        --Check ammo status
+                        if not trophyAmmo[unitId] then
+                            trophyAmmo[unitId] = { FR = splash_damage_options.trophy_frontRightRounds, BL = splash_damage_options.trophy_backLeftRounds }
+                        end
+                        if trophyAmmo[unitId].FR + trophyAmmo[unitId].BL > 0 then
+                            if not unitIds[unitId] then
+                                local unitPos = unit:getPosition().p
+                                if unitPos then
+                                    local distance = math.sqrt((unitPos.x - weaponPos.x)^2 + (unitPos.z - weaponPos.z)^2)
+                                    if distance <= searchRadius then
+                                        table.insert(trophyUnits, unit)
+                                        unitIds[unitId] = true
+                                        debugTrophy("Found unit " .. unitName .. " (ID: " .. unitId .. ", Type: " .. unitType .. ") with FR: " .. trophyAmmo[unitId].FR .. ", BL: " .. trophyAmmo[unitId].BL)
+                                    end
+                                else
+                                    debugTrophy("Failed to get position for unit " .. unitName)
+                                end
+                            end
+                        else
+                            debugTrophy("Unit " .. unitName .. " (ID: " .. unitId .. ") has no remaining Trophy rounds")
+                        end
+                    end
+                end
+            end)
+            if not success then
+                debugTrophy("Error processing unit: " .. tostring(errorMsg))
+            end
+        end
+    end
+    local volume = { id = world.VolumeType.SPHERE, params = { point = { x = weaponPos.x, y = weaponPos.y, z = weaponPos.z }, radius = searchRadius } }
+    local success, errorMsg = pcall(function()
+        world.searchObjects(Object.Category.UNIT, volume, searchUnit)
+    end)
+    if not success then
+        debugTrophy("Error in world.searchObjects: " .. tostring(errorMsg))
+    end
+    debugTrophy("Found " .. #trophyUnits .. " TrophyAPS vehicles within " .. searchRadius .. " meters")
+    return trophyUnits
+end
+
+--Function to check if weapon is heading toward a unit
+local function isWeaponHeadingToward(weapon, unit, callback)
+    local sampleCount = 3
+    local sampleInterval = 0.05
+    local initialDelay = 0.05
+    local samples = {}
+    
+    local function collectSample(count)
+        if count > sampleCount then
+            --Process samples
+            local success, result = pcall(function()
+                if #samples < 2 then
+                    debugTrophy("Insufficient samples collected: " .. #samples)
+                    callback(false)
+                    return
+                end
+                
+                --Calculate displacement between first and last sample
+                local firstPos = samples[1].pos
+                local lastPos = samples[#samples].pos
+                local dispX = lastPos.x - firstPos.x
+                local dispZ = lastPos.z - firstPos.z
+                local magDisp = math.sqrt(dispX^2 + dispZ^2)
+                debugTrophy("Displacement: dx=" .. dispX .. ", dz=" .. dispZ .. ", mag=" .. magDisp)
+                
+                --Try velocity if displacement is too small
+                local avgVelX, avgVelZ = 0, 0
+                local validVel = false
+                if magDisp < 0.1 then
+                    for _, sample in ipairs(samples) do
+                        local magVel = math.sqrt(sample.vel.x^2 + sample.vel.z^2)
+                        if magVel >= 1 then
+                            avgVelX = avgVelX + sample.vel.x / magVel
+                            avgVelZ = avgVelZ + sample.vel.z / magVel
+                            validVel = true
+                        end
+                    end
+                    magDisp = math.sqrt(avgVelX^2 + avgVelZ^2)
+                    if validVel and magDisp >= 0.0001 then
+                        dispX = avgVelX / magDisp
+                        dispZ = avgVelZ / magDisp
+                        debugTrophy("Using average velocity: x=" .. dispX .. ", z=" .. dispZ)
+                    else
+                        debugTrophy("No valid displacement or velocity")
+                        callback(false)
+                        return
+                    end
+                else
+                    dispX = dispX / magDisp
+                    dispZ = dispZ / magDisp
+                    debugTrophy("Normalized displacement: x=" .. dispX .. ", z=" .. dispZ)
+                end
+                
+                --Vector from last weapon position to unit
+                local unitPos = unit:getPosition().p
+                local toUnitX = unitPos.x - lastPos.x
+                local toUnitZ = unitPos.z - lastPos.z
+                local magToUnit = math.sqrt(toUnitX^2 + toUnitZ^2)
+                if magToUnit < 0.0001 then
+                    debugTrophy("Weapon too close to unit, magToUnit is zero")
+                    callback(false)
+                    return
+                end
+                toUnitX = toUnitX / magToUnit
+                toUnitZ = toUnitZ / magToUnit
+                debugTrophy("To-unit vector: x=" .. toUnitX .. ", z=" .. toUnitZ)
+                
+                --Dot product to check alignment
+                local dot = toUnitX * dispX + toUnitZ * dispZ
+                local angle = math.acos(math.max(-1, math.min(1, dot))) * 180 / math.pi
+                debugTrophy("Trajectory dot product: " .. dot .. ", angle: " .. angle .. " degrees")
+                --Consider heading toward if within 45 degrees
+                local isHeading = dot > 0.707 --cos(45 degrees)
+                debugTrophy("Heading toward: " .. tostring(isHeading))
+                callback(isHeading)
+            end)
+            if not success then
+                debugTrophy("Error processing samples: " .. tostring(result))
+                callback(false)
+            end
+            return
+        end
+        
+        local success, errorMsg = pcall(function()
+            if weapon:isExist() then
+                local pos = weapon:getPosition().p
+                local vel = weapon:getVelocity()
+                table.insert(samples, { pos = pos, vel = vel })
+                debugTrophy("Sample " .. count .. ": pos x=" .. math.floor(pos.x) .. ", z=" .. math.floor(pos.z) .. ", vel x=" .. vel.x .. ", z=" .. vel.z)
+                timer.scheduleFunction(function()
+                    collectSample(count + 1)
+                end, {}, timer.getTime() + sampleInterval)
+            else
+                debugTrophy("Weapon no longer exists during sampling")
+                callback(false)
+            end
+        end)
+        if not success then
+            debugTrophy("Error collecting sample " .. count .. ": " .. tostring(errorMsg))
+            callback(false)
+        end
+    end
+    
+    debugTrophy("Scheduling trajectory sampling for weapon near " .. unit:getName() .. " with 0.1-second delay")
+    timer.scheduleFunction(function()
+        if weapon:isExist() then
+            collectSample(1)
+        else
+            debugTrophy("Weapon no longer exists before sampling")
+            callback(false)
+        end
+    end, {}, timer.getTime() + initialDelay)
+end
+
+--Function to track weapon and check for nearby TrophyAPS vehicles
+local function trackWeapon(weapon, weaponName, initTime, targetUnit)
+    if not splash_damage_options.trophy_enabled then
+        debugTrophy("Trophy APS disabled, skipping tracking for " .. tostring(weaponName))
+        return
+    end
+    if not weapon then
+        debugTrophy("Weapon " .. tostring(weaponName) .. " is nil, stopping tracking")
+        return
+    end
+    local success, errorMsg = pcall(function()
+        if not weapon:isExist() then
+            debugTrophy("Weapon " .. tostring(weaponName) .. " no longer exists, stopping tracking")
+            return
+        end
+
+        local weaponPos
+        local posSuccess, posError = pcall(function()
+            weaponPos = weapon:getPosition().p
+        end)
+        if not posSuccess or not weaponPos then
+            debugTrophy("Failed to get position for weapon " .. tostring(weaponName) .. ": " .. tostring(posError))
+            return
+        end
+
+        debugTrophy("Tracking weapon: " .. tostring(weaponName) .. " at x=" .. math.floor(weaponPos.x) .. ", z=" .. math.floor(weaponPos.z))
+
+        if targetUnit:isExist() and targetUnit:getLife() > 1 then
+            local unitPos
+            local unitSuccess, unitErrorMsg = pcall(function()
+                unitPos = targetUnit:getPosition().p
+            end)
+            if not unitSuccess or not unitPos then
+                debugTrophy("Failed to get position for unit " .. targetUnit:getName() .. ": " .. tostring(unitErrorMsg))
+                return
+            end
+            local distance
+            if unitPos and weaponPos then
+                distance = math.sqrt((unitPos.x - weaponPos.x)^2 + (unitPos.y - weaponPos.y)^2 + (unitPos.z - weaponPos.z)^2)
+                debugTrophy("Weapon " .. tostring(weaponName) .. " distance to TrophyAPS vehicle " .. targetUnit:getName() .. ": " .. math.floor(distance) .. " meters")
+            else
+                debugTrophy("Failed to calculate distance for weapon " .. tostring(weaponName) .. " to unit " .. targetUnit:getName())
+                return
+            end
+            if distance <= splash_damage_options.trophy_detectRange then --Within detection range
+                if distance <= splash_damage_options.trophy_interceptRange then --Within interception range
+                    local unitId = targetUnit:getID()
+                    if not trophyAmmo[unitId] then
+                        trophyAmmo[unitId] = { FR = splash_damage_options.trophy_frontRightRounds, BL = splash_damage_options.trophy_backLeftRounds }
+                    end
+                    debugTrophy("Interception triggered for " .. tostring(weaponName) .. " near " .. targetUnit:getName())
+                    --Get vehicle orientation (heading) at interception time
+                    local unitOrientationSuccess, unitOrientation = pcall(function()
+                        return targetUnit:getPosition().x
+                    end)
+                    if not unitOrientationSuccess then
+                        debugTrophy("Error getting unit orientation: " .. tostring(unitOrientation))
+                        return
+                    end
+                    local headingX, headingZ = unitOrientation.x, unitOrientation.z
+                    local headingMag = math.sqrt(headingX^2 + headingZ^2)
+                    if headingMag == 0 then
+                        debugTrophy("Invalid unit heading for " .. targetUnit:getName())
+                        return
+                    end
+                    headingX, headingZ = headingX / headingMag, headingZ / headingMag
+                    debugTrophy("Tank heading: x=" .. headingX .. ", z=" .. headingZ)
+                    --Calculate threat direction (weapon to vehicle)
+                    local threatX = weaponPos.x - unitPos.x
+                    local threatZ = weaponPos.z - unitPos.z
+                    local magThreat = math.sqrt(threatX^2 + threatZ^2)
+                    if magThreat == 0 then
+                        debugTrophy("Invalid threat vector magnitude")
+                        return
+                    end
+                    threatX, threatZ = threatX / magThreat, threatZ / magThreat
+                    debugTrophy("Threat direction: x=" .. threatX .. ", z=" .. threatZ)
+                    --Compute relative angle using atan2 for correct quadrant
+                    local angle = math.atan2(threatZ, threatX) - math.atan2(headingZ, headingX)
+                    angle = angle * 180 / math.pi
+                    if angle < 0 then angle = angle + 360 end
+                    debugTrophy("Threat angle: " .. angle .. " degrees (relative to vehicle heading)")
+                    local offsetDistance = splash_damage_options.trophy_explosionOffsetDistance
+                    local explosionX, explosionZ
+                    local launcher
+                    --Rotate offsets based on tank heading
+                    local rightX, rightZ = -headingZ, headingX --Perpendicular to heading (right vector)
+                    if (angle >= 315 or angle <= 135) then
+                        --Front-right launcher (forward + right)
+                        explosionX = unitPos.x + headingX * offsetDistance + rightX * offsetDistance
+                        explosionZ = unitPos.z + headingZ * offsetDistance + rightZ * offsetDistance
+                        launcher = "FR"
+                        debugTrophy("Selected front-right launcher for angle " .. angle)
+                        if trophyAmmo[unitId].FR > 0 then
+                            trophyAmmo[unitId].FR = trophyAmmo[unitId].FR - 1
+                            debugTrophy("Using front-right launcher for " .. tostring(weaponName) .. ", unit " .. unitId .. " FR rounds left: " .. trophyAmmo[unitId].FR)
+                        else
+                            debugTrophy("No front-right rounds left for unit " .. targetUnit:getName())
+                            return
+                        end
+                    else
+                        --Back-left launcher (backward + left)
+                        explosionX = unitPos.x - headingX * offsetDistance - rightX * offsetDistance
+                        explosionZ = unitPos.z - headingZ * offsetDistance - rightZ * offsetDistance
+                        launcher = "BL"
+                        debugTrophy("Selected back-left launcher for angle " .. angle)
+                        if trophyAmmo[unitId].BL > 0 then
+                            trophyAmmo[unitId].BL = trophyAmmo[unitId].BL - 1
+                            debugTrophy("Using back-left launcher for " .. tostring(weaponName) .. ", unit " .. unitId .. " BL rounds left: " .. trophyAmmo[unitId].BL)
+                        else
+                            debugTrophy("No back-left rounds left for unit " .. targetUnit:getName())
+                            return
+                        end
+                    end
+                    debugTrophy("Explosion position: x=" .. explosionX .. ", z=" .. explosionZ)
+                    if math.random() >= splash_damage_options.trophy_failureChance then
+                        --Explosion 1.6 meters above ground
+                        local groundHeight = land.getHeight({x = explosionX, y = explosionZ})
+                        local explosionY = groundHeight + (groundHeight + 1.6 < 1.6 and 1.6 or 1.6)
+                        local explosionSuccess, explosionError = pcall(function()
+                            trigger.action.explosion({ x = explosionX, y = explosionY, z = explosionZ }, splash_damage_options.trophy_selfExplosionSize)
+                        end)
+                        if not explosionSuccess then
+                            debugTrophy("Error triggering interception explosion: " .. tostring(explosionError))
+                        else
+                            --Check unit health after Trophy explosion
+                            local healthSuccess, unitHealth = pcall(function()
+                                return targetUnit:getLife()
+                            end)
+                            if healthSuccess and unitHealth then
+                                debugTrophy("Unit " .. targetUnit:getName() .. " health after " .. launcher .. " firing: " .. unitHealth)
+                            else
+                                debugTrophy("Failed to get health for unit " .. targetUnit:getName() .. ": " .. tostring(unitHealth))
+                            end
+                        end
+                        --Immediate weapon destruction
+                        local destroySuccess, destroyError = pcall(function()
+                            if weapon and weapon:isExist() then
+                                local wpnPos = weapon:getPosition().p
+                                debugTrophy("Destroying weapon: " .. tostring(weaponName))
+                                local groundHeight = land.getHeight({x = wpnPos.x, y = wpnPos.z})
+                                local explosionY = wpnPos.y < groundHeight + 1.6 and groundHeight + 1.6 or wpnPos.y
+                                trigger.action.explosion({ x = wpnPos.x, y = explosionY, z = wpnPos.z }, splash_damage_options.trophy_weaponExplosionSize)
+                            else
+                                debugTrophy("Weapon " .. tostring(weaponName) .. " no longer exists for destruction")
+                            end
+                        end)
+                        if not destroySuccess then
+                            debugTrophy("Error destroying weapon: " .. tostring(destroyError))
+                        end
+                    else
+                        debugTrophy("Interception missed for " .. tostring(weaponName))
+                        return --Skip destruction, allow threat to continue
+                    end
+                    --Continue tracking for other units
+                end
+            end
+
+            --Continue tracking with fast (0.1s) at under 1000m or slow at more than 1000m (1s) interval based on distance. Even faster at 200m/100m or less
+            local trackInterval = distance and (distance <= 100 and 0.02 or (distance <= 200 and 0.05 or (distance <= 1000 and 0.1 or 1))) or 1
+            debugTrophy("Scheduling next track for " .. tostring(weaponName) .. " in " .. trackInterval .. " seconds")
+            timer.scheduleFunction(function(args)
+                local wpn, wpnName, unit = args[1], args[2], args[3]
+                if not wpn then
+                    debugTrophy("Scheduled weapon " .. tostring(wpnName) .. " is nil, stopping tracking")
+                    return
+                end
+                local success, errorMsg = pcall(function()
+                    trackWeapon(wpn, wpnName, initTime, unit)
+                end)
+                if not success then
+                    debugTrophy("Error in scheduled tracking for " .. tostring(wpnName) .. ": " .. tostring(errorMsg))
+                end
+            end, {weapon, weaponName, targetUnit}, timer.getTime() + trackInterval)
+        else
+            debugTrophy("Target unit " .. targetUnit:getName() .. " no longer exists or is dead, stopping tracking")
+            return
+        end
+    end)
+    if not success then
+        debugTrophy("Error tracking weapon " .. tostring(weaponName) .. ": " .. tostring(errorMsg))
+    end
+end
+
+--Event handler for weapon firing
+function trophyHandler:onEvent(event)
+    debugTrophy("Event received: " .. tostring(event.id))
+    local success, errorMsg = pcall(function()
+        if event.id == world.event.S_EVENT_SHOT then
+            local weapon = event.weapon
+            if weapon and weapon:isExist() then
+                local weaponDesc = weapon:getDesc()
+                local displayName = weaponDesc.displayName or "None"
+                local typeName = weaponDesc.typeName or "None"
+                --Check if typeName starts with weapons.missiles. or weapons.nurs.
+                if typeName:match("^weapons%.missiles%.") or typeName:match("^weapons%.nurs%.") then
+                local weaponName = typeName:gsub("^weapons%.missiles%.", ""):gsub("^weapons%.nurs%.", "")
+                local isMatch = isTrophyWeapon(weaponName)
+                debugTrophy("Weapon fired: " .. tostring(weaponName) .. " (Matches Trophy list: " .. (isMatch and "Yes" or "No") .. ") | DisplayName: " .. tostring(displayName) .. " | TypeName: " .. tostring(typeName))
+                if isMatch and splash_damage_options.trophy_enabled then
+                    debugTrophy("Trophy weapon detected: " .. tostring(weaponName))
+                    local weaponPos
+                    local success, errorMsg = pcall(function()
+                        weaponPos = weapon:getPosition().p
+                    end)
+                    if not success or not weaponPos then
+                        debugTrophy("Failed to get initial position for weapon " .. tostring(weaponName) .. ": " .. tostring(errorMsg))
+                        return
+                    end
+                    local trophyUnits = findTrophyVehicles(weaponPos, weaponName)
+                    if #trophyUnits > 0 then
+                        local trackedUnits = 0
+                        local processedUnits = 0
+                        for _, unit in pairs(trophyUnits) do
+                            isWeaponHeadingToward(weapon, unit, function(isHeading)
+                                processedUnits = processedUnits + 1
+                                if isHeading then
+                                    debugTrophy("Weapon " .. tostring(weaponName) .. " heading toward " .. unit:getName() .. ", starting tracking")
+                                    trackWeapon(weapon, weaponName, timer.getTime(), unit)
+                                    trackedUnits = trackedUnits + 1
+                                else
+                                    debugTrophy("Weapon " .. tostring(weaponName) .. " not heading toward " .. unit:getName() .. ", skipping tracking")
+                                end
+                                --Log tracking summary after all units are checked
+                                if processedUnits == #trophyUnits then
+                                    debugTrophy("Tracking " .. tostring(weaponName) .. " against " .. trackedUnits .. " of " .. #trophyUnits .. " TrophyAPS vehicles in range")
+                                end
+                            end)
+                        end
+                    else
+                        debugTrophy("No TrophyAPS vehicles within range for " .. tostring(weaponName))
+                    end
+                end
+            else
+                    debugTrophy("Weapon typeName " .. tostring(typeName) .. " does not match missiles or nurs, skipping")
+                end
+            else
+                debugTrophy("Weapon is nil or does not exist")
+            end
+        end
+    end)
+    if not success then
+        debugTrophy("Error in event handler: " .. tostring(errorMsg))
+    end
+end
 
 function scanGiantExplosionTargets()
 local function processObject(obj)
@@ -1885,19 +2626,19 @@ function track_wpns_cluster_scan(args)
     end
 end
 
-----[[ ##### Updated track_wpns() Function ##### ]]----
-local recentExplosions = {}
+
 
 
 --function to schedule flares for cook-offs
 function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor)
     local flareCount = math.floor(cookOffCount * splash_damage_options.cookoff_flare_count_modifier)
     if flareCount < 1 then return end --Skip if no flares
-    debugMsg("Scheduling flares for cook-off at X: " .. string.format("%.0f", coords.x) .. ", Z: " .. string.format("%.0f", coords.z))
+    debugCargoCookOff("Scheduling flares for cook-off at X: " .. string.format("%.0f", coords.x) .. ", Z: " .. string.format("%.0f", coords.z))
+    
     if splash_damage_options.cookoff_flare_instant then
-        --Use evenly distributed azimuths for instant flares
+        -- Use evenly distributed azimuths for instant flares
         local scaledFlareCount = splash_damage_options.cookoff_flare_instant_count
-        debugMsg("Spawning " .. scaledFlareCount .. " instant flares")
+        debugCargoCookOff("Spawning " .. scaledFlareCount .. " instant flares")
         local angleStep = 360 / scaledFlareCount -- Divide circle into equal segments
         for i = 1, scaledFlareCount do
             -- Base azimuth for this flare, with a small random offset within ±20 degrees
@@ -1907,119 +2648,83 @@ function scheduleCookOffFlares(coords, cookOffCount, cookOffDuration, flareColor
             local offsetX = math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
             local offsetZ = math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
             local flarePos = { x = coords.x + offsetX, y = coords.y, z = coords.z + offsetZ }
-            debugMsg("Spawning instant flare #" .. i .. " at X: " .. string.format("%.0f", flarePos.x) .. ", Z: " .. string.format("%.0f", flarePos.z) .. " with color " .. flareColor .. " and azimuth " .. randomAzimuth)
+            debugCargoCookOff("Spawning instant flare #" .. i .. " at X: " .. string.format("%.0f", flarePos.x) .. ", Z: " .. string.format("%.0f", flarePos.z) .. " with color " .. flareColor .. " and azimuth " .. randomAzimuth)
             trigger.action.signalFlare(flarePos, flareColor, randomAzimuth)
         end
     else
         -- Original time-based flare spawning
-        debugMsg("Spawning " .. flareCount .. " flares over " .. cookOffDuration .. " seconds")
-    for i = 1, flareCount do
-        local delay = math.random() * cookOffDuration --Random time within cook-off duration
-        local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
-        local offset = {
-            x = coords.x + math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset),
-            y = terrainHeight, --Start at ground level
-            z = coords.z + math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
-        }
-        local azimuth = math.random(1, 360) --Random direction
-        timer.scheduleFunction(function(params)
-            debugMsg("Spawning flare #" .. params[1] .. " at X: " .. string.format("%.0f", params[2].x) .. ", Y: " .. string.format("%.0f", params[2].y) .. ", Z: " .. string.format("%.0f", params[2].z) .. " with color " .. params[3])
-            trigger.action.signalFlare(params[2], params[3], params[4])
-        end, {i, offset, flareColor, azimuth}, timer.getTime() + delay)
-    end
+        debugCargoCookOff("Spawning " .. flareCount .. " flares over " .. cookOffDuration .. " seconds")
+        for i = 1, flareCount do
+            local delay = math.random() * cookOffDuration --Random time within cook-off duration
+            local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
+            local offset = {
+                x = coords.x + math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset),
+                y = terrainHeight, --Start at ground level
+                z = coords.z + math.random(-splash_damage_options.cookoff_flare_offset, splash_damage_options.cookoff_flare_offset)
+            }
+            local azimuth = math.random(1, 360) --Random direction
+            timer.scheduleFunction(function(params)
+                debugCargoCookOff("Spawning flare #" .. params[1] .. " at X: " .. string.format("%.0f", params[2].x) .. ", Y: " .. string.format("%.0f", params[2].y) .. ", Z: " .. string.format("%.0f", params[2].z) .. " with color " .. params[3])
+                trigger.action.signalFlare(params[2], params[3], params[4])
+            end, {i, offset, flareColor, azimuth}, timer.getTime() + delay)
+        end
     end
 end
 
 
 function track_wpns()
-    local weaponsToRemove = {} --Delay removal to ensure all weapons are checked
+    local weaponsToRemove = {} -- Delay removal to ensure all weapons are checked
     for wpn_id_, wpnData in pairs(tracked_weapons) do   
         local status, err = pcall(function()
-        if wpnData.wpn:isExist() then
-            --Update position, direction, speed
-            wpnData.pos = wpnData.wpn:getPosition().p
-            wpnData.dir = wpnData.wpn:getPosition().x
-            wpnData.speed = wpnData.wpn:getVelocity()
-                --[[
-				
-		
-            --Tick-by-tick tracking from weapon's actual position
-	local tickVol = {
-    id = world.VolumeType.SPHERE,
-    params = {
-                    point = wpnData.pos, --Real weapon position
-                    radius = 150 --150m radius
-    }
-}
-local tickTargets = {}
-world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, function(obj)
-    if obj:isExist() then
-        table.insert(tickTargets, {
-            name = obj:getTypeName(),
-                        distance = getDistance3D(wpnData.pos, obj:getPoint()), --3D distance
-            position = obj:getPoint(),
-            health = obj:getLife() or 0
-        })
-                end
-                return true
-            end)
-            debugMsg("Tick Track for " .. wpnData.name .. " at X: " .. string.format("%.0f", wpnData.pos.x) .. ", Y: " .. string.format("%.0f", wpnData.pos.y) .. ", Z: " .. string.format("%.0f", wpnData.pos.z) .. " - " .. #tickTargets .. " targets")
-            for i, target in ipairs(tickTargets) do
-                debugMsg("Tick Target #" .. i .. ": " .. target.name .. " at X: " .. string.format("%.0f", target.position.x) .. ", Y: " .. string.format("%.0f", target.position.y) .. ", Z: " .. string.format("%.0f", target.position.z) .. ", Dist: " .. string.format("%.1f", target.distance) .. "m, Health: " .. target.health)
-            end
-   
-				
-				]]--
+            if wpnData.wpn:isExist() then
+                -- Update position, direction, speed
+                wpnData.pos = wpnData.wpn:getPosition().p
+                wpnData.dir = wpnData.wpn:getPosition().x
+                wpnData.speed = wpnData.wpn:getVelocity()
+                -- Scan potential blast zone in the last frame before impact
+                if splash_damage_options.track_pre_explosion then
+                    local ip = land.getIP(wpnData.pos, wpnData.dir, lookahead(wpnData.speed))
+                    local predictedImpact = ip or wpnData.pos
 
-            --Scan potential blast zone in the last frame before impact
-            if splash_damage_options.track_pre_explosion then
-                local ip = land.getIP(wpnData.pos, wpnData.dir, lookahead(wpnData.speed))
-                local predictedImpact = ip or wpnData.pos
-
-                local base_explosive, isShapedCharge = getWeaponExplosive(wpnData.name)
-                base_explosive = base_explosive * splash_damage_options.overall_scaling
-                if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
-                    base_explosive = base_explosive * splash_damage_options.rocket_multiplier
-                end
+                    local base_explosive, isShapedCharge = getWeaponExplosive(wpnData.name)
+                    base_explosive = base_explosive * splash_damage_options.overall_scaling
+                    if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
+                        base_explosive = base_explosive * splash_damage_options.rocket_multiplier
+                    end
                     if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance then
                         base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
-                    --Log modifier only once per weapon
-                    --if splash_damage_options.track_groundunitordnance_debug and not wpnData.debugLogged then
-                        --debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
-                       --wpnData.debugLogged = true --Mark as logged
-                    --end
-                end
+                    end
 
-                local explosionPower = base_explosive
-                if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
-                    explosionPower = explosionPower * splash_damage_options.shaped_charge_multiplier
-                end
+                    local explosionPower = base_explosive
+                    if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
+                        explosionPower = explosionPower * splash_damage_options.shaped_charge_multiplier
+                    end
 
-                    local blastRadius = splash_damage_options.blast_search_radius * 2 --Wider post-scan (180m default)
-                if splash_damage_options.use_dynamic_blast_radius then
-                    blastRadius = math.pow(explosionPower, 1/3) * 10 * splash_damage_options.dynamic_blast_radius_modifier 
-                end
+                    local blastRadius = splash_damage_options.blast_search_radius * 2 -- Wider post-scan (180m default)
+                    if splash_damage_options.use_dynamic_blast_radius then
+                        blastRadius = math.pow(explosionPower, 1/3) * 10 * splash_damage_options.dynamic_blast_radius_modifier 
+                    end
 
-                    --Set tightRadius, use 50m for ground ordnance if enabled
+                    -- Set tightRadius, use 50m for ground ordnance if enabled
                     local tightRadius = blastRadius
                     if wpnData.isGroundUnitOrdnance and splash_damage_options.scan_50m_for_groundordnance then
-                        tightRadius = 50 --Fixed 50m radius for ground ordnance
+                        tightRadius = 50 -- Fixed 50m radius for ground ordnance
                         if splash_damage_options.track_groundunitordnance_debug then
                             debugMsg("Using 50m scan radius for ground ordnance " .. wpnData.name)
                         end
                     end
-                local volS = {
-                    id = world.VolumeType.SPHERE,
-                    params = { 
-                        point = wpnData.pos, --Use current pos
-                        radius = tightRadius 
+                    local volS = {
+                        id = world.VolumeType.SPHERE,
+                        params = { 
+                            point = wpnData.pos, -- Use current pos
+                            radius = tightRadius 
+                        }
                     }
-                }
-                local tightTargets = {}
-                local ifFound = function(foundObject, targets, center)
-                    if foundObject:isExist() then
-                        local category = foundObject:getCategory()
-                        if (category == Object.Category.UNIT and (foundObject:getDesc().category == Unit.Category.GROUND_UNIT or foundObject:getDesc().category == Unit.Category.AIRPLANE)) or
+                    local tightTargets = {}
+                    local ifFound = function(foundObject, targets, center)
+                        if foundObject:isExist() then
+                            local category = foundObject:getCategory()
+                            if (category == Object.Category.UNIT and (foundObject:getDesc().category == Unit.Category.GROUND_UNIT or foundObject:getDesc().category == Unit.Category.AIRPLANE)) or
                                category == Object.Category.STATIC then
                                 table.insert(targets, {
                                     name = foundObject:getTypeName(),
@@ -2031,44 +2736,44 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                     id = foundObject:getID(),
                                     unitName = foundObject:getName() or "Unknown"
                                 })
+                            end
                         end
+                        return true
                     end
-                    return true
-                end
                     if splash_damage_options.track_pre_explosion_debug then
-                debugMsg("Scanning tight radius " .. tightRadius .. "m at current pos while weapon exists")
+                        debugMsg("Scanning tight radius " .. tightRadius .. "m at current pos while weapon exists")
                     end
-                world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, function(obj) ifFound(obj, tightTargets, wpnData.pos) end)
-                wpnData.tightTargets = tightTargets --Store for impact
+                    world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, function(obj) ifFound(obj, tightTargets, wpnData.pos) end)
+                    wpnData.tightTargets = tightTargets -- Store for impact
 
-                --Wider scan for lastKnownTargets
-                volS.params.point = predictedImpact
-                volS.params.radius = blastRadius
-                local foundTargets = {}
-                world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, function(obj) ifFound(obj, foundTargets, predictedImpact) end)
-                wpnData.lastKnownTargets = foundTargets
-            end
-                --Submunition impact handling
+                    -- Wider scan for lastKnownTargets
+                    volS.params.point = predictedImpact
+                    volS.params.radius = blastRadius
+                    local foundTargets = {}
+                    world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, function(obj) ifFound(obj, foundTargets, predictedImpact) end)
+                    wpnData.lastKnownTargets = foundTargets
+                end
+                -- Submunition impact handling
                 local weaponData = explTable[wpnData.parent or wpnData.name] or { submunition_name = "unknown" }
                 if wpnData.name == weaponData.submunition_name then
                     local groundHeight = land.getHeight({x = wpnData.pos.x, y = wpnData.pos.z})
-                    if wpnData.pos.y - groundHeight < 50 then --Impact threshold like old script
+                    if wpnData.pos.y - groundHeight < 50 then -- Impact threshold like old script
                         debugMsg("Submunition '" .. wpnData.name .. "' from '" .. (wpnData.parent or "unknown") .. "' impacted at X: " .. string.format("%.0f", wpnData.pos.x) .. ", Z: " .. string.format("%.0f", wpnData.pos.z))
                         local parentWeaponData = explTable[wpnData.parent] or { submunition_count = 30, submunition_explosive = 1 }
                         local submunitionCount = parentWeaponData.submunition_count or 30
                         local submunitionPower = (parentWeaponData.submunition_explosive or 1) * splash_damage_options.cluster_bomblet_damage_modifier * splash_damage_options.overall_scaling
-						if splash_damage_options.cluster_bomblet_reductionmodifier then
-							if submunitionCount > 35 then
+                        if splash_damage_options.cluster_bomblet_reductionmodifier then
+                            if submunitionCount > 35 then
                                 local reductionFactor = (60 - 35) / (247 - 35)
-								submunitionCount = 35 + math.floor((submunitionCount - 35) * reductionFactor)
+                                submunitionCount = 35 + math.floor((submunitionCount - 35) * reductionFactor)
                                 if submunitionCount > 60 then submunitionCount = 60 end
-							end
-						end
-        --Use parent velocity if available, else submunition speed
-        local parentDir = wpnData.parentVelocity or wpnData.speed
-        local dispersionLength, dispersionWidth = calculate_dispersion(parentDir, 2000) --Match original 2000m
-        local dirMag = math.sqrt(parentDir.x^2 + parentDir.z^2)
-        local dir = dirMag > 0 and {x = parentDir.x / dirMag, z = parentDir.z / dirMag} or {x = 1, z = 0}
+                            end
+                        end
+                        -- Use parent velocity if available, else submunition speed
+                        local parentDir = wpnData.parentVelocity or wpnData.speed
+                        local dispersionLength, dispersionWidth = calculate_dispersion(parentDir, 2000) -- Match original 2000m
+                        local dirMag = math.sqrt(parentDir.x^2 + parentDir.z^2)
+                        local dir = dirMag > 0 and {x = parentDir.x / dirMag, z = parentDir.z / dirMag} or {x = 1, z = 0}
                         debugMsg("Simulating " .. submunitionCount .. " bomblets for submunition '" .. wpnData.name .. "' from '" .. (wpnData.parent or "unknown") .. "' over " .. string.format("%.0f", dispersionLength) .. "m x " .. string.format("%.0f", dispersionWidth) .. "m")
                         for i = 1, submunitionCount do
                             local theta = math.random() * 2 * math.pi
@@ -2087,193 +2792,188 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                     end
                 end
             else
-            --Weapon has impacted
-            debugMsg("Weapon " .. wpnData.name .. " no longer exists at " .. timer.getTime() .. "s")
-            local ip = land.getIP(wpnData.pos, wpnData.dir, lookahead(wpnData.speed))  --terrain intersection point with weapon's nose
-            local explosionPoint
-            if not ip then --use last calculated IP
-                explosionPoint = wpnData.pos
-            else --use intersection point
-                explosionPoint = ip
-            end
-            if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance_debug then
-                local base_explosive, isShapedCharge = getWeaponExplosive(wpnData.name)
-                base_explosive = base_explosive * splash_damage_options.overall_scaling
-                if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
-                    base_explosive = base_explosive * splash_damage_options.rocket_multiplier
+                -- Weapon has impacted
+                debugMsg("Weapon " .. wpnData.name .. " no longer exists at " .. timer.getTime() .. "s")
+                local ip = land.getIP(wpnData.pos, wpnData.dir, lookahead(wpnData.speed))  -- terrain intersection point with weapon's nose
+                local explosionPoint
+                if not ip then -- use last calculated IP
+                    explosionPoint = wpnData.pos
+                else -- use intersection point
+                    explosionPoint = ip
                 end
-                if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance then
-                    base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
-                end
-                local explosionPower = base_explosive
-                if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
-                    explosionPower = explosionPower * splash_damage_options.shaped_charge_multiplier
-                end
-                debugMsg("Ground unit ordnance " .. wpnData.name .. " impacted at X: " .. string.format("%.0f", explosionPoint.x) .. ", Y: " .. string.format("%.0f", explosionPoint.y) .. ", Z: " .. string.format("%.0f", explosionPoint.z) .. " with power " .. explosionPower)
-            end
-			local chosenTargets = wpnData.tightTargets or {}
-            local safeToBlast = true
-            --Check if weapon is napalm
-            local isNapalm = false
-				--Check for napalm override weapons
-				if splash_damage_options.napalmoverride_enabled then
-					local napalmWeapons = {}
-					for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
-						napalmWeapons[trim(weapon)] = true
-					end
-					if napalmWeapons[wpnData.name] then
-						isNapalm = true
-						debugMsg("Napalm override triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
-						napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
-						table.insert(weaponsToRemove, wpn_id_)
-					end
-				end
-
-				--Check for MK77 weapons independently
-				if splash_damage_options.napalm_mk77_enabled and (wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN") then
-					isNapalm = true
-					debugMsg("MK77 napalm triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
-					napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
-					table.insert(weaponsToRemove, wpn_id_)
-				end
-            if not isNapalm then
-			if splash_damage_options.ordnance_protection then
-                local checkVol = { id = world.VolumeType.SPHERE, params = { point = explosionPoint, radius = splash_damage_options.ordnance_protection_radius } }
-                    debugMsg("Checking ordnance protection for '" .. wpnData.name .. "' at X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. " with radius " .. splash_damage_options.ordnance_protection_radius .. "m")
-				world.searchObjects(Object.Category.WEAPON, checkVol, function(obj)
-					if obj:isExist() and tracked_weapons[obj.id_] then
-						safeToBlast = false
-                            debugMsg("Skipping explosion for '" .. wpnData.name .. "' - nearby bomb '" .. tracked_weapons[obj.id_].name .. "' within " .. splash_damage_options.ordnance_protection_radius .. "m")
-						return false
-					end
-					return true
-                end)
-            end
-            if safeToBlast then
-                    debugMsg("FinalPos Check for '" .. wpnData.name .. "': X: " .. string.format("%.0f", explosionPoint.x) .. ", Y: " .. string.format("%.0f", explosionPoint.y) .. ", Z: " .. string.format("%.0f", explosionPoint.z) .. ")")
-            local base_explosive, isShapedCharge = getWeaponExplosive(wpnData.name)
-            base_explosive = base_explosive * splash_damage_options.overall_scaling
-            if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
-                base_explosive = base_explosive * splash_damage_options.rocket_multiplier
-            end
+                if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance_debug then
+                    local base_explosive, isShapedCharge = getWeaponExplosive(wpnData.name)
+                    base_explosive = base_explosive * splash_damage_options.overall_scaling
+                    if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
+                        base_explosive = base_explosive * splash_damage_options.rocket_multiplier
+                    end
                     if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance then
                         base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
-                        if splash_damage_options.track_groundunitordnance_debug then
-                            debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
+                    end
+                    local explosionPower = base_explosive
+                    if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
+                        explosionPower = explosionPower * splash_damage_options.shaped_charge_multiplier
+                    end
+                    debugMsg("Ground unit ordnance " .. wpnData.name .. " impacted at X: " .. string.format("%.0f", explosionPoint.x) .. ", Y: " .. string.format("%.0f", explosionPoint.y) .. ", Z: " .. string.format("%.0f", explosionPoint.z) .. " with power " .. explosionPower)
                 end
-            end
-
-            local explosionPower = base_explosive
-            if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
-                explosionPower = explosionPower * splash_damage_options.shaped_charge_multiplier
-            end
-
-            local blastRadius = splash_damage_options.blast_search_radius * 2 --Wider post-scan (180m default)
-            if splash_damage_options.use_dynamic_blast_radius then
-                    blastRadius = math.pow(explosionPower, 1/3) * 10 * splash_damage_options.dynamic_blast_radius_modifier
-            end
-
-
-                --Store pre-explosion state of all tracked weapons for detection
-                local preExplosionWeapons = {}
-                if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions then
-                    for id, data in pairs(tracked_weapons) do
-                        if data.wpn:isExist() then
-                            preExplosionWeapons[id] = {
-                                name = data.name,
-                                pos = data.wpn:getPosition().p,
-                                    distance = getDistance3D(explosionPoint, data.wpn:getPosition().p),
-                                    explosive = getWeaponExplosive(data.name) --Store the explosive power
-                            }
-                        end
+                local chosenTargets = wpnData.tightTargets or {}
+                local safeToBlast = true
+                -- Check if weapon is napalm
+                local isNapalm = false
+                -- Check for napalm override weapons
+                if splash_damage_options.napalmoverride_enabled then
+                    local napalmWeapons = {}
+                    for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
+                        napalmWeapons[trim(weapon)] = true
+                    end
+                    if napalmWeapons[wpnData.name] then
+                        isNapalm = true
+                        debugMsg("Napalm override triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
+                        napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
+                        table.insert(weaponsToRemove, wpn_id_)
                     end
                 end
-			--Cluster Bomb Handling
-			local weaponData = explTable[wpnData.name] or { explosive = 0, shaped_charge = false }
-			local isCluster = weaponData.cluster or false
-			if splash_damage_options.cluster_enabled and isCluster then
-				local submunitionCount = weaponData.submunition_count or 30
-				local submunitionPower = (weaponData.submunition_explosive or 1) * splash_damage_options.cluster_bomblet_damage_modifier * splash_damage_options.overall_scaling
-                        local submunitionName = weaponData.submunition_name or "unknown"
-				--Apply bomblet reduction logic if enabled
-				if splash_damage_options.cluster_bomblet_reductionmodifier then
-                            if submunitionCount > 35 then  
-                                local reductionFactor = (60 - 35) / (247 - 35)
-							submunitionCount = 35 + math.floor((submunitionCount - 35) * reductionFactor)
-							if submunitionCount > 60 then submunitionCount = 60 end --Cap at 60
-						end
-					end
-                        --Extended scan with general bomblet detection
-                    timer.scheduleFunction(track_wpns_cluster_scan, {explosionPoint, wpnData.dir, wpnData.name, submunitionName, submunitionCount, submunitionPower, wpnData.speed}, timer.getTime() + 0.3)
-			else
-				--Standard explosion handling
-				if splash_damage_options.larger_explosions then
-                            debugMsg("Triggering initial explosion for '" .. wpnData.name .. "' at power " .. explosionPower)
-					trigger.action.explosion(explosionPoint, explosionPower)
-                            table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
-                            debugMsg("Added to recentExplosions for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
-    	--Check for units destroyed by initial explosion
-	    local playerName = wpnData.init or "unknown"
-	    for _, target in ipairs(chosenTargets) do
-	        if target.unit:isExist() and target.health > 0 and target.unit:getLife() <= 0 then
-	            debugMsg("Unit " .. target.name .. " destroyed by initial explosion, credited to player: " .. playerName)
-	        end
-	    end
-	end
-	blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                -- Check for MK77 weapons independently
+                if splash_damage_options.napalm_mk77_enabled and (wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN") then
+                    isNapalm = true
+                    debugMsg("MK77 napalm triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z))
+                    napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name)
+                    table.insert(weaponsToRemove, wpn_id_)
+                end
+                if not isNapalm then
+                    if splash_damage_options.ordnance_protection then
+                        local checkVol = { id = world.VolumeType.SPHERE, params = { point = explosionPoint, radius = splash_damage_options.ordnance_protection_radius } }
+                        debugMsg("Checking ordnance protection for '" .. wpnData.name .. "' at X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. " with radius " .. splash_damage_options.ordnance_protection_radius .. "m")
+                        world.searchObjects(Object.Category.WEAPON, checkVol, function(obj)
+                            if obj:isExist() and tracked_weapons[obj.id_] then
+                                safeToBlast = false
+                                debugMsg("Skipping explosion for '" .. wpnData.name .. "' - nearby bomb '" .. tracked_weapons[obj.id_].name .. "' within " .. splash_damage_options.ordnance_protection_radius .. "m")
+                                return false
+                            end
+                            return true
+                        end)
+                    end
+                    if safeToBlast then
+                        debugMsg("FinalPos Check for '" .. wpnData.name .. "': X: " .. string.format("%.0f", explosionPoint.x) .. ", Y: " .. string.format("%.0f", explosionPoint.y) .. ", Z: " .. string.format("%.0f", explosionPoint.z) .. ")")
+                        local base_explosive, isShapedCharge = getWeaponExplosive(wpnData.name)
+                        base_explosive = base_explosive * splash_damage_options.overall_scaling
+                        if splash_damage_options.rocket_multiplier and wpnData.cat == Weapon.Category.ROCKET then
+                            base_explosive = base_explosive * splash_damage_options.rocket_multiplier
+                        end
+                        if wpnData.isGroundUnitOrdnance and splash_damage_options.track_groundunitordnance then
+                            base_explosive = base_explosive * splash_damage_options.groundunitordnance_damage_modifier
+                            if splash_damage_options.track_groundunitordnance_debug then
+                                debugMsg("Applying ground unit ordnance damage modifier " .. splash_damage_options.groundunitordnance_damage_modifier .. " to " .. wpnData.name .. ", base explosive power: " .. base_explosive)
+                            end
+                        end
 
-			end
-            --detect_ordnance_destruction comes before recent_large_explosion_snap in original
-            if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions then
-                timer.scheduleFunction(function(args)
-                    local explosionPoint = args[1]
-                    local blastRadius = args[2]
-                    local triggeringWeapon = args[3]
-                    local preExplosionWeapons = args[4]
-                    for id, preData in pairs(preExplosionWeapons) do
-                        if tracked_weapons[id] and not tracked_weapons[id].wpn:isExist() then
-                            if preData.distance <= blastRadius then
-                                local msg = "WARNING: " .. preData.name .. " destroyed by large explosion from " .. triggeringWeapon .. " at " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", explosionPoint.x, explosionPoint.y, explosionPoint.z)
-                                gameMsg(msg)
-                                debugMsg(msg)
-                                env.info(msg)
-                                if splash_damage_options.snap_to_ground_if_destroyed_by_large_explosion then
-                                    local groundPos = {
-                                        x = preData.pos.x,
-                                        y = land.getHeight({x = preData.pos.x, y = preData.pos.z}),
-                                        z = preData.pos.z
+                        local explosionPower = base_explosive
+                        if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
+                            explosionPower = explosionPower * splash_damage_options.shaped_charge_multiplier
+                        end
+                        local blastRadius = splash_damage_options.blast_search_radius * 2 -- Wider post-scan (180m default)
+                        if splash_damage_options.use_dynamic_blast_radius then
+                            blastRadius = math.pow(explosionPower, 1/3) * 10 * splash_damage_options.dynamic_blast_radius_modifier
+                        end
+                        -- Store pre-explosion state of all tracked weapons for detection
+                        local preExplosionWeapons = {}
+                        if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions then
+                            for id, data in pairs(tracked_weapons) do
+                                if data.wpn:isExist() then
+                                    preExplosionWeapons[id] = {
+                                        name = data.name,
+                                        pos = data.wpn:getPosition().p,
+                                        distance = getDistance3D(explosionPoint, data.wpn:getPosition().p),
+                                        explosive = getWeaponExplosive(data.name) -- Store the explosive power
                                     }
-                                    local destroyedWeaponPower, isShapedCharge = preData.explosive
-                                    destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.overall_scaling
-                                    if splash_damage_options.rocket_multiplier and tracked_weapons[id].cat == Weapon.Category.ROCKET then
-                                        destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.rocket_multiplier
-                                    end
-                                    if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
-                                        destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.shaped_charge_multiplier
-                                    end
-                                    debugMsg("Triggering ground explosion for destroyed " .. preData.name .. " (detect_ordnance_destruction) at X: " .. string.format("%.0f", groundPos.x) .. ", Y: " .. string.format("%.0f", groundPos.y) .. ", Z: " .. string.format("%.0f", groundPos.z) .. " with power " .. destroyedWeaponPower)
-                                    trigger.action.explosion(groundPos, destroyedWeaponPower)
                                 end
                             end
                         end
-                    end
-                end, {explosionPoint, blastRadius, wpnData.name, preExplosionWeapons}, timer.getTime() + 0.2)
-            end
-            --recent_large_explosion_snap comes after main explosion and detect_ordnance_destruction
-                    if splash_damage_options.ordnance_protection and splash_damage_options.larger_explosions and splash_damage_options.recent_large_explosion_snap and splash_damage_options.snap_to_ground_if_destroyed_by_large_explosion then
-                        local currentTime = timer.getTime()
-                        for id, data in pairs(tracked_weapons) do
-                            if id ~= wpn_id_ and not data.wpn:isExist() then
-                                local terrainHeight = land.getHeight({x = data.pos.x, y = data.pos.z})
-			        local weaponHeight = data.pos.y - terrainHeight --Calculate height above ground
-			        local isMidAir = weaponHeight > 5 --Still checks if above ground
+                        -- Cluster Bomb Handling
+                        local weaponData = explTable[wpnData.name] or { explosive = 0, shaped_charge = false }
+                        local isCluster = weaponData.cluster or false
+                        if splash_damage_options.cluster_enabled and isCluster then
+                            local submunitionCount = weaponData.submunition_count or 30
+                            local submunitionPower = (weaponData.submunition_explosive or 1) * splash_damage_options.cluster_bomblet_damage_modifier * splash_damage_options.overall_scaling
+                            local submunitionName = weaponData.submunition_name or "unknown"
+                            -- Apply bomblet reduction logic if enabled
+                            if splash_damage_options.cluster_bomblet_reductionmodifier then
+                                if submunitionCount > 35 then  
+                                    local reductionFactor = (60 - 35) / (247 - 35)
+                                    submunitionCount = 35 + math.floor((submunitionCount - 35) * reductionFactor)
+                                    if submunitionCount > 60 then submunitionCount = 60 end -- Cap at 60
+                                end
+                            end
+                            -- Extended scan with general bomblet detection
+                            timer.scheduleFunction(track_wpns_cluster_scan, {explosionPoint, wpnData.dir, wpnData.name, submunitionName, submunitionCount, submunitionPower, wpnData.speed}, timer.getTime() + 0.3)
+                        else
+                            -- Standard explosion handling
+                            if splash_damage_options.larger_explosions then
+                                debugMsg("Triggering initial explosion for '" .. wpnData.name .. "' at power " .. explosionPower)
+                                trigger.action.explosion(explosionPoint, explosionPower)
+                                table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
+                                debugMsg("Added to recentExplosions for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
+                                -- Check for units destroyed by initial explosion
+                                local playerName = wpnData.init or "unknown"
+                                for _, target in ipairs(chosenTargets) do
+                                    if target.unit:isExist() and target.health > 0 and target.unit:getLife() <= 0 then
+                                        debugMsg("Unit " .. target.name .. " destroyed by initial explosion, credited to player: " .. playerName)
+                                    end
+                                end
+                            end
+                            blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                        end
+                        -- detect_ordnance_destruction comes before recent_large_explosion_snap in original
+                        if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions then
+                            timer.scheduleFunction(function(args)
+                                local explosionPoint = args[1]
+                                local blastRadius = args[2]
+                                local triggeringWeapon = args[3]
+                                local preExplosionWeapons = args[4]
+                                for id, preData in pairs(preExplosionWeapons) do
+                                    if tracked_weapons[id] and not tracked_weapons[id].wpn:isExist() then
+                                        if preData.distance <= blastRadius then
+                                            local msg = "WARNING: " .. preData.name .. " destroyed by large explosion from " .. triggeringWeapon .. " at " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", explosionPoint.x, explosionPoint.y, explosionPoint.z)
+                                            gameMsg(msg)
+                                            debugMsg(msg)
+                                            env.info(msg)
+                                            if splash_damage_options.snap_to_ground_if_destroyed_by_large_explosion then
+                                                local groundPos = {
+                                                    x = preData.pos.x,
+                                                    y = land.getHeight({x = preData.pos.x, y = preData.pos.z}),
+                                                    z = preData.pos.z
+                                                }
+                                                local destroyedWeaponPower, isShapedCharge = preData.explosive
+                                                destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.overall_scaling
+                                                if splash_damage_options.rocket_multiplier and tracked_weapons[id].cat == Weapon.Category.ROCKET then
+                                                    destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.rocket_multiplier
+                                                end
+                                                if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
+                                                    destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.shaped_charge_multiplier
+                                                end
+                                                debugMsg("Triggering ground explosion for destroyed " .. preData.name .. " (detect_ordnance_destruction) at X: " .. string.format("%.0f", groundPos.x) .. ", Y: " .. string.format("%.0f", groundPos.y) .. ", Z: " .. string.format("%.0f", groundPos.z) .. " with power " .. destroyedWeaponPower)
+                                                trigger.action.explosion(groundPos, destroyedWeaponPower)
+                                            end
+                                        end
+                                    end
+                                end
+                            end, {explosionPoint, blastRadius, wpnData.name, preExplosionWeapons}, timer.getTime() + 0.2)
+                        end
+                        -- recent_large_explosion_snap comes after main explosion and detect_ordnance_destruction
+                        if splash_damage_options.ordnance_protection and splash_damage_options.larger_explosions and splash_damage_options.recent_large_explosion_snap and splash_damage_options.snap_to_ground_if_destroyed_by_large_explosion then
+                            local currentTime = timer.getTime()
+                            for id, data in pairs(tracked_weapons) do
+                                if id ~= wpn_id_ and not data.wpn:isExist() then
+                                    local terrainHeight = land.getHeight({x = data.pos.x, y = data.pos.z})
+                                    local weaponHeight = data.pos.y - terrainHeight -- Calculate height above ground
+                                    local isMidAir = weaponHeight > 5 -- Still checks if above ground
                                     local snapTriggered = false
                                     for _, explosion in ipairs(recentExplosions) do
                                         local timeDiff = currentTime - explosion.time
                                         local distance = getDistance3D(data.pos, explosion.pos)
                                         debugMsg("Checking " .. data.name .. " at X: " .. data.pos.x .. ", Y: " .. data.pos.y .. ", Z: " .. data.pos.z .. " against explosion at X: " .. explosion.pos.x .. ", Y: " .. explosion.pos.y .. ", Z: " .. explosion.pos.z .. " - Distance: " .. distance .. "m, TimeDiff: " .. timeDiff .. "s")
                                         if timeDiff <= splash_damage_options.recent_large_explosion_time and distance <= splash_damage_options.recent_large_explosion_range then
-                    				if isMidAir and weaponHeight <= splash_damage_options.max_snapped_height then --New height check
+                                            if isMidAir and weaponHeight <= splash_damage_options.max_snapped_height then -- New height check
                                                 local groundPos = { x = data.pos.x, y = terrainHeight, z = data.pos.z }
                                                 local destroyedWeaponPower, isShapedCharge = getWeaponExplosive(data.name)
                                                 destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.overall_scaling
@@ -2283,415 +2983,438 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
                                                 if splash_damage_options.apply_shaped_charge_effects and isShapedCharge then
                                                     destroyedWeaponPower = destroyedWeaponPower * splash_damage_options.shaped_charge_multiplier
                                                 end
-                        debugMsg("Weapon " .. data.name .. " detected recent large explosion within " .. splash_damage_options.recent_large_explosion_range .. "m and " .. splash_damage_options.recent_large_explosion_time .. "s, snapping to ground at X: " .. string.format("%.0f", groundPos.x) .. ", Y: " .. string.format("%.0f", groundPos.y) .. ", Z: " .. string.format("%.0f", groundPos.z) .. " with power " .. destroyedWeaponPower .. " (Height: " .. string.format("%.0f", weaponHeight) .. "m)")
+                                                debugMsg("Weapon " .. data.name .. " detected recent large explosion within " .. splash_damage_options.recent_large_explosion_range .. "m and " .. splash_damage_options.recent_large_explosion_time .. "s, snapping to ground at X: " .. string.format("%.0f", groundPos.x) .. ", Y: " .. string.format("%.0f", groundPos.y) .. ", Z: " .. string.format("%.0f", groundPos.z) .. " with power " .. destroyedWeaponPower .. " (Height: " .. string.format("%.0f", weaponHeight) .. "m)")
                                                 trigger.action.explosion(groundPos, destroyedWeaponPower)
                                                 snapTriggered = true
                                                 table.insert(weaponsToRemove, id)
                                                 break
-                    elseif isMidAir then
-                        debugMsg("Weapon " .. data.name .. " destroyed above max_snapped_height (" .. splash_damage_options.max_snapped_height .. "m) at " .. string.format("%.0f", weaponHeight) .. "m, skipping snap")
+                                            elseif isMidAir then
+                                                debugMsg("Weapon " .. data.name .. " destroyed above max_snapped_height (" .. splash_damage_options.max_snapped_height .. "m) at " .. string.format("%.0f", weaponHeight) .. "m, skipping snap")
                                             else
                                                 debugMsg("Weapon " .. data.name .. " impacted ground within recent_large_explosion_range (" .. splash_damage_options.recent_large_explosion_range .. "m) and time (" .. splash_damage_options.recent_large_explosion_time .. "s), no snap needed")
-                                    snapTriggered = true
+                                                snapTriggered = true
                                                 break
                                             end
                                         end
                                     end
                                     if not snapTriggered then
                                         if isMidAir then
-                                debugMsg("Weapon " .. data.name .. " destroyed in air, but no recent large explosion within " .. splash_damage_options.recent_large_explosion_range .. "m or " .. splash_damage_options.recent_large_explosion_time .. "s")
+                                            debugMsg("Weapon " .. data.name .. " destroyed in air, but no recent large explosion within " .. splash_damage_options.recent_large_explosion_range .. "m or " .. splash_damage_options.recent_large_explosion_time .. "s")
                                         else
                                             debugMsg("Weapon " .. data.name .. " impacted ground, not processed by recent large explosion settings")
                                         end
                                     end
-                            end
-                        end
-                        local newExplosions = {}
-                        for _, explosion in ipairs(recentExplosions) do
-                            if currentTime - explosion.time <= splash_damage_options.recent_large_explosion_time then
-                                table.insert(newExplosions, explosion)
-                            end
-                        end
-                        recentExplosions = newExplosions
-                    end
-                --Mark units as destroyed to avoid MiST accessing them
-                local destroyedUnits = {}
-                for _, target in ipairs(chosenTargets) do
-                    if target.unit:isExist() and target.health > 0 and target.unit:getLife() <= 0 then
-                        destroyedUnits[target.name] = true
-                        debugMsg("Marked " .. target.name .. " as destroyed pre-impact")
-                    end
-                end
-                --Schedule explosion handling with original 0.1-second delay, enhanced error handling
-            timer.scheduleFunction(function(args)
-                local finalPos = args[1]
-                local explosionPoint = args[2]
-                local explosionPower = args[3]
-                local isShapedCharge = args[4]
-                local blastRadius = args[5]
-                local chosenTargets = args[6]
-                local weaponName = args[7]
-                local wpnData = args[8]
-    		if splash_damage_options.debug then
-                    debugMsg("Starting impact handling for " .. weaponName .. " at " .. timer.getTime() .. "s")
-    		end
-                    local status, err = pcall(function()
-                --Log pre-explosion targets
-                --Sort pre-explosion targets by distance
-                table.sort(chosenTargets, function(a, b) return a.distance < b.distance end)
-                if splash_damage_options.track_pre_explosion then
-                    if #chosenTargets > 0 then
-                        local msg = "Targets in blast zone for " .. weaponName .. " BEFORE explosion (last frame, using finalPos):\n"
-                        for i, target in ipairs(chosenTargets) do
-                            msg = msg .. "- " .. target.name .. " (Dist: " .. string.format("%.1f", target.distance) .. "m, Health: " .. target.health .. ")\n"
-                        end
-                        debugMsg(msg)
-                        env.info("SplashDamage Pre-Explosion (Last Frame): " .. msg)
-                    else
-                        debugMsg("No targets in blast zone for " .. weaponName .. " BEFORE explosion (last frame)")
-                        env.info("SplashDamage Pre-Explosion (Last Frame): No targets in blast zone for " .. weaponName)
-                    end
-                end
-
-                blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
-
-                --Post-explosion analysis and queue cargo effects
-                if splash_damage_options.track_pre_explosion then
-                    timer.scheduleFunction(function(innerArgs)
-                        local impactPoint = innerArgs[1]
-                        local blastRadius = innerArgs[2]
-                        local preExplosionTargets = innerArgs[3] or {}
-                        local weaponName = innerArgs[4]
-                        local weaponPower = innerArgs[5]
-                        local playerName = innerArgs[6]
-						    if splash_damage_options.debug == true then
-                                debugMsg("Starting post-explosion analysis for " .. weaponName .. " at " .. timer.getTime() .. "s")
-							end
-
-                        --Scan all units in wider radius
-                        local postExplosionTargets = {}
-                        local volS = {
-                            id = world.VolumeType.SPHERE,
-                            params = {
-                                point = impactPoint,
-                                radius = blastRadius
-                            }
-                        }
-
-                        local ifFound = function(foundObject)
-                            if foundObject:isExist() then
-                                local category = foundObject:getCategory()
-                                if (category == Object.Category.UNIT and (foundObject:getDesc().category == Unit.Category.GROUND_UNIT or foundObject:getDesc().category == Unit.Category.AIRPLANE)) or
-                                       category == Object.Category.STATIC then
-                                        local distance = getDistance(impactPoint, foundObject:getPoint())
-                                        table.insert(postExplosionTargets, {
-                                            name = foundObject:getTypeName(),
-                                            health = foundObject:getLife() or 0,
-                                            position = foundObject:getPoint(),
-                                            maxHealth = (category == Object.Category.UNIT and foundObject:getDesc().life) or foundObject:getLife() or 0,
-                                            distance = distance,
-                                            id = foundObject:getID(),
-                                            unitName = foundObject:getName() or "Unknown"
-                                        })
-                                            end
-                                end
-                            return true
-                        end
-
-                        world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, ifFound)
-                        --Sort post-explosion targets by distance
-                        table.sort(postExplosionTargets, function(a, b) return a.distance < b.distance end)
-                        local msg = "Post-explosion analysis for " .. weaponName .. ":\n"
-
-                        --Match pre-detected units
-                        for _, preTarget in ipairs(preExplosionTargets) do
-                            local found = false
-                            local postHealth = 0
-                            local postPosition = nil
-                            local postDistance = 0
-                            for _, postTarget in ipairs(postExplosionTargets) do
-                                if preTarget.name == postTarget.name and getDistance(preTarget.position, postTarget.position) < 1 then
-                                    found = true
-                                    postHealth = postTarget.health
-                                    postPosition = postTarget.position
-                                    postDistance = postTarget.distance
-                                    break
                                 end
                             end
-
-                            local healthPercent = preTarget.maxHealth > 0 and (postHealth / preTarget.maxHealth * 100) or 0
-                            local status = ""
-
-                            if not found or postHealth <= 0 then
-                                status = "WAS FULLY DESTROYED"
-								--killfeed make sure its not an unknown weapon or an ai
-									--if splash_damage_options.killfeed_enable and explTable[weaponName] then
-									if splash_damage_options.killfeed_enable and explTable[weaponName] and playerName ~= "unknown" then
-										local status, isPlayer = pcall(function()
-											local playerList = net.get_player_list() or {}
-											for _, pid in ipairs(playerList) do
-												local pinfo = net.get_player_info(pid)
-												if pinfo and pinfo.name == playerName then
-													return true
-												end
-											end
-											return false
-										end)
-										if status and isPlayer then
-											table.insert(splashKillfeedTemp, {
-												playerName = playerName,
-												weaponName = weaponName,
-												unitName = preTarget.unitName,
-												unitType = preTarget.name,
-												unitId = preTarget.id,
-												time = timer.getTime(),
-												position = coords
-											})
-										end
-									end
-                            elseif healthPercent < splash_damage_options.cargo_damage_threshold then
-                                status = "WAS DAMAGED BELOW THRESHOLD"
-                            else
-                                status = "SURVIVED (Health: " .. postHealth .. ")"
-                            end
-
-                            --Always include coords in status message
-                            local coords = found and postPosition or preTarget.position
-                            local statusMsg = status .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Dist: " .. string.format("%.1f", postDistance) .. "m, Pre: " .. preTarget.health .. ", Post: " .. postHealth .. ")"
-                            --Check if target is in cargoUnits and within blast radius
-                            local cargoData = cargoUnits[preTarget.name]
-                            if cargoData and preTarget.distance <= blastRadius and 
-                               (not found or postHealth <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
-
-                                if splash_damage_options.enable_cargo_effects then
-                                    local cargoPower = cargoData.cargoExplosionPower or weaponPower
-                                    table.insert(cargoEffectsQueue, {
-                                        name = preTarget.name,
-                                        distance = preTarget.distance,
-                                        coords = coords,
-                                        power = cargoPower,
-                                        explosion = cargoData.cargoExplosion,
-                                        cookOff = cargoData.cargoCookOff,
-                                        cookOffCount = cargoData.cookOffCount,
-                                        cookOffPower = cargoData.cookOffPower,
-                                        cookOffDuration = cargoData.cookOffDuration,
-                                        cookOffRandomTiming = cargoData.cookOffRandomTiming,
-                                        cookOffPowerRandom = cargoData.cookOffPowerRandom,
-                                        isTanker = cargoData.isTanker,
-                                        flameSize = cargoData.flameSize,
-                                        flameDuration = cargoData.flameDuration
-                                    })
-                                    statusMsg = statusMsg .. " WITH CARGO EXPLOSION (Power: " .. cargoPower .. ")"
-                                    if cargoData.cargoCookOff and cargoData.cookOffCount > 0 then
-                                        statusMsg = statusMsg .. " WITH COOK-OFF (" .. cargoData.cookOffCount .. " blasts over " .. cargoData.cookOffDuration .. "s)"
-                                    end
-                                end
-                            elseif splash_damage_options.smokeandcookoffeffectallvehicles and preTarget.distance <= blastRadius and 
-                                   (not found or postHealth <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
-                                if splash_damage_options.enable_cargo_effects then
-                                    table.insert(cargoEffectsQueue, {
-                                        name = preTarget.name,
-                                        distance = preTarget.distance,
-                                        coords = coords,
-                                        power = splash_damage_options.allunits_explode_power, --No explosion
-                                        explosion = true,
-                                        cookOff = splash_damage_options.allunits_enable_cookoff,
-                                        cookOffCount = splash_damage_options.allunits_cookoff_count,
-                                        cookOffPower = splash_damage_options.allunits_cookoff_power,
-                                        cookOffDuration = splash_damage_options.allunits_cookoff_duration,
-                                        cookOffRandomTiming = true,
-                                        cookOffPowerRandom = splash_damage_options.allunits_cookoff_powerrandom,
-                                        isTanker = splash_damage_options.allunits_enable_smoke, --Enable smoke
-                                        flameSize = splash_damage_options.allunits_default_flame_size, 
-                                        flameDuration = splash_damage_options.allunits_default_flame_duration,
-										cargoExplosionMult = 1
-                                    })
-                                    statusMsg = statusMsg .. " WITH DEFAULT SMOKE (Size: " .. splash_damage_options.allunits_default_flame_size .. ", Duration: " .. splash_damage_options.allunits_default_flame_duration .. "s)"
-                                    debugMsg("Queued default smoke effect for " .. preTarget.name .. " at " .. string.format("%.1f", preTarget.distance) .. "m")
+                            local newExplosions = {}
+                            for _, explosion in ipairs(recentExplosions) do
+                                if currentTime - explosion.time <= splash_damage_options.recent_large_explosion_time then
+                                    table.insert(newExplosions, explosion)
                                 end
                             end
-
-                            msg = msg .. "- " .. preTarget.name .. " " .. statusMsg .. "\n"
+                            recentExplosions = newExplosions
                         end
-                        --Check for additional units
-                        for _, postTarget in ipairs(postExplosionTargets) do
-                            local isPreDetected = false
-                            for _, preTarget in ipairs(preExplosionTargets) do
-                                if preTarget.name == postTarget.name and getDistance(preTarget.position, postTarget.position) < 1 then
-                                    isPreDetected = true
-                                    break
-                                end
+                        -- Mark units as destroyed to avoid MiST accessing them
+                        local destroyedUnits = {}
+                        for _, target in ipairs(chosenTargets) do
+                            if target.unit:isExist() and target.health > 0 and target.unit:getLife() <= 0 then
+                                destroyedUnits[target.name] = true
+                                debugMsg("Marked " .. target.name .. " as destroyed pre-impact")
                             end
-                            if not isPreDetected then
-                                local coords = postTarget.position
-                                local healthPercent = postTarget.maxHealth > 0 and (postTarget.health / postTarget.maxHealth * 100) or 0
-                                local status = postTarget.health <= 0 and "WAS FULLY DESTROYED" or 
-                                              (healthPercent < splash_damage_options.cargo_damage_threshold and "WAS DAMAGED BELOW THRESHOLD" or 
-                                              "SURVIVED (Health: " .. postTarget.health .. ")")
-                                local statusMsg = status .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Dist: " .. string.format("%.1f", postTarget.distance) .. "m, Pre: Unknown, Post: " .. postTarget.health .. ")"
-                                local cargoData = cargoUnits[postTarget.name]
-                                if cargoData and (postTarget.health <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
-                                    if splash_damage_options.enable_cargo_effects then
-                                                    local cargoPower = cargoData.cargoExplosionPower or weaponPower --Use fixed power or fallback
-                                    local distance = getDistance(impactPoint, coords)
-                                    table.insert(cargoEffectsQueue, {
-                                        name = postTarget.name,
-                                        distance = distance,
-                                        coords = coords,
-                                        power = cargoPower,
-                                        explosion = cargoData.cargoExplosion,
-                                        cookOff = cargoData.cargoCookOff,
-                                        cookOffCount = cargoData.cookOffCount,
-                                        cookOffPower = cargoData.cookOffPower,
-                                        cookOffDuration = cargoData.cookOffDuration,
-                                        cookOffRandomTiming = cargoData.cookOffRandomTiming,
-                                        cookOffPowerRandom = cargoData.cookOffPowerRandom,
-                                        isTanker = cargoData.isTanker,
-                                        flameSize = cargoData.flameSize,
-                                        flameDuration = cargoData.flameDuration
-                                    })
-                                    statusMsg = statusMsg .. " WITH CARGO EXPLOSION (Power: " .. cargoPower .. ")"
-                                                if cargoData.cargoCookOff and cargoData.cookOffCount > 0 then
-                                        statusMsg = statusMsg .. " WITH COOK-OFF (" .. cargoData.cookOffCount .. " blasts over " .. cargoData.cookOffDuration .. "s)"
+                        end
+                        -- Schedule explosion handling with original 0.1-second delay, enhanced error handling
+                        timer.scheduleFunction(function(args)
+                            local finalPos = args[1]
+                            local explosionPoint = args[2]
+                            local explosionPower = args[3]
+                            local isShapedCharge = args[4]
+                            local blastRadius = args[5]
+                            local chosenTargets = args[6]
+                            local weaponName = args[7]
+                            local wpnData = args[8]
+                            if splash_damage_options.debug then
+                                debugMsg("Starting impact handling for " .. weaponName .. " at " .. timer.getTime() .. "s")
+                            end
+                            local status, err = pcall(function()
+                                -- Log pre-explosion targets
+                                -- Sort pre-explosion targets by distance
+                                table.sort(chosenTargets, function(a, b) return a.distance < b.distance end)
+                                if splash_damage_options.track_pre_explosion then
+                                    if #chosenTargets > 0 then
+                                        local msg = "Targets in blast zone for " .. weaponName .. " BEFORE explosion (last frame, using finalPos):\n"
+                                        for i, target in ipairs(chosenTargets) do
+                                            msg = msg .. "- " .. target.name .. " (Dist: " .. string.format("%.1f", target.distance) .. "m, Health: " .. target.health .. ")\n"
                                         end
+                                        debugMsg(msg)
+                                        env.info("SplashDamage Pre-Explosion (Last Frame): " .. msg)
+                                    else
+                                        debugMsg("No targets in blast zone for " .. weaponName .. " BEFORE explosion (last frame)")
+                                        env.info("SplashDamage Pre-Explosion (Last Frame): No targets in blast zone for " .. weaponName)
                                     end
                                 end
-                                msg = msg .. "- " .. postTarget.name .. " " .. statusMsg .. "\n"
-                            end
-                        end
-
-                        --Schedule all queued cargo effects
-                        if #cargoEffectsQueue > 0 then
-                            local effectIndex = 0
-                                local processedCargoUnits = {} --Track processed units
-    local flamePositions = {} --Track flame coords with 3m radius
-                            for _, effect in ipairs(cargoEffectsQueue) do
-                                    local unitKey = effect.name .. "_" .. effect.coords.x .. "_" .. effect.coords.z
-                                    if not processedUnitsGlobal[unitKey] and not processedCargoUnits[unitKey] then
-                                if effect.explosion then
-                                    debugMsg("Triggering cargo explosion for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m with power " .. effect.power .. " scheduled at " .. effectIndex .. "s")
-                                    timer.scheduleFunction(function(params)
-                    debugMsg("Executing cargo explosion at X: " .. string.format("%.0f", params[1].x) .. ", Y: " .. string.format("%.0f", params[1].y) .. ", Z: " .. string.format("%.0f", params[1].z) .. " with power " .. params[2])
-                                        trigger.action.explosion(params[1], params[2])
-                end, {effect.coords, effect.power}, timer.getTime() + effectIndex + 0.1) --Slight delay for visibility
-                                    if effect.isTanker then
-                                        local flameSize = effect.flameSize or 3
-                    			local flameDuration = effect.flameDuration --Use cargoUnits value directly, no default
-                                        local flameDensity = 1.0 --Max density for visibility
-                                        local effectId = effectSmokeId
-                                        effectSmokeId = effectSmokeId + 1
-                    --Check for nearby flames within 3m
-                    local isDuplicate = false
-                    for _, pos in pairs(flamePositions) do
-                        if getDistance3D(effect.coords, pos) < 3 then
-                            isDuplicate = true
-                            debugMsg("Skipping duplicate flame for " .. effect.name .. " near X: " .. string.format("%.0f", pos.x) .. ", Y: " .. string.format("%.0f", pos.y) .. ", Z: " .. string.format("%.0f", pos.z))
-                            break
-                        end
-                    end
-                    if not isDuplicate then
-                                        debugMsg("Adding flame effect for tanker " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m (Size: " .. flameSize .. ", Duration: " .. flameDuration .. "s, ID: " .. effectId .. ") scheduled at " .. effectIndex .. "s")
-                                        timer.scheduleFunction(function(params)
-                                                    --Adjust Y-coordinate to terrain height + offset
-                                                    local terrainHeight = land.getHeight({x = params[1].x, y = params[1].z})
-                                                    local adjustedCoords = {x = params[1].x, y = terrainHeight + 2, z = params[1].z}
-                                                            debugMsg("Spawning flame effect at X: " .. string.format("%.0f", adjustedCoords.x) .. ", Y: " .. string.format("%.0f", adjustedCoords.y) .. ", Z: " .. string.format("%.0f", adjustedCoords.z))
-            trigger.action.explosion(adjustedCoords, 10) --Small explosion to force visibility
-                                                    trigger.action.effectSmokeBig(adjustedCoords, params[2], params[3], params[4])
-                        end, {effect.coords, flameSize, flameDensity, effectId}, timer.getTime() + effectIndex + 0.2) --Slight delay
-                                        timer.scheduleFunction(function(id)
-                                            debugMsg("Stopping flame effect for " .. effect.name .. " (ID: " .. id .. ")")
-                                            trigger.action.effectSmokeStop(id)
-                        end, effectId, timer.getTime() + effectIndex + flameDuration + 0.2)
-                        table.insert(flamePositions, effect.coords)
+                                blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                                -- Post-explosion analysis
+                                if splash_damage_options.track_pre_explosion then
+                                    timer.scheduleFunction(function(innerArgs)
+                                        local impactPoint = innerArgs[1]
+                                        local blastRadius = innerArgs[2]
+                                        local preExplosionTargets = innerArgs[3] or {}
+                                        local weaponName = innerArgs[4]
+                                        local weaponPower = innerArgs[5]
+                                        local playerName = innerArgs[6]
+                                        if splash_damage_options.debug == true then
+                                            debugMsg("Starting post-explosion analysis for " .. weaponName .. " at " .. timer.getTime() .. "s")
+                                        end
+                                        -- Scan all units in wider radius
+                                        local postExplosionTargets = {}
+                                        local volS = {
+                                            id = world.VolumeType.SPHERE,
+                                            params = {
+                                                point = impactPoint,
+                                                radius = blastRadius
+                                            }
+                                        }
+                                        local ifFound = function(foundObject)
+                                            if foundObject:isExist() then
+                                                local category = foundObject:getCategory()
+                                                if (category == Object.Category.UNIT and (foundObject:getDesc().category == Unit.Category.GROUND_UNIT or foundObject:getDesc().category == Unit.Category.AIRPLANE)) or
+                                                   category == Object.Category.STATIC then
+                                                    local distance = getDistance(impactPoint, foundObject:getPoint())
+                                                    table.insert(postExplosionTargets, {
+                                                        name = foundObject:getTypeName(),
+                                                        health = foundObject:getLife() or 0,
+                                                        position = foundObject:getPoint(),
+                                                        maxHealth = (category == Object.Category.UNIT and foundObject:getDesc().life) or foundObject:getLife() or 0,
+                                                        distance = distance,
+                                                        id = foundObject:getID(),
+                                                        unitName = foundObject:getName() or "Unknown",
+                                                        unit = foundObject
+                                                    })
                                                 end
-                                    end
+                                            end
+                                            return true
+                                        end
+                                        world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, ifFound)
+                                        -- Sort post-explosion targets by distance
+                                        table.sort(postExplosionTargets, function(a, b) return a.distance < b.distance end)
+                                        local msg = "Post-explosion analysis for " .. weaponName .. ":\n"
+                                        -- Match pre-detected units
+                                        for _, preTarget in ipairs(preExplosionTargets) do
+                                            local found = false
+                                            local postHealth = 0
+                                            local postPosition = nil
+                                            local postDistance = 0
+                                            local postUnit = nil
+                                            local postId = nil
+                                            local postUnitName = nil
+                                            for _, postTarget in ipairs(postExplosionTargets) do
+                                                if preTarget.name == postTarget.name and getDistance(preTarget.position, postTarget.position) < 1 then
+                                                    found = true
+                                                    postHealth = postTarget.health
+                                                    postPosition = postTarget.position
+                                                    postDistance = postTarget.distance
+                                                    postUnit = postTarget.unit
+                                                    postId = postTarget.id
+                                                    postUnitName = postTarget.unitName
+                                                    break
+                                                end
+                                            end
+                                            local healthPercent = preTarget.maxHealth > 0 and (postHealth / preTarget.maxHealth * 100) or 0
+                                            local status = ""
+                                            local statusMsg = status -- Initialize statusMsg
+                                            if not found or postHealth <= 0 then
+                                                status = "WAS FULLY DESTROYED"
+                                                statusMsg = status
+					--killfeed make sure its not an unknown weapon or an ai
+					--if splash_damage_options.killfeed_enable and explTable[weaponName] then
+                                                if splash_damage_options.killfeed_enable and explTable[weaponName] and playerName ~= "unknown" then
+                                                    local status, isPlayer = pcall(function()
+                                                        local playerList = net.get_player_list() or {}
+                                                        for _, pid in ipairs(playerList) do
+                                                            local pinfo = net.get_player_info(pid)
+                                                            if pinfo and pinfo.name == playerName then
+                                                                return true
+                                                            end
+                                                        end
+                                                        return false
+                                                    end)
+                                                    if status and isPlayer then
+                                                        table.insert(splashKillfeedTemp, {
+                                                            playerName = playerName,
+                                                            weaponName = weaponName,
+                                                            unitName = preTarget.unitName,
+                                                            unitType = preTarget.name,
+                                                            unitId = preTarget.id,
+                                                            time = timer.getTime(),
+                                                            position = postPosition or preTarget.position
+                                                        })
+                                                    end
+                                                end
+                                            elseif healthPercent < splash_damage_options.cargo_damage_threshold then
+                                                status = "WAS DAMAGED BELOW THRESHOLD"
+                                                statusMsg = status
+                                            else
+                                                status = "SURVIVED (Health: " .. postHealth .. ")"
+                                                statusMsg = status
+                                            end
+                                            -- Check for cargo cook-off eligibility
+                                            local isCargoCandidate = false
+                                            local cargoData = cargoUnits[preTarget.name]
+                                            if cargoData then
+                                                isCargoCandidate = true
+                                                debugCargoCookOff("track_wpns: Unit " .. preTarget.unitName .. " identified as cargo candidate via cargoUnits table")
+                                            elseif preTarget.unitName:find("CargoCookoffTarget") then
+                                                isCargoCandidate = true
+                                                debugCargoCookOff("track_wpns: Unit " .. preTarget.unitName .. " identified as cargo candidate via CargoCookoffTarget name")
+                                            elseif splash_damage_options.smokeandcookoffeffectallvehicles then
+                                                local category = safeGet(function() return preTarget.unit:getDesc().category end, "unknown")
+                                                local isInfantry = safeGet(function() return preTarget.unit:hasAttribute("Infantry") end, false)
+                                                if (category == Unit.Category.GROUND_UNIT or category == Unit.Category.SHIP) and not isInfantry then
+                                                    isCargoCandidate = true
+                                                    debugCargoCookOff("track_wpns: Unit " .. preTarget.unitName .. " identified as cargo candidate via smokeandcookoffeffectallvehicles")
+                                                end
+                                            end
+                                            if splash_damage_options.enable_cargo_effects and isCargoCandidate and preTarget.distance <= blastRadius and 
+                                               (not found or postHealth <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
+                                                local unitKey = preTarget.name .. "_" .. preTarget.position.x .. "_" .. preTarget.position.z
+                                                if not processedUnitsGlobal[unitKey] then
+                                                --Double-check to ensure unit hasn't been processed in the meantime
+                                                    if not processedUnitsGlobal[preTarget.id] then
+                                                        local coords = found and postPosition or preTarget.position
+                                                        local unitType = preTarget.name
+                                                        local unitId = preTarget.id
+                                                        local unitName = preTarget.unitName
+                                                        -- Add to pending table for movement check
+                                                        if not CargoCookoffPendingTable then CargoCookoffPendingTable = {} end
+                                                        CargoCookoffPendingTable[unitId] = {
+                                                            id = unitId,
+                                                            name = unitName,
+                                                            type = unitType,
+                                                            coords = coords,
+                                                            prevCoords = coords,
+                                                            startTime = timer.getTime(),
+                                                            checksRemaining = 2, -- Reduced to 2 checks (~0.6s)
+                                                            deadChecks = 0,
+                                                            isCargoCookoff = true
+                                                        }
+                                                        debugCargoCookOff("track_wpns: Added unit " .. unitName .. " (ID: " .. unitId .. ") to CargoCookoffPendingTable for movement check")
+                                                        -- Schedule movement checks
+                                                        local function checkUnitStatus(params)
+                                                            local entry = CargoCookoffPendingTable[params.id]
+                                                            if not entry then return end
+                                                            entry.checksRemaining = entry.checksRemaining - 1
+                                                            local u = Unit.getByName(params.name) or StaticObject.getByName(params.name)
+                                                            local isAlive = u and u:isExist() and safeGet(function() return u:getLife() end, 0) > 0
+                                                            local newPosition = safeGet(function()
+                                                                local pos = u and u:isExist() and u:getPosition().p or entry.coords
+                                                                return {x = pos.x, y = pos.y, z = pos.z}
+                                                            end, entry.coords)
+                                                            local hasStopped = math.abs(newPosition.x - entry.prevCoords.x) < 0.1 and
+                                                                               math.abs(newPosition.y - entry.prevCoords.y) < 0.1 and
+                                                                               math.abs(newPosition.z - entry.prevCoords.z) < 0.1
+                                                            debugCargoCookOff("track_wpns: Checking unit " .. params.name .. ", alive: " .. tostring(isAlive) .. ", stopped: " .. tostring(hasStopped) .. ", checks: " .. entry.checksRemaining .. ", dead checks: " .. entry.deadChecks)
+                                                            if not isAlive then
+                                                                entry.deadChecks = entry.deadChecks + 1
+                                                                if entry.deadChecks < 2 then -- 2 checks (~0.6s)
+                                                                    entry.prevCoords = newPosition
+                                                                    entry.coords = newPosition
+                                                                    timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+                                                                    return
+                                                                end
+                                                            end
+                                                            if (not isAlive or (healthPercent <= splash_damage_options.cargo_damage_threshold)) and hasStopped and entry.deadChecks >= 2 then
+                                                                local finalCoords = entry.coords
+                                                                local status, result = pcall(function()
+                                                                    if u and u:isExist() then
+                                                                        local pos = u:getPosition().p
+                                                                        return {x = pos.x, y = pos.y, z = pos.z}
+                                                                    end
+                                                                    return newPosition
+                                                                end)
+                                                                if status then finalCoords = result end
+                                                                if not processedUnitsGlobal[params.id] then
+                                                                    processedUnitsGlobal[params.id] = {
+                                                                        id = params.id,
+                                                                        name = params.name,
+                                                                        type = unitType,
+                                                                        position = string.format("x=%.0f, y=%.0f, z=%.0f", finalCoords.x, finalCoords.y, finalCoords.z),
+                                                                        life = 0,
+                                                                        event = "EXPLOSION",
+                                                                        time = timer.getTime()
+                                                                    }
+                                                                    scheduleCargoEffects(unitType, unitName, unitId, finalCoords, 0)
+                                                                    statusMsg = status .. " WITH CARGO EXPLOSION" -- Update statusMsg
+                                                                    debugCargoCookOff("track_wpns: Triggered cargo effects for " .. unitName .. " (ID: " .. unitId .. ") at X: " .. finalCoords.x .. ", Z: " .. finalCoords.z)
+                                                                end
+                                                                CargoCookoffPendingTable[unitId] = nil
+                                                                return
+                                                            end
+                                                            if entry.checksRemaining <= 0 then
+                                                                debugCargoCookOff("track_wpns: Unit " .. params.name .. " still moving or alive, removing from pending")
+                                                                CargoCookoffPendingTable[unitId] = nil
+                                                                return
+                                                            end
+                                                            entry.prevCoords = newPosition
+                                                            entry.coords = newPosition
+                                                            timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+                                                        end
+                                                        timer.scheduleFunction(checkUnitStatus, {id = unitId, name = unitName}, timer.getTime() + 0.3)
+                                                    else
+                                                        debugCargoCookOff("track_wpns: Unit " .. preTarget.unitName .. " (ID: " .. preTarget.id .. ") was processed by another function, skipping")
+                                                    end
+                                                end
+                                            end
+                                            local coords = found and postPosition or preTarget.position
+                                            msg = msg .. "- " .. preTarget.name .. " " .. statusMsg .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Dist: " .. string.format("%.1f", postDistance) .. "m, Pre: " .. preTarget.health .. ", Post: " .. postHealth .. ")\n"
+                                        end
+                                        -- Check for additional units
+                                        for _, postTarget in ipairs(postExplosionTargets) do
+                                            local isPreDetected = false
+                                            for _, preTarget in ipairs(preExplosionTargets) do
+                                                if preTarget.name == postTarget.name and getDistance(preTarget.position, postTarget.position) < 1 then
+                                                    isPreDetected = true
+                                                    break
+                                                end
+                                            end
+                                            if not isPreDetected then
+                                                local coords = postTarget.position
+                                                local healthPercent = postTarget.maxHealth > 0 and (postTarget.health / postTarget.maxHealth * 100) or 0
+                                                local status = postTarget.health <= 0 and "WAS FULLY DESTROYED" or 
+                                                               (healthPercent < splash_damage_options.cargo_damage_threshold and "WAS DAMAGED BELOW THRESHOLD" or 
+                                                               "SURVIVED (Health: " .. postTarget.health .. ")")
+                                                local statusMsg = status --Initialize statusMsg
+                                                -- Check for cargo cook-off eligibility
+                                                local isCargoCandidate = false
+                                                local cargoData = cargoUnits[postTarget.name]
+                                                if cargoData then
+                                                    isCargoCandidate = true
+                                                    debugCargoCookOff("Unit " .. postTarget.unitName .. " identified as cargo candidate via cargoUnits table")
+                                                elseif postTarget.unitName:find("CargoCookoffTarget") then
+                                                    isCargoCandidate = true
+                                                    debugCargoCookOff("Unit " .. postTarget.unitName .. " identified as cargo candidate via CargoCookoffTarget name")
+                                                elseif splash_damage_options.smokeandcookoffeffectallvehicles then
+                                                    local category = safeGet(function() return postTarget.unit:getDesc().category end, "unknown")
+                                                    local isInfantry = safeGet(function() return postTarget.unit:hasAttribute("Infantry") end, false)
+                                                    if (category == Unit.Category.GROUND_UNIT or category == Unit.Category.SHIP) and not isInfantry then
+                                                        isCargoCandidate = true
+                                                        debugCargoCookOff("Unit " .. postTarget.unitName .. " identified as cargo candidate via smokeandcookoffeffectallvehicles")
+                                                    end
+                                                end
+                                                if splash_damage_options.enable_cargo_effects and isCargoCandidate and postTarget.distance <= blastRadius and 
+                                                   (postTarget.health <= 0 or healthPercent < splash_damage_options.cargo_damage_threshold) then
+                                                    local unitKey = postTarget.name .. "_" .. coords.x .. "_" .. coords.z
+                                                    if not processedUnitsGlobal[unitKey] then
+                                                        --Double-check to ensure unit hasn't been processed
+                                                        if not processedUnitsGlobal[postTarget.id] then
+                                                            local unitType = postTarget.name
+                                                            local unitId = postTarget.id
+                                                            local unitName = postTarget.unitName
+                                                            -- Add to pending table for movement check
+                                                            if not CargoCookoffPendingTable then CargoCookoffPendingTable = {} end
+                                                            CargoCookoffPendingTable[unitId] = {
+                                                                id = unitId,
+                                                                name = unitName,
+                                                                type = unitType,
+                                                                coords = coords,
+                                                                prevCoords = coords,
+                                                                startTime = timer.getTime(),
+                                                                checksRemaining = 2, -- Reduced to 2 checks (~0.6s)
+                                                                deadChecks = 0,
+                                                                isCargoCookoff = true
+                                                            }
+                                                            debugCargoCookOff("Added unit " .. unitName .. " (ID: " .. unitId .. ") to CargoCookoffPendingTable for movement check")
+                                                            -- Schedule movement checks
+                                                            local function checkUnitStatus(params)
+                                                                local entry = CargoCookoffPendingTable[params.id]
+                                                                if not entry then return end
+                                                                entry.checksRemaining = entry.checksRemaining - 1
+                                                                local u = Unit.getByName(params.name) or StaticObject.getByName(params.name)
+                                                                local isAlive = u and u:isExist() and safeGet(function() return u:getLife() end, 0) > 0
+                                                                local newPosition = safeGet(function()
+                                                                    local pos = u and u:isExist() and u:getPosition().p or entry.coords
+                                                                    return {x = pos.x, y = pos.y, z = pos.z}
+                                                                end, entry.coords)
+                                                                local hasStopped = math.abs(newPosition.x - entry.prevCoords.x) < 0.1 and
+                                                                                   math.abs(newPosition.y - entry.prevCoords.y) < 0.1 and
+                                                                                   math.abs(newPosition.z - entry.prevCoords.z) < 0.1
+                                                                debugCargoCookOff("Checking unit " .. params.name .. ", alive: " .. tostring(isAlive) .. ", stopped: " .. tostring(hasStopped) .. ", checks: " .. entry.checksRemaining .. ", dead checks: " .. entry.deadChecks)
+                                                                if not isAlive then
+                                                                    entry.deadChecks = entry.deadChecks + 1
+                                                                    if entry.deadChecks < 2 then -- 2 checks (~0.6s)
+                                                                        entry.prevCoords = newPosition
+                                                                        entry.coords = newPosition
+                                                                        timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+                                                                        return
+                                                                    end
+                                                                end
+                                                                if (not isAlive or (healthPercent <= splash_damage_options.cargo_damage_threshold)) and hasStopped and entry.deadChecks >= 2 then
+                                                                    local finalCoords = entry.coords
+                                                                    local status, result = pcall(function()
+                                                                        if u and u:isExist() then
+                                                                            local pos = u:getPosition().p
+                                                                            return {x = pos.x, y = pos.y, z = pos.z}
+                                                                        end
+                                                                        return newPosition
+                                                                    end)
+                                                                    if status then finalCoords = result end
+                                                                    if not processedUnitsGlobal[params.id] then
+                                                                        processedUnitsGlobal[params.id] = {
+                                                                            id = params.id,
+                                                                            name = params.name,
+                                                                            type = unitType,
+                                                                            position = string.format("x=%.0f, y=%.0f, z=%.0f", finalCoords.x, finalCoords.y, finalCoords.z),
+                                                                            life = 0,
+                                                                            event = "EXPLOSION",
+                                                                            time = timer.getTime()
+                                                                        }
+                                                                        scheduleCargoEffects(unitType, unitName, unitId, finalCoords, 0)
+                                                                        statusMsg = status .. " WITH CARGO EXPLOSION" -- Update statusMsg
+                                                                        debugCargoCookOff("Triggered cargo effects for " .. unitName .. " (ID: " .. unitId .. ") at X: " .. finalCoords.x .. ", Z: " .. finalCoords.z)
+                                                                    end
+                                                                    CargoCookoffPendingTable[unitId] = nil
+                                                                    return
+                                                                end
+                                                                if entry.checksRemaining <= 0 then
+                                                                    debugCargoCookOff("Unit " .. params.name .. " still moving or alive, removing from pending")
+                                                                    CargoCookoffPendingTable[unitId] = nil
+                                                                    return
+                                                                end
+                                                                entry.prevCoords = newPosition
+                                                                entry.coords = newPosition
+                                                                timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+                                                            end
+                                                            timer.scheduleFunction(checkUnitStatus, {id = unitId, name = unitName}, timer.getTime() + 0.3)
+                                                        else
+                                                            debugCargoCookOff("Unit " .. postTarget.unitName .. " (ID: " .. postTarget.id .. ") was processed by another function, skipping")
+                                                        end
+                                                    end
+                                                end
+                                                msg = msg .. "- " .. postTarget.name .. " " .. statusMsg .. " AT " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", coords.x, coords.y, coords.z) .. " (Dist: " .. string.format("%.1f", postTarget.distance) .. "m, Pre: Unknown, Post: " .. postTarget.health .. ")\n"
+                                            end
+                                        end
+                                        debugMsg(msg)
+                                        env.info("SplashDamage Post-Explosion: " .. msg)
+                                        -- Schedule splashKillFeed if there are entries
+                                        if #splashKillfeedTemp > 0 and splash_damage_options.killfeed_enable then
+                                            timer.scheduleFunction(splashKillFeed, {}, timer.getTime() + splash_damage_options.killfeed_splashdelay)
+                                        end
+                                    end, {finalPos, blastRadius, chosenTargets, weaponName, explosionPower, wpnData.init}, timer.getTime() + 1)
                                 end
-                                            debugMsg("Checking cook-off for " .. effect.name .. ": cookOff=" .. tostring(effect.cookOff) .. ", count=" .. tostring(effect.cookOffCount))
-					if effect.cookOff and effect.cookOffCount > 0 then
-                            timer.scheduleFunction(function(params)
-                                scheduleCookOffFlares(params.coords, params.cookOffCount, params.cookOffDuration, params.flareColor)
-                            end, {
-                                coords = effect.coords,
-                                cookOffCount = effect.cookOffCount,
-                                cookOffDuration = effect.cookOffDuration,
-                                flareColor = splash_damage_options.cookoff_flare_color
-                            }, timer.getTime() + 0.2)
-						debugMsg("Scheduling " .. effect.cookOffCount .. " cook-off explosions for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m over " .. effect.cookOffDuration .. "s starting at " .. effectIndex .. "s")
-						for i = 1, effect.cookOffCount do
-							local delay = effect.cookOffRandomTiming and math.random() * effect.cookOffDuration or (i - 1) * (effect.cookOffDuration / effect.cookOffCount)
-							local basePower = effect.cookOffPower
-							local powerVariation = effect.cookOffPowerRandom / 100
-							local cookOffPower = effect.cookOffPowerRandom == 0 and basePower or basePower * (1 + powerVariation * (math.random() * 2 - 1))
-							debugMsg("Cook-off #" .. i .. " for " .. effect.name .. " at " .. string.format("%.1f", effect.distance) .. "m scheduled at " .. string.format("%.3f", delay) .. "s with power " .. string.format("%.2f", cookOffPower))
-							timer.scheduleFunction(function(params)
-								local pos = params[1]
-								local power = params[2]
-								debugMsg("Executing cook-off at " .. string.format("X: %.0f, Y: %.0f, Z: %.0f", pos.x, pos.y, pos.z) .. " with power " .. power)
-								trigger.action.explosion(pos, power)
-							end, {effect.coords, cookOffPower}, timer.getTime() + effectIndex + delay)
-							
-						end
-						--Debris burst only if cook-off is true and enabled
-						if splash_damage_options.debris_effects then
-							local debrisCount = math.random(splash_damage_options.debris_count_min, splash_damage_options.debris_count_max)
-							for j = 1, debrisCount do
-								--Random spherical offset
-								local theta = math.random() * 2 * math.pi --Horizontal angle
-								local phi = math.acos(math.random() * 2 - 1) --Vertical angle for sphere
-								local minDist = splash_damage_options.debris_max_distance * 0.1 --10% of max
-								local maxDist = splash_damage_options.debris_max_distance
-								local r = math.random() * (maxDist - minDist) + minDist --10% to full max distance
-								local debrisX = effect.coords.x + r * math.sin(phi) * math.cos(theta)
-								local debrisZ = effect.coords.z + r * math.sin(phi) * math.sin(theta)
-								local terrainY = land.getHeight({x = debrisX, y = debrisZ})
-								local debrisY = terrainY + math.random() * maxDist --0 to max_distance above ground
-								local debrisPos = {x = debrisX, y = debrisY, z = debrisZ}
-								local debrisPower = splash_damage_options.debris_power
-								local debrisDelay = (j - 1) * (effect.cookOffDuration / debrisCount) --Spread over cook-off duration
-								timer.scheduleFunction(function(debrisArgs)
-									local dPos = debrisArgs[1]
-									local dPower = debrisArgs[2]
-									debugMsg("Debris explosion at X: " .. string.format("%.0f", dPos.x) .. ", Y: " .. string.format("%.0f", dPos.y) .. ", Z: " .. string.format("%.0f", dPos.z) .. " with power " .. dPower)
-									trigger.action.explosion(dPos, dPower)
-								end, {debrisPos, debrisPower}, timer.getTime() + effectIndex + debrisDelay)
-							end
-						end
-					end
-
-
-                                        processedCargoUnits[unitKey] = true
-                                        processedUnitsGlobal[unitKey] = true
-							effectIndex = effectIndex + 3  --3 secs spacing if not random
+                            end)
+                            if not status then
+                                debugMsg("Impact handling error for '" .. weaponName .. "': " .. err)
                             end
-                                end
-                            --Clear the queue after scheduling
-                            cargoEffectsQueue = {}
+                        end, {explosionPoint, explosionPoint, explosionPower, isShapedCharge, blastRadius, chosenTargets, wpnData.name, wpnData}, timer.getTime() + 0.1)
+                    else
+                        debugMsg("Explosion skipped due to ordnance protection for '" .. wpnData.name .. "'")
+                        if splash_damage_options.larger_explosions then
+                            table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
+                            debugMsg("Skipped explosion logged for snap check for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
                         end
-
-                        debugMsg(msg)
-                        env.info("SplashDamage Post-Explosion: " .. msg)
-                        -- Schedule splashKillFeed if there are entries
-                        if #splashKillfeedTemp > 0 and splash_damage_options.killfeed_enable then
-                            timer.scheduleFunction(splashKillFeed, {}, timer.getTime() + splash_damage_options.killfeed_splashdelay)
-                        end
-                    end, {finalPos, blastRadius, chosenTargets, weaponName, explosionPower, wpnData.init}, timer.getTime() + 1)
-                        end
-                    end)
-                    if not status then
-                            debugMsg("Impact handling error for '" .. weaponName .. "': " .. err)
-                        end
-                    end, {explosionPoint, explosionPoint, explosionPower, isShapedCharge, blastRadius, chosenTargets, wpnData.name, wpnData}, timer.getTime() + 0.1)
-                else
-                    debugMsg("Explosion skipped due to ordnance protection for '" .. wpnData.name .. "'")
-                    if splash_damage_options.larger_explosions then
-                        table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
-                        debugMsg("Skipped explosion logged for snap check for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
                     end
+                    table.insert(weaponsToRemove, wpn_id_)
                 end
-                table.insert(weaponsToRemove, wpn_id_)
             end
-			end
         end)
         if not status then
             debugMsg("Error in track_wpns for '" .. (wpnData.name or "unknown weapon") .. "': " .. err)
@@ -2700,7 +3423,7 @@ world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, tickVol, fun
     --Perform all removals after iteration
     for _, id in ipairs(weaponsToRemove) do
         tracked_weapons[id] = nil
-end
+    end
     return timer.getTime() + refreshRate
 end
 
@@ -3116,37 +3839,158 @@ local function processSplashKillfeed()
     return timer.getTime() + 60
 end
 
+--Scan for Strobe units
+local function scanStrobeUnits()
+    strobeUnits = {}
+    for coa = 0, 2 do
+        local groups = coalition.getGroups(coa)
+        if groups then
+            for _, group in pairs(groups) do
+                local units = group:getUnits()
+                if units then
+                    for _, unit in ipairs(units) do
+                        if unit:isExist() then
+                            local unitName = unit:getName()
+                            if unitName:find("Strobe") then
+                                table.insert(strobeUnits, { unit = unit, name = unitName, id = unit:getID() })
+                                debugStrobeMarker("Found Strobe unit: " .. unitName .. " (ID: " .. unit:getID() .. ")")
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    debugStrobeMarker("Total Strobe units found: " .. #strobeUnits)
+end
+
+--StrobeMarker function
+local function triggerStrobeMarker()
+    if not splash_damage_options.StrobeMarker_enabled then
+        debugStrobeMarker("StrobeMarker disabled, skipping execution")
+        return timer.getTime() + splash_damage_options.StrobeMarker_interval
+    end
+
+    local explosionPower = 0.00000000000000000000000000001 -- Minimal explosion strength
+    local heightOffset = 1.6 -- Height above unit in meters
+
+    for _, strobeData in ipairs(strobeUnits) do
+        local unit = strobeData.unit
+        local status, err = pcall(function()
+            if unit:isExist() and unit:isActive() and not unit:getDesc().isInvisible then
+                local life = unit:getLife() or 0
+                if life > 0 then
+                    local pos = unit:getPosition().p
+                    pos.y = pos.y + heightOffset
+                    debugStrobeMarker("Triggering explosion for unit " .. strobeData.name .. " (ID: " .. strobeData.id .. ") at X: " .. pos.x .. ", Y: " .. pos.y .. ", Z: " .. pos.z .. " with power " .. explosionPower)
+                    trigger.action.explosion(pos, explosionPower)
+                else
+                    debugStrobeMarker("Skipping unit " .. strobeData.name .. " (ID: " .. strobeData.id .. "): Unit is dead (life: " .. life .. ")")
+                end
+            else
+                debugStrobeMarker("Skipping unit " .. strobeData.name .. " (ID: " .. strobeData.id .. "): Not exist, inactive, or invisible")
+            end
+        end)
+        if not status then
+            debugStrobeMarker("Error triggering explosion for unit " .. strobeData.name .. " (ID: " .. strobeData.id .. "): " .. tostring(err))
+        end
+    end
+
+    return timer.getTime() + splash_damage_options.StrobeMarker_interval
+end
+
+--Function to trigger CriticalComponent explosion
+function CriticalComponent(coords, weaponName)
+    if not splash_damage_options.CriticalComponent then
+        if splash_damage_options.CriticalComponent_debug then
+            env.info("CriticalComponent: Disabled, skipping explosion at X: " .. (coords.x or "nil") .. ", Z: " .. (coords.z or "nil"))
+        end
+        return
+    end
+    if not coords or not coords.x or not coords.y or not coords.z then
+        if splash_damage_options.CriticalComponent_debug then
+            env.info("CriticalComponent: Invalid coordinates, skipping explosion")
+        end
+        return
+    end
+    if splash_damage_options.CriticalComponent_Specific_Weapons_Only and #splash_damage_options.CriticalComponent_Specific_Weapons_Only > 0 then
+        local validWeapon = false
+        for _, wpn in ipairs(splash_damage_options.CriticalComponent_Specific_Weapons_Only) do
+            if weaponName == wpn then
+                validWeapon = true
+                break
+            end
+        end
+        if not validWeapon then
+            if splash_damage_options.CriticalComponent_debug then
+                env.info("CriticalComponent: Weapon " .. (weaponName or "nil") .. " not in CriticalComponent_Specific_Weapons_Only, skipping")
+            end
+            return
+        end
+    end
+    local chance = splash_damage_options.CriticalComponent_Chance or 0.1
+    if math.random() > chance then
+        if splash_damage_options.CriticalComponent_debug then
+            env.info("CriticalComponent: Chance check failed")
+        end
+        return
+    end
+    local explosionPower = splash_damage_options.CriticalComponent_Explosion_Power or 100
+    if splash_damage_options.CriticalComponent_debug then
+        env.info("CriticalComponent: Triggering explosion at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. explosionPower)
+    end
+    trigger.action.explosion(coords, explosionPower)
+end
+
 
 --Function to trigger A-10 Murder Mode explosion
 function A10MurderMode(coords)
     if not splash_damage_options.A10MurderMode then
-        if splash_damage_options.A10MurderMode_debug then
+        if splash_damage_options.MurderMode_debug then
             env.info("A10MurderMode: Disabled, skipping explosion at X: " .. (coords.x or "nil") .. ", Z: " .. (coords.z or "nil"))
         end
         return
     end
     if not coords or not coords.x or not coords.y or not coords.z then
-        if splash_damage_options.A10MurderMode_debug then
+        if splash_damage_options.MurderMode_debug then
             env.info("A10MurderMode: Invalid coordinates, skipping explosion")
         end
         return
     end
-    if splash_damage_options.A10MurderMode_debug then
+    if splash_damage_options.MurderMode_debug then
         env.info("A10MurderMode: Triggering explosion at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. splash_damage_options.A10MurderMode_Power)
     end
     trigger.action.explosion(coords, splash_damage_options.A10MurderMode_Power)
 end
 
+--Function to trigger Named Unit Murder Mode explosion
+function NamedUnitMurderMode(coords)
+    if not splash_damage_options.NamedUnitMurderMode then
+        if splash_damage_options.MurderMode_debug then
+            env.info("NamedUnitMurderMode: Disabled, skipping explosion at X: " .. (coords.x or "nil") .. ", Z: " .. (coords.z or "nil"))
+        end
+        return
+    end
+    if not coords or not coords.x or not coords.y or not coords.z then
+        if splash_damage_options.MurderMode_debug then
+            env.info("NamedUnitMurderMode: Invalid coordinates, skipping explosion")
+        end
+        return
+    end
+    if splash_damage_options.MurderMode_debug then
+        env.info("NamedUnitMurderMode: Triggering explosion at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. splash_damage_options.NamedUnitMurderMode_Power)
+    end
+    trigger.action.explosion(coords, splash_damage_options.NamedUnitMurderMode_Power)
+end
 
-
---Function to process the spawn queue
-local function processSpawnQueue()
+--Function to process the spawn queue for vehicleIED
+local function vehicleIEDprocessSpawnQueue()
     if #fuelTankSpawnQueue == 0 then return end
 
     local currentTime = timer.getTime()
     if currentTime < lastSpawnTime + SPAWN_INTERVAL then
         --Schedule next check
-        timer.scheduleFunction(processSpawnQueue, {}, currentTime + SPAWN_INTERVAL / 2)
+        timer.scheduleFunction(vehicleIEDprocessSpawnQueue, {}, currentTime + SPAWN_INTERVAL / 2)
         return
     end
 
@@ -3254,7 +4098,7 @@ local function processSpawnQueue()
 
     --Schedule next spawn if queue is not empty
     if #fuelTankSpawnQueue > 0 then
-        timer.scheduleFunction(processSpawnQueue, {}, timer.getTime() + SPAWN_INTERVAL)
+        timer.scheduleFunction(vehicleIEDprocessSpawnQueue, {}, timer.getTime() + SPAWN_INTERVAL)
     end
 end
 
@@ -3285,7 +4129,7 @@ function VehicleIEDTrigger(coords, unit)
     if splash_damage_options.vehicleied_fueltankspawn then
         table.insert(fuelTankSpawnQueue, {coords = coords, iedName = iedName, unitName = unitName})
         if #fuelTankSpawnQueue == 1 then
-            processSpawnQueue()
+            vehicleIEDprocessSpawnQueue()
         end
     end
 
@@ -3423,9 +4267,23 @@ function VehicleIEDTrigger(coords, unit)
     end, {centralPoint, dynamicRadius, "VehicleIED", splash_damage_options.vehicleied_central_power * scaling, false}, timer.getTime() + 0.4)
 end
 
-
-
-
+--Function for CBU Bomblet Additional Explosion
+function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, submunitionPower)
+    if not splash_damage_options.CBU_Bomblet_Hit_Explosion then
+        debugCBUBombletHit("Disabled, skipping explosion at X: " .. (coords.x or "nil") .. ", Z: " .. (coords.z or "nil") .. " for unit " .. unitName .. " (ID: " .. unitID .. ")")
+        return
+    end
+    if not coords or not coords.x or not coords.y or not coords.z then
+        debugCBUBombletHit("Invalid coordinates, skipping explosion for unit " .. unitName .. " (ID: " .. unitID .. ")")
+        return
+    end
+    local explosionPower = (submunitionPower or 1) * splash_damage_options.cluster_bomblet_damage_modifier * splash_damage_options.overall_scaling
+    debugCBUBombletHit("Triggering explosion for unit " .. unitName .. " (ID: " .. unitID .. ") at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. explosionPower .. " due to weapon " .. weaponName)
+    trigger.action.explosion(coords, explosionPower)
+end	
+	
+--A10 MurderMode action block
+--VehicleIED action block
 function logEvent(eventName, eventData)
     local logStr = "\n---EVENT: " .. eventName .. " ---\n"
 
@@ -3448,7 +4306,7 @@ function logEvent(eventName, eventData)
             initiatorType = safeGet(function() return eventData.initiator:getTypeName() end, "unknown")
             initiatorCoalition = safeGet(function() return eventData.initiator:getCoalition() end, "unknown")
             initiatorPosition = safeGet(function()
-	    initiatorGroup = safeGet(function() return eventData.initiator:getGroup():getName() end, "unknown")
+                initiatorGroup = safeGet(function() return eventData.initiator:getGroup():getName() end, "unknown")
                 local pos = eventData.initiator:getPosition().p
                 return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
             end, "unavailable")
@@ -3565,43 +4423,43 @@ function logEvent(eventName, eventData)
                 return
             end
 
-        --Process VehicleIEDTarget units
-        if type(unitName) == "string" and unitName:find("VehicleIEDTarget") and unitID ~= "unavailable" then
-            --Initialize processed table
-            if not LogEventProcessedUnitTable then LogEventProcessedUnitTable = {} end
+            --Process VehicleIEDTarget units
+            if type(unitName) == "string" and unitName:find("VehicleIEDTarget") and unitID ~= "unavailable" then
+                --Initialize processed table
+                if not processedUnitsGlobal then processedUnitsGlobal = {} end
 
-            --Skip if already processed
-            if LogEventProcessedUnitTable[unitID] then
-                if splash_damage_options.vehicleied_debug then
-                    env.info("VehicleIEDTrigger: Unit ID " .. unitID .. " (" .. unitName .. ") already processed in " .. eventName .. " event, skipping")
-                end
-                return
-            end
-
-            --Log initial HIT event details for diagnostics
-            if eventName == "HIT" and splash_damage_options.vehicleied_debug then
-                logStr = logStr .. "Stored Unit Data: ID=" .. unitID .. ", Name=" .. unitName .. ", Type=" .. unitType .. ", Position=" .. unitPosition .. ", Life=" .. unitLife .. "\n"
-                logStr = logStr .. "Processing initial HIT event for unit " .. unitName .. " (ID: " .. unitID .. ")\n"
-                env.info(logStr)
-            end
-
-            if splash_damage_options.vehicleied_explode_on_hit then
-                --Initialize hit tracking for retries
-                if not HitEventTempTable then HitEventTempTable = {} end
-                if not HitEventTempTable[unitID] then
-                    HitEventTempTable[unitID] = { retryCount = 0 }
+                --Skip if already processed
+                if processedUnitsGlobal[unitID] then
+                    if splash_damage_options.vehicleied_debug then
+                        env.info("VehicleIEDTrigger: Unit ID " .. unitID .. " (" .. unitName .. ") already processed in " .. eventName .. " event, skipping")
+                    end
+                    return
                 end
 
-                local unit = eventData.target
-                --Attempt to destroy the unit if enabled
-                if splash_damage_options.vehicleied_destroy_vehicle then
-                    if unit then
-					             if splash_damage_options.vehicleied_debug then
+                --Log initial HIT event details for diagnostics
+                if eventName == "HIT" and splash_damage_options.vehicleied_debug then
+                    logStr = logStr .. "Stored Unit Data: ID=" .. unitID .. ", Name=" .. unitName .. ", Type=" .. unitType .. ", Position=" .. unitPosition .. ", Life=" .. unitLife .. "\n"
+                    logStr = logStr .. "Processing initial HIT event for unit " .. unitName .. " (ID: " .. unitID .. ")\n"
+                    env.info(logStr)
+                end
+
+                if splash_damage_options.vehicleied_explode_on_hit then
+                    --Initialize hit tracking for retries
+                    if not HitEventTempTable then HitEventTempTable = {} end
+                    if not HitEventTempTable[unitID] then
+                        HitEventTempTable[unitID] = { retryCount = 0 }
+                    end
+
+                    local unit = eventData.target
+                    --Attempt to destroy the unit if enabled
+                    if splash_damage_options.vehicleied_destroy_vehicle then
+                        if unit then
+                            if splash_damage_options.vehicleied_debug then
                                 env.info("VehicleIEDTrigger: Attempt to destroy unit " .. unitName .. " (ID: " .. unitID .. ") - failed: " .. tostring(err))
                             end
-                        local status, err = pcall(function()
-                            unit:destroy()
-                        end)
+                            local status, err = pcall(function()
+                                unit:destroy()
+                            end)
                         else
                             if splash_damage_options.vehicleied_debug then
                                 env.info("VehicleIEDTrigger: No unit, attempt to destroy unit " .. unitName .. " (ID: " .. unitID .. ") - failed: " .. tostring(err))
@@ -3609,262 +4467,645 @@ function logEvent(eventName, eventData)
                         end
                     end
 
-
-                --Trigger IED immediately
-                if splash_damage_options.vehicleied_debug then
-                    local freshHealth = unit and unit:isExist() and safeGet(function() return unit:getLife() end, 0) or "unknown"
-                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " hit, triggering explosion")
-                end
-                local coords = {
-                    x = tonumber(unitPosition:match("x=(.-),")),
-                    y = tonumber(unitPosition:match("y=(.-),")),
-                    z = tonumber(unitPosition:match("z=(.-)$"))
-                }
-                --Add to processed table only when exploding
-                LogEventProcessedUnitTable[unitID] = {
-                    id = unitID,
-                    name = unitName,
-                    type = unitType,
-                    position = unitPosition,
-                    life = unitLife,
-                    event = eventName,
-                    time = timer.getTime()
-                }
-                VehicleIEDTrigger(coords, nil) --Pass nil unit since destruction is handled here
-                return --Exit early
-            else
-                --Initialize pending table
-                if not VehicleIEDPendingTable then VehicleIEDPendingTable = {} end
-
-                --Handle HIT event
-                if eventName == "HIT" then
-                    --Check if unit is already in pending table
-                    if VehicleIEDPendingTable[unitID] then
-                        if splash_damage_options.vehicleied_debug then
-                            env.info("VehicleIEDTrigger: Unit ID " .. unitID .. " (" .. unitName .. ") already in VehicleIEDPendingTable, ignoring HIT event")
-                        end
-                        return
+                    --Trigger IED immediately
+                    if splash_damage_options.vehicleied_debug then
+                        local freshHealth = unit and unit:isExist() and safeGet(function() return unit:getLife() end, 0) or "unknown"
+                        env.info("VehicleIEDTrigger: Unit " .. unitName .. " hit, triggering explosion")
                     end
-                    --Add to pending table and schedule checks
                     local coords = {
                         x = tonumber(unitPosition:match("x=(.-),")),
                         y = tonumber(unitPosition:match("y=(.-),")),
                         z = tonumber(unitPosition:match("z=(.-)$"))
                     }
-                    VehicleIEDPendingTable[unitID] = {
+                    --Add to processed table only when exploding
+                    processedUnitsGlobal[unitID] = {
                         id = unitID,
                         name = unitName,
-                        coords = coords,
-                        prevCoords = coords, --Store initial coords as previous
-                        startTime = timer.getTime(),
-                        checksRemaining = 20, --10 seconds / 0.5 seconds = 20 checks
-                        deadChecks = 0 --Track additional checks after death
+                        type = unitType,
+                        position = unitPosition,
+                        life = unitLife,
+                        event = eventName,
+                        time = timer.getTime()
                     }
-                    if splash_damage_options.vehicleied_debug then
-                        env.info("VehicleIEDTrigger: Added unit " .. unitName .. " (ID: " .. unitID .. ") to VehicleIEDPendingTable for movement monitoring")
-                    end
+                    VehicleIEDTrigger(coords, nil) --Pass nil unit since destruction is handled here
+                    return --Exit early
+                else
+                    --Initialize pending table
+                    if not VehicleIEDPendingTable then VehicleIEDPendingTable = {} end
 
-                    --Schedule periodic checks
-                    local function checkUnitStatus(params)
-                        local unitID = params.id
-                        local unitName = params.name
-                        local entry = VehicleIEDPendingTable[unitID]
-                        if not entry then return end
-
-                        entry.checksRemaining = entry.checksRemaining - 1
-                        local unit = Unit.getByName(unitName)
-                        local isAlive = unit and unit:isExist() and safeGet(function() return unit:getLife() end, 0) > 0
-
-                        --Update coordinates regardless of alive status to track rolling
-                        local newPosition = safeGet(function()
-                            local pos = unit and unit:isExist() and unit:getPosition().p or entry.coords
-                            return { x = pos.x, y = pos.y, z = pos.z }
-                        end, entry.coords)
+                    --Handle HIT event
+                    if eventName == "HIT" then
+                        --Check if unit is already in pending table
+                        if VehicleIEDPendingTable[unitID] then
+                            if splash_damage_options.vehicleied_debug then
+                                env.info("VehicleIEDTrigger: Unit ID " .. unitID .. " (" .. unitName .. ") already in VehicleIEDPendingTable, ignoring HIT event")
+                            end
+                            return
+                        end
+                        --Add to pending table and schedule checks
+                        local coords = {
+                            x = tonumber(unitPosition:match("x=(.-),")),
+                            y = tonumber(unitPosition:match("y=(.-),")),
+                            z = tonumber(unitPosition:match("z=(.-)$"))
+                        }
+                        VehicleIEDPendingTable[unitID] = {
+                            id = unitID,
+                            name = unitName,
+                            coords = coords,
+                            prevCoords = coords, --Store initial coords as previous
+                            startTime = timer.getTime(),
+                            checksRemaining = 20, --10 seconds / 0.5 seconds = 20 checks
+                            deadChecks = 0 --Track additional checks after death
+                        }
                         if splash_damage_options.vehicleied_debug then
-                            env.info("VehicleIEDTrigger: Updated coords for unit " .. unitName .. " (ID: " .. unitID .. ") to X: " .. newPosition.x .. ", Y: " .. newPosition.y .. ", Z: " .. newPosition.z)
+                            env.info("VehicleIEDTrigger: Added unit " .. unitName .. " (ID: " .. unitID .. ") to VehicleIEDPendingTable for movement monitoring")
                         end
 
-                        --Check if unit has stopped moving (coords unchanged)
-                        local hasStopped = math.abs(newPosition.x - entry.prevCoords.x) < 0.1 and
-                                          math.abs(newPosition.y - entry.prevCoords.y) < 0.1 and
-                                          math.abs(newPosition.z - entry.prevCoords.z) < 0.1
+                        --Schedule periodic checks
+                        local function checkUnitStatus(params)
+                            local unitID = params.id
+                            local unitName = params.name
+                            local entry = VehicleIEDPendingTable[unitID]
+                            if not entry then return end
 
-                        if splash_damage_options.vehicleied_debug then
-                            env.info("VehicleIEDTrigger: Checking unit " .. unitName .. " (ID: " .. unitID .. "), alive: " .. tostring(isAlive) .. ", stopped: " .. tostring(hasStopped) .. ", checks remaining: " .. entry.checksRemaining .. ", dead checks: " .. entry.deadChecks)
-                        end
+                            entry.checksRemaining = entry.checksRemaining - 1
+                            local unit = Unit.getByName(unitName)
+                            local isAlive = unit and unit:isExist() and safeGet(function() return unit:getLife() end, 0) > 0
 
-                        --If unit is dead, perform additional checks to confirm stopped
+                            --Update coordinates regardless of alive status to track rolling
+                            local newPosition = safeGet(function()
+                                local pos = unit and unit:isExist() and unit:getPosition().p or entry.coords
+                                return { x = pos.x, y = pos.y, z = pos.z }
+                            end, entry.coords)
+                            if splash_damage_options.vehicleied_debug then
+                                env.info("VehicleIEDTrigger: Updated coords for unit " .. unitName .. " (ID: " .. unitID .. ") to X: " .. newPosition.x .. ", Y: " .. newPosition.y .. ", Z: " .. newPosition.z)
+                            end
 
-                            entry.deadChecks = entry.deadChecks + 1
-                            if entry.deadChecks < 4 then --Check for 2 seconds (4 * 0.5s)
-                                if splash_damage_options.vehicleied_debug then
-                                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") is dead, performing additional check #" .. entry.deadChecks .. " for movement")
+                            --Check if unit has stopped moving (coords unchanged)
+                            local hasStopped = math.abs(newPosition.x - entry.prevCoords.x) < 0.1 and
+                                              math.abs(newPosition.y - entry.prevCoords.y) < 0.1 and
+                                              math.abs(newPosition.z - entry.prevCoords.z) < 0.1
+
+                            if splash_damage_options.vehicleied_debug then
+                                env.info("VehicleIEDTrigger: Checking unit " .. unitName .. " (ID: " .. unitID .. "), alive: " .. tostring(isAlive) .. ", stopped: " .. tostring(hasStopped) .. ", checks remaining: " .. entry.checksRemaining .. ", dead checks: " .. entry.deadChecks)
+                            end
+
+                            --If unit is dead, perform additional checks to confirm stopped
+                            if not isAlive then
+                                entry.deadChecks = entry.deadChecks + 1
+                                if entry.deadChecks < 4 then --Check for 2 seconds (4 * 0.5s)
+                                    if splash_damage_options.vehicleied_debug then
+                                        env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") is dead, performing additional check #" .. entry.deadChecks .. " for movement")
+                                    end
+                                    entry.prevCoords = newPosition
+                                    entry.coords = newPosition
+                                    timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.1)
+                                    return
                                 end
-                                entry.prevCoords = newPosition
-                                entry.coords = newPosition
-                                timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+                            end
+
+                            --Trigger explosion only if dead and stopped
+                            if not isAlive and hasStopped and entry.deadChecks >= 4 then
+                                if splash_damage_options.vehicleied_debug then
+                                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") is dead and stopped, previous position: " .. entry.prevCoords.x .. ", Y: " .. entry.prevCoords.y .. ", Z: " .. entry.prevCoords.z .. ", current position: " .. newPosition.x .. ", Y: " .. newPosition.y .. ", Z: " .. newPosition.z .. ", no movement detected, attempting final coords update before explosion")
+                                end
+                                --Attempt one final coordinate update with pcall
+                                local finalCoords = entry.coords
+                                local status, result = pcall(function()
+                                    local u = Unit.getByName(unitName)
+                                    if u and u:isExist() then
+                                        local pos = u:getPosition().p
+                                        return { x = pos.x, y = pos.y, z = pos.z }
+                                    end
+                                    return newPosition
+                                end)
+                                if status and result then
+                                    finalCoords = result
+                                    if splash_damage_options.vehicleied_debug then
+                                        env.info("VehicleIEDTrigger: Final coords update for unit " .. unitName .. " (ID: " .. unitID .. ") to X: " .. finalCoords.x .. ", Y: " .. finalCoords.y .. ", Z: " .. finalCoords.z)
+                                    end
+                                elseif splash_damage_options.vehicleied_debug then
+                                    env.info("VehicleIEDTrigger: Final coords update failed for unit " .. unitName .. " (ID: " .. unitID .. "), using last coords: X: " .. finalCoords.x .. ", Y: " .. finalCoords.y .. ", Z: " .. finalCoords.z .. ", error: " .. tostring(result))
+                                end
+                                --Ensure not in processed table
+                                if not processedUnitsGlobal[unitID] then
+                                    processedUnitsGlobal[unitID] = {
+                                        id = unitID,
+                                        name = unitName,
+                                        type = unitType or "unknown",
+                                        position = string.format("x=%.0f, y=%.0f, z=%.0f", finalCoords.x, finalCoords.y, finalCoords.z),
+                                        life = 0,
+                                        event = "HIT",
+                                        time = timer.getTime()
+                                    }
+                                    if splash_damage_options.vehicleied_debug then
+                                        env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") added to processed table, scheduling explosion at X: " .. finalCoords.x .. ", Y: " .. finalCoords.y .. ", Z: " .. finalCoords.z)
+                                    end
+                                    local unittodestroy = eventData.target
+                                    --Attempt to destroy the unit if enabled
+                                    if splash_damage_options.vehicleied_destroy_vehicle then
+                                        if unittodestroy then
+                                            if splash_damage_options.vehicleied_debug then
+                                                env.info("VehicleIEDTrigger: Attempt to destroy unit " .. unitName .. " (ID: " .. unitID .. ")")
+                                            end
+                                            local status, err = pcall(function()
+                                                unittodestroy:destroy()
+                                            end)
+                                        else
+                                            if splash_damage_options.vehicleied_debug then
+                                                env.info("VehicleIEDTrigger: No unit, attempt to destroy unit " .. unitName .. " (ID: " .. unitID .. ") - failed: " .. tostring(err))
+                                            end
+                                        end
+                                    end
+                                    VehicleIEDTrigger(finalCoords, nil)
+                                end
+                                VehicleIEDPendingTable[unitID] = nil
                                 return
                             end
 
+                            if entry.checksRemaining <= 0 then
+                                if splash_damage_options.vehicleied_debug then
+                                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") still moving or alive after 10 seconds, removing from pending table")
+                                end
+                                VehicleIEDPendingTable[unitID] = nil
+                                return
+                            end
 
-                        --Trigger explosion only if dead and stopped
-                        if not isAlive and hasStopped and entry.deadChecks >= 4 then
-                            if splash_damage_options.vehicleied_debug then
-                                env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") is dead and stopped, previous position: " .. entry.prevCoords.x .. ", Y: " .. entry.prevCoords.y .. ", Z: " .. entry.prevCoords.z .. ", current position: " .. newPosition.x .. ", Y: " .. newPosition.y .. ", Z: " .. newPosition.z .. ", no movement detected, attempting final coords update before explosion")
-                            end
-                            --Attempt one final coordinate update with pcall
-                            local finalCoords = entry.coords
-                            local status, result = pcall(function()
-                                local u = Unit.getByName(unitName)
-                                if u and u:isExist() then
-                                    local pos = u:getPosition().p
-                                    return { x = pos.x, y = pos.y, z = pos.z }
-                                end
-                                return newPosition
-                            end)
-                            if status and result then
-                                finalCoords = result
-                                if splash_damage_options.vehicleied_debug then
-                                    env.info("VehicleIEDTrigger: Final coords update for unit " .. unitName .. " (ID: " .. unitID .. ") to X: " .. finalCoords.x .. ", Y: " .. finalCoords.y .. ", Z: " .. finalCoords.z)
-                                end
-                            elseif splash_damage_options.vehicleied_debug then
-                                env.info("VehicleIEDTrigger: Final coords update failed for unit " .. unitName .. " (ID: " .. unitID .. "), using last coords: X: " .. finalCoords.x .. ", Y: " .. finalCoords.y .. ", Z: " .. finalCoords.z .. ", error: " .. tostring(result))
-                            end
-                            --Ensure not in processed table
-                            if not LogEventProcessedUnitTable[unitID] then
-                                LogEventProcessedUnitTable[unitID] = {
-                                    id = unitID,
-                                    name = unitName,
-                                    type = unitType or "unknown",
-                                    position = string.format("x=%.0f, y=%.0f, z=%.0f", finalCoords.x, finalCoords.y, finalCoords.z),
-                                    life = 0,
-                                    event = "HIT",
-                                    time = timer.getTime()
-                                }
-                                if splash_damage_options.vehicleied_debug then
-                                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") added to processed table, scheduling explosion at X: " .. finalCoords.x .. ", Y: " .. finalCoords.y .. ", Z: " .. finalCoords.z)
-                                end
-								    local unittodestroy = eventData.target
-								--Attempt to destroy the unit if enabled
-								if splash_damage_options.vehicleied_destroy_vehicle then
-									if unittodestroy then
-												 if splash_damage_options.vehicleied_debug then
-												env.info("VehicleIEDTrigger: Attempt to destroy unit " .. unitName .. " (ID: " .. unitID .. ")")
-											end
-										local status, err = pcall(function()
-											unittodestroy:destroy()
-										end)
-										else
-											if splash_damage_options.vehicleied_debug then
-												env.info("VehicleIEDTrigger: No unit, attempt to destroy unit " .. unitName .. " (ID: " .. unitID .. ") - failed: " .. tostring(err))
-											end
-										end
-									end
-					
-                                VehicleIEDTrigger(finalCoords, nil)
-                            end
-                            VehicleIEDPendingTable[unitID] = nil
-                            return
+                            --Update previous coords and schedule next check
+                            entry.prevCoords = newPosition
+                            entry.coords = newPosition
+                            timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.2)
                         end
 
-                        if entry.checksRemaining <= 0 then
-                            if splash_damage_options.vehicleied_debug then
-                                env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitID .. ") still moving or alive after 10 seconds, removing from pending table")
-                            end
-                            VehicleIEDPendingTable[unitID] = nil
-                            return
-                        end
-
-                        --Update previous coords and schedule next check
-                        entry.prevCoords = newPosition
-                        entry.coords = newPosition
-                        timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+                        timer.scheduleFunction(checkUnitStatus, {id = unitID, name = unitName}, timer.getTime() + 0.2)
+                        return --Exit early
                     end
+                end
 
-                    timer.scheduleFunction(checkUnitStatus, {id = unitID, name = unitName}, timer.getTime() + 0.3)
+                --Handle KILL or DEAD event
+                if eventName == "KILL" or eventName == "DEAD" then
+                    if splash_damage_options.vehicleied_debug then
+                        env.info("VehicleIEDTrigger: Unit " .. unitName .. " triggered " .. eventName .. ", processing event")
+                    end
+                    local coords = {
+                        x = tonumber(unitPosition:match("x=(.-),")),
+                        y = tonumber(unitPosition:match("y=(.-),")),
+                        z = tonumber(unitPosition:match("z=(.-)$"))
+                    }
+                    --Add to processed table only when exploding
+                    processedUnitsGlobal[unitID] = {
+                        id = unitID,
+                        name = unitName,
+                        type = unitType,
+                        position = unitPosition,
+                        life = unitLife,
+                        event = eventName,
+                        time = timer.getTime()
+                    }
+                    VehicleIEDTrigger(coords, nil) --Trigger IED
+                    VehicleIEDPendingTable[unitID] = nil --Remove from pending table if present
                     return --Exit early
                 end
-            end
-
-
-
-            --Handle KILL or DEAD event
-            if eventName == "KILL" or eventName == "DEAD" then
+            else
                 if splash_damage_options.vehicleied_debug then
-                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " triggered " .. eventName .. ", processing event")
+                    env.info("VehicleIEDTrigger: Skipping non-VehicleIEDTarget unit: " .. tostring(checkName))
                 end
-                local coords = {
-                    x = tonumber(unitPosition:match("x=(.-),")),
-                    y = tonumber(unitPosition:match("y=(.-),")),
-                    z = tonumber(unitPosition:match("z=(.-)$"))
-                }
-                --Add to processed table only when exploding
-                LogEventProcessedUnitTable[unitID] = {
-                    id = unitID,
-                    name = unitName,
-                    type = unitType,
-                    position = unitPosition,
-                    life = unitLife,
-                    event = eventName,
-                    time = timer.getTime()
-                }
-                VehicleIEDTrigger(coords, nil) --Trigger IED
-                VehicleIEDPendingTable[unitID] = nil --Remove from pending table if present
-                return --Exit early
-            end
-        end
-        else
-            if splash_damage_options.vehicleied_debug then
-                env.info("VehicleIEDTrigger: Skipping non-VehicleIEDTarget unit: " .. tostring(checkName))
             end
         end
     end
 
-    --Handle A10MurderMode for non-VehicleIEDTarget units
-    if splash_damage_options.A10MurderMode and eventName == "HIT" and eventData.initiator then
-        local initiatorType = safeGet(function() return eventData.initiator:getTypeName() end, "unknown")
-        -- Extract unit data for A10MurderMode
-        local unitID, unitName, unitType, unitPosition, unitLife, rawCoords
+	--Handle A10MurderMode
+	if splash_damage_options.A10MurderMode and eventName == "HIT" and eventData.initiator then
+		local initiatorType = safeGet(function() return eventData.initiator:getTypeName() end, "unknown")
+		-- Extract unit data for A10MurderMode
+		local unitID, unitName, unitType, unitPosition, unitLife, rawCoords
+		local status, err = pcall(function()
+			local tgt = eventData.target
+			unitID = safeGet(function() return tgt:getID() end, "unavailable")
+			unitName = safeGet(function() return tgt:getName() end, "unknown")
+			unitType = safeGet(function() return tgt:getTypeName() end, "unknown")
+			unitPosition = safeGet(function()
+				local pos = tgt:getPosition().p
+				return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+			end, "unavailable")
+			rawCoords = safeGet(function()
+				local pos = tgt:getPosition().p
+				return {x = pos.x, y = pos.y, z = pos.z}
+			end, {x = 0, y = 0, z = 0})
+			unitLife = safeGet(function() return tgt:getLife() end, "Alive")
+		end)
+		if not status and splash_damage_options.MurderMode_debug then
+			env.info("A10MurderMode: Error extracting unit data for HIT event: " .. tostring(err))
+		end
+		if splash_damage_options.MurderMode_debug then
+			env.info("A10MurderMode: Checking initiator type: " .. initiatorType .. " for target: " .. unitName)
+		end
+		if initiatorType:match("A%-10") then
+			local coords = {
+				x = tonumber(unitPosition:match("x=(.-),")),
+				y = tonumber(unitPosition:match("y=(.-),")),
+				z = tonumber(unitPosition:match("z=(.-)$"))
+			}
+			if coords.x and coords.y and coords.z then
+				if splash_damage_options.MurderMode_debug then
+					env.info("A10MurderMode: A-10 initiator detected, triggering explosion for target: " .. unitName)
+				end
+				A10MurderMode(coords)
+			elseif splash_damage_options.MurderMode_debug then
+				env.info("A10MurderMode: Invalid coordinates for target: " .. unitName .. ", skipping explosion")
+			end
+		elseif splash_damage_options.MurderMode_debug then
+			env.info("A10MurderMode: Initiator not an A-10, skipping for target: " .. unitName)
+		end
+	end
+	
+	--Handle NamedUnitMurderMode
+	if splash_damage_options.NamedUnitMurderMode and eventName == "HIT" and eventData.initiator then
+		local initiatorName = tostring(safeGet(function() return eventData.initiator:getName() end, "unknown"))
+		--Extract unit data for NamedUnitMurderMode
+		local unitID, unitName, unitType, unitPosition, unitLife, rawCoords
+		local status, err = pcall(function()
+			local tgt = eventData.target
+			unitID = safeGet(function() return tgt:getID() end, "unavailable")
+			unitName = safeGet(function() return tgt:getName() end, "unknown")
+			unitType = safeGet(function() return tgt:getTypeName() end, "unknown")
+			unitPosition = safeGet(function()
+				local pos = tgt:getPosition().p
+				return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+			end, "unavailable")
+			rawCoords = safeGet(function()
+				local pos = tgt:getPosition().p
+				return {x = pos.x, y = pos.y, z = pos.z}
+			end, {x = 0, y = 0, z = 0})
+			unitLife = safeGet(function() return tgt:getLife() end, "Alive")
+		end)
+		if not status and splash_damage_options.MurderMode_debug then
+			env.info("NamedUnitMurderMode: Error extracting unit data for HIT event: " .. tostring(err))
+		end
+		if splash_damage_options.MurderMode_debug then
+			env.info("NamedUnitMurderMode: Checking initiator name: " .. initiatorName .. " for target: " .. unitName)
+		end
+		if initiatorName:find("MurderMode") then
+			local coords = {
+				x = tonumber(unitPosition:match("x=(.-),")),
+				y = tonumber(unitPosition:match("y=(.-),")),
+				z = tonumber(unitPosition:match("z=(.-)$"))
+			}
+			if coords.x and coords.y and coords.z then
+				if splash_damage_options.MurderMode_debug then
+					env.info("NamedUnitMurderMode: Initiator with 'MurderMode' detected, triggering explosion for target: " .. unitName)
+				end
+				NamedUnitMurderMode(coords)
+			elseif splash_damage_options.MurderMode_debug then
+				env.info("NamedUnitMurderMode: Invalid coordinates for target: " .. unitName .. ", skipping explosion")
+			end
+		elseif splash_damage_options.MurderMode_debug then
+			env.info("NamedUnitMurderMode: Initiator name does not contain 'MurderMode', skipping for target: " .. unitName)
+		end
+	end
+
+	--Handle CriticalComponent
+	if splash_damage_options.CriticalComponent and eventName == "HIT" and eventData.initiator then
+		local initiatorType = safeGet(function() return eventData.initiator:getTypeName() end, "unknown")
+		-- Extract unit data for CriticalComponent
+		local unitID, unitName, unitType, unitPosition, rawCoords, weaponName
+		local status, err = pcall(function()
+			local tgt = eventData.target
+			unitID = safeGet(function() return tgt:getID() end, "unavailable")
+			unitName = safeGet(function() return tgt:getName() end, "unknown")
+			unitType = safeGet(function() return tgt:getTypeName() end, "unknown")
+			unitPosition = safeGet(function()
+				local pos = tgt:getPosition().p
+				return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+			end, "unavailable")
+			rawCoords = safeGet(function()
+				local pos = tgt:getPosition().p
+				return {x = pos.x, y = pos.y, z = pos.z}
+			end, {x = 0, y = 0, z = 0})
+			weaponName = safeGet(function()
+				local fullName = eventData.weapon:getTypeName()
+				return fullName:match(".*%.(.*)") or fullName
+			end, "unknown")
+		end)
+		if not status and splash_damage_options.CriticalComponent_debug then
+			env.info("CriticalComponent: Error extracting unit data for HIT event: " .. tostring(err))
+		end
+		if splash_damage_options.CriticalComponent_debug then
+			env.info("CriticalComponent: Checking initiator type: " .. initiatorType .. " for target: " .. unitName)
+		end
+		if eventData.weapon then
+			if unitID == "unavailable" then
+				if splash_damage_options.CriticalComponent_debug then
+					env.info("CriticalComponent: Skipping event HIT for invalid unit ID: " .. tostring(unitID))
+				end
+			else
+				if splash_damage_options.CriticalComponent_Specific_Weapons_Only and #splash_damage_options.CriticalComponent_Specific_Weapons_Only > 0 then
+					local validWeapon = false
+					for _, wpn in ipairs(splash_damage_options.CriticalComponent_Specific_Weapons_Only) do
+						if weaponName == wpn then
+							validWeapon = true
+							break
+						end
+					end
+					if not validWeapon then
+						if splash_damage_options.CriticalComponent_debug then
+							env.info("CriticalComponent: Weapon " .. (weaponName or "nil") .. " not in CriticalComponent_Specific_Weapons_Only, skipping")
+						end
+						return
+					end
+				end
+				local coords = {
+					x = tonumber(unitPosition:match("x=(.-),")),
+					y = tonumber(unitPosition:match("y=(.-),")),
+					z = tonumber(unitPosition:match("z=(.-)$"))
+				}
+				if coords.x and coords.y and coords.z then
+					if splash_damage_options.CriticalComponent_debug then
+						env.info("CriticalComponent: Valid weapon detected, triggering explosion for target: " .. unitName .. " with weapon: " .. (weaponName or "nil"))
+					end
+					CriticalComponent(coords, weaponName)
+				elseif splash_damage_options.CriticalComponent_debug then
+					env.info("CriticalComponent: Invalid coordinates for target: " .. unitName .. ", skipping explosion")
+				end
+			end
+		elseif splash_damage_options.CriticalComponent_debug then
+			env.info("CriticalComponent: No valid weapon, skipping for target: " .. unitName)
+		end
+	end
+	
+	--Process Cargo Cookoff units
+	if splash_damage_options.enable_cargo_effects then
+		local unit, unitID, unitName, unitType, unitPosition, unitLife, rawCoords, maxHealth
+		local isCargoCandidate = false
+		local status, err = pcall(function()
+			if eventName == "HIT" or eventName == "KILL" then
+				unit = eventData.target
+				unitID = safeGet(function() return unit:getID() end, "unavailable")
+				unitName = safeGet(function() return unit:getName() end, "unknown")
+				unitType = safeGet(function() return unit:getTypeName() end, "unknown")
+				unitPosition = safeGet(function()
+					local pos = unit:getPosition().p
+					return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+				end, "unavailable")
+				rawCoords = safeGet(function()
+					local pos = unit:getPosition().p
+					return {x = pos.x, y = pos.y, z = pos.z}
+				end, {x = 0, y = 0, z = 0})
+				unitLife = safeGet(function() return unit:getLife() end, 0)
+				maxHealth = safeGet(function() return unit:getDesc().life end, 1)
+			elseif eventName == "DEAD" then
+				unit = eventData.initiator
+				unitID = safeGet(function() return unit:getID() end, "unavailable")
+				unitName = safeGet(function() return unit:getName() end, "unknown")
+				unitType = safeGet(function() return unit:getTypeName() end, "unknown")
+				unitPosition = safeGet(function()
+					local pos = unit:getPosition().p
+					return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+				end, "unavailable")
+				rawCoords = safeGet(function()
+					local pos = unit:getPosition().p
+					return {x = pos.x, y = pos.y, z = pos.z}
+				end, {x = 0, y = 0, z = 0})
+				unitLife = safeGet(function() return unit:getLife() end, 0)
+				maxHealth = safeGet(function() return unit:getDesc().life end, 1)
+			end
+			unitName = tostring(unitName) -- Convert to string
+			if cargoUnits[unitType] then
+				isCargoCandidate = true
+				debugCargoCookOff("Unit " .. unitName .. " identified as cargo candidate via cargoUnits table")
+			elseif unitName:find("CargoCookoffTarget") then
+				isCargoCandidate = true
+				debugCargoCookOff("Unit " .. unitName .. " identified as cargo candidate via CargoCookoffTarget name")
+			elseif splash_damage_options.smokeandcookoffeffectallvehicles then
+				local category = safeGet(function() return unit:getDesc().category end, "unknown")
+				local isInfantry = safeGet(function() return unit:hasAttribute("Infantry") end, false)
+				if (category == Unit.Category.GROUND_UNIT or category == Unit.Category.SHIP) and not isInfantry then
+					isCargoCandidate = true
+					debugCargoCookOff("Unit " .. unitName .. " identified as cargo candidate via smokeandcookoffeffectallvehicles")
+				end
+			end
+		end)
+		if not status then
+			debugCargoCookOff("Error extracting unit data for event " .. eventName .. ": " .. tostring(err))
+			return
+		end
+		if unitID == "unavailable" or type(unitName) ~= "string" then
+			debugCargoCookOff("Skipping event " .. eventName .. " for invalid unit (ID: " .. tostring(unitID) .. ", Name: " .. unitName .. ")")
+			return
+		end
+		if processedUnitsGlobal[unitID] then
+			debugCargoCookOff("Unit ID " .. unitID .. " (" .. unitName .. ") already processed, skipping")
+			return
+		end
+		if isCargoCandidate then
+			--Initialize pending table
+			if not CargoCookoffPendingTable then CargoCookoffPendingTable = {} end
+			if eventName == "HIT" then
+				local healthPercent = maxHealth > 0 and (unitLife / maxHealth * 100) or 0
+				debugCargoCookOff("Unit " .. unitName .. " hit, health: " .. unitLife .. "/" .. maxHealth .. " (" .. string.format("%.2f", healthPercent) .. "%)")
+				if healthPercent <= splash_damage_options.cargo_damage_threshold or unitLife <= 0 then
+					if not CargoCookoffPendingTable[unitID] then
+						CargoCookoffPendingTable[unitID] = {
+							id = unitID,
+							name = unitName,
+							type = unitType,
+							coords = rawCoords,
+							prevCoords = rawCoords,
+							startTime = timer.getTime(),
+							checksRemaining = 20,
+							deadChecks = 0,
+							isCargoCookoff = true
+						}
+						debugCargoCookOff("Added unit " .. unitName .. " (ID: " .. unitID .. ") to CargoCookoffPendingTable")
+						local function checkUnitStatus(params)
+							local entry = CargoCookoffPendingTable[params.id]
+							if not entry then return end
+							entry.checksRemaining = entry.checksRemaining - 1
+							local u = Unit.getByName(params.name) or StaticObject.getByName(params.name)
+							local isAlive = u and u:isExist() and safeGet(function() return u:getLife() end, 0) > 0
+							local newPosition = safeGet(function()
+								local pos = u and u:isExist() and u:getPosition().p or entry.coords
+								return {x = pos.x, y = pos.y, z = pos.z}
+							end, entry.coords)
+							local hasStopped = math.abs(newPosition.x - entry.prevCoords.x) < 0.1 and
+											   math.abs(newPosition.y - entry.prevCoords.y) < 0.1 and
+											   math.abs(newPosition.z - entry.prevCoords.z) < 0.1
+							debugCargoCookOff(string.format("Checking unit %s, alive: %s, stopped: %s, checks: %d, dead checks: %d, prevCoords: (X: %.2f, Y: %.2f, Z: %.2f), newCoords: (X: %.2f, Y: %.2f, Z: %.2f)",
+									params.name, tostring(isAlive), tostring(hasStopped), entry.checksRemaining, entry.deadChecks,
+									entry.prevCoords.x, entry.prevCoords.y, entry.prevCoords.z,
+									newPosition.x, newPosition.y, newPosition.z))
+							if not isAlive then
+								entry.deadChecks = entry.deadChecks + 1
+								if entry.deadChecks < 4 then
+									entry.prevCoords = newPosition
+									entry.coords = newPosition
+									timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+									return
+								end
+							end
+							if (not isAlive or (maxHealth > 0 and (safeGet(function() return u:getLife() end, 0) / maxHealth * 100) <= splash_damage_options.cargo_damage_threshold)) and hasStopped and entry.deadChecks >= 4 then
+								local finalCoords = entry.coords
+								local status, result = pcall(function()
+									local u = Unit.getByName(params.name) or StaticObject.getByName(params.name)
+									if u and u:isExist() then
+										local pos = u:getPosition().p
+										return {x = pos.x, y = pos.y, z = pos.z}
+									end
+									return newPosition
+								end)
+								if status then finalCoords = result end
+								if not processedUnitsGlobal[unitID] then
+									processedUnitsGlobal[unitID] = {
+										id = unitID,
+										name = unitName,
+										type = unitType,
+										position = string.format("x=%.0f, y=%.0f, z=%.0f", finalCoords.x, finalCoords.y, finalCoords.z),
+										life = 0,
+										event = "HIT",
+										time = timer.getTime()
+									}
+									scheduleCargoEffects(unitType, unitName, unitID, finalCoords, 0)
+								end
+								CargoCookoffPendingTable[unitID] = nil
+								return
+							end
+							if entry.checksRemaining <= 0 then
+								CargoCookoffPendingTable[unitID] = nil
+								debugCargoCookOff("Unit " .. params.name .. " still moving or alive, removing from pending")
+								return
+							end
+							entry.prevCoords = newPosition
+							entry.coords = newPosition
+							timer.scheduleFunction(checkUnitStatus, params, timer.getTime() + 0.3)
+						end
+						timer.scheduleFunction(checkUnitStatus, {id = unitID, name = unitName}, timer.getTime() + 0.3)
+					end
+				end
+			elseif eventName == "KILL" or eventName == "DEAD" then
+				if (splash_damage_options.smokeandcookoffeffectallvehicles or cargoUnits[unitType] or unitName:find("CargoCookoffTarget")) and not processedUnitsGlobal[unitID] then
+					debugCargoCookOff("Unit " .. unitName .. " triggered " .. eventName .. ", processing")
+					processedUnitsGlobal[unitID] = {
+						id = unitID,
+						name = unitName,
+						type = unitType,
+						position = unitPosition,
+						life = unitLife,
+						event = eventName,
+						time = timer.getTime()
+					}
+					scheduleCargoEffects(unitType, unitName, unitID, rawCoords, 0)
+					CargoCookoffPendingTable[unitID] = nil
+				end
+			end
+		end
+	end
+
+	--Process GU_Explode_on_Death for ground units
+	if splash_damage_options.GU_Explode_on_Death and eventName == "HIT" then
+			local unit, unitID, unitName, unitType, unitPosition, rawCoords, unitCategory
+			local status, err = pcall(function()
+				unit = eventData.target
+				unitID = safeGet(function() return unit:getID() end, "unavailable")
+				unitName = safeGet(function() return unit:getName() end, "unknown")
+				unitType = safeGet(function() return unit:getTypeName() end, "unknown")
+				unitCategory = safeGet(function() return unit:getDesc().category end, "unknown")
+				unitPosition = safeGet(function()
+					local pos = unit:getPosition().p
+					return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+				end, "unavailable")
+				rawCoords = safeGet(function()
+					local pos = unit:getPosition().p
+					return {x = pos.x, y = pos.y, z = pos.z}
+				end, {x = 0, y = 0, z = 0})
+			end)
+			if not status and splash_damage_options.GU_Explode_debug then
+				env.info("GU_Explode_on_Death: Error extracting unit data for HIT event: " .. tostring(err))
+			end
+			if unitID ~= "unavailable" and type(unitName) == "string" and unitCategory == Unit.Category.GROUND_UNIT and not safeGet(function() return unit:hasAttribute("Infantry") end, false) then
+				if not processedUnitsGlobal then processedUnitsGlobal = {} end
+				if not GUProcessedUnits then GUProcessedUnits = {} end
+				if processedUnitsGlobal[unitID] or GUProcessedUnits[unitID] then
+					if splash_damage_options.GU_Explode_debug then
+						env.info("GU_Explode_on_Death: Unit ID " .. unitID .. " (" .. unitName .. ") already processed in global or GU table, skipping")
+					end
+				else
+					local function checkUnitStatus(params)
+						if processedUnitsGlobal[params.id] or GUProcessedUnits[params.id] then
+							if splash_damage_options.GU_Explode_debug then
+								env.info("GU_Explode_on_Death: Unit ID " .. params.id .. " (" .. params.name .. ") already processed after 0.1s check, skipping")
+							end
+						else
+							local u = Unit.getByName(params.name)
+							local isAlive = u and u:isExist() and safeGet(function() return u:getLife() end, 0) > 0
+							if splash_damage_options.GU_Explode_debug then
+								env.info("GU_Explode_on_Death: Checking unit " .. params.name .. " (ID: " .. params.id .. ") after 0.1s, alive: " .. tostring(isAlive))
+							end
+							if not isAlive then
+								GUProcessedUnits[params.id] = {
+									id = params.id,
+									name = params.name,
+									type = params.type,
+									position = params.position,
+									life = 0,
+									event = "HIT",
+									time = timer.getTime()
+								}
+								if math.random() <= splash_damage_options.GU_Explode_on_Death_Chance then
+									local explosionCoords = {x = params.coords.x, y = land.getHeight({x = params.coords.x, y = params.coords.z}) + splash_damage_options.GU_Explode_on_Death_Height, z = params.coords.z}
+									trigger.action.explosion(explosionCoords, splash_damage_options.GU_Explode_on_Death_Explosion_Power)
+									if splash_damage_options.GU_Explode_debug then
+										env.info("GU_Explode_on_Death: Triggered explosion for unit " .. params.name .. " (ID: " .. params.id .. ") at X: " .. params.coords.x .. ", Z: " .. params.coords.z .. " with power " .. splash_damage_options.GU_Explode_on_Death_Explosion_Power)
+									end
+								else
+									if splash_damage_options.GU_Explode_debug then
+										env.info("GU_Explode_on_Death: Chance check failed for unit " .. params.name .. " (ID: " .. params.id .. ")")
+									end
+								end
+							end
+						end
+					end
+					timer.scheduleFunction(checkUnitStatus, {
+						id = unitID,
+						name = unitName,
+						type = unitType,
+						position = unitPosition,
+						coords = rawCoords
+					}, timer.getTime() + 0.1)
+				end
+			elseif splash_damage_options.GU_Explode_debug then
+				env.info("GU_Explode_on_Death: Skipping non-ground unit or invalid unit (ID: " .. tostring(unitID) .. ", Name: " .. tostring(unitName) .. ")")
+			end
+		end
+
+		--CBU Bomblet Hit Explosion handling
+    if splash_damage_options.CBU_Bomblet_Hit_Explosion and eventName == "HIT" and eventData.initiator and eventData.target and eventData.weapon then
         local status, err = pcall(function()
-            local tgt = eventData.target
-            unitID = safeGet(function() return tgt:getID() end, "unavailable")
-            unitName = safeGet(function() return tgt:getName() end, "unknown")
-            unitType = safeGet(function() return tgt:getTypeName() end, "unknown")
-            unitPosition = safeGet(function()
-                local pos = tgt:getPosition().p
-                return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
-            end, "unavailable")
-            rawCoords = safeGet(function()
-                local pos = tgt:getPosition().p
-                return {x = pos.x, y = pos.y, z = pos.z}
-            end, {x = 0, y = 0, z = 0})
-            unitLife = safeGet(function() return tgt:getLife() end, "Alive")
-        end)
-        if not status and splash_damage_options.A10MurderMode_debug then
-            env.info("A10MurderMode: Error extracting unit data for HIT event: " .. tostring(err))
-        end
-        if splash_damage_options.A10MurderMode_debug then
-            env.info("A10MurderMode: Checking initiator type: " .. initiatorType .. " for target: " .. unitName)
-        end
-        if initiatorType:match("A%-10") then
-            local coords = {
-                x = tonumber(unitPosition:match("x=(.-),")),
-                y = tonumber(unitPosition:match("y=(.-),")),
-                z = tonumber(unitPosition:match("z=(.-)$"))
-            }
-            if coords.x and coords.y and coords.z then
-                if splash_damage_options.A10MurderMode_debug then
-                    env.info("A10MurderMode: A-10 initiator detected, triggering explosion for target: " .. unitName)
-                end
-                A10MurderMode(coords)
-            elseif splash_damage_options.A10MurderMode_debug then
-                env.info("A10MurderMode: Invalid coordinates for target: " .. unitName .. ", skipping explosion")
+            local unitID = safeGet(function() return eventData.target:getID() end, "unavailable")
+            local unitName = safeGet(function() return eventData.target:getName() end, "unknown")
+            local weaponName = safeGet(function() return eventData.weapon:getTypeName():match(".*%.(.*)") or eventData.weapon:getTypeName() end, "unknown")
+            local rawCoords = safeGet(function() return eventData.target:getPosition().p end, {x = 0, y = 0, z = 0})
+
+            if unitID == "unavailable" or type(unitName) ~= "string" then
+                debugCBUBombletHit("Skipping HIT event for invalid unit (ID: " .. tostring(unitID) .. ", Name: " .. tostring(unitName) .. ")")
+                return
             end
-        elseif splash_damage_options.A10MurderMode_debug then
-            env.info("A10MurderMode: Initiator not an A-10, skipping for target: " .. unitName)
+
+            -- Check if weapon is a submunition in clusterSubMunTable
+            local submunitionData = clusterSubMunTable[weaponName]
+            if submunitionData then
+                debugCBUBombletHit("Submunition " .. weaponName .. " detected for unit " .. unitName .. " (ID: " .. unitID .. ")")
+                CBUBombletHitExplosion(rawCoords, unitName, unitID, weaponName, submunitionData.explosive)
+            else
+                debugCBUBombletHit("Weapon " .. weaponName .. " is not a submunition in clusterSubMunTable, skipping for unit " .. unitName .. " (ID: " .. unitID .. ")")
+            end
+        end)
+        if not status then
+            debugCBUBombletHit("Error processing HIT event: " .. tostring(err))
         end
     end
-end
+
+	--eof	
+	end
 
 
 function WpnHandler:onEvent(event)
@@ -4324,7 +5565,7 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
                             local healthPercent = (obj:getLife() / obj:getDesc().life) * 100
                             local cargoData = cargoUnits[obj:getTypeName()]
                             if cargoData and healthPercent <= splash_damage_options.cargo_damage_threshold and splash_damage_options.enable_cargo_effects then
-                                local cargoPower = power * cargoData.cargoExplosionMult
+                                local cargoPower = power
                                 table.insert(cargoEffectsQueue, {
                                     name = obj:getTypeName(),
                                     distance = dist,
@@ -4395,6 +5636,7 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
         timer.scheduleFunction(modelUnitDamage, foundUnits, timer.getTime() + 1.5)
     end
 end
+  
   
 function modelUnitDamage(units)
     for i, unit in ipairs(units) do
@@ -4820,7 +6062,14 @@ if (script_enable == 1) then
 	if splash_damage_options.killfeed_enable then
         world.addEventHandler({ onEvent = function(self, event) protectedCall(onKillEvent, event) end }) --Add kill event handler
     end
-
+	
+	if splash_damage_options.trophy_enabled then
+		for wpnName, data in pairs(trophyWeapons) do --preload lowercase trophy weapons table
+			trophyWeaponsLookup[string.lower(wpnName)] = data
+		end
+		world.addEventHandler(trophyHandler) --initiate trophyhandler
+	end
+	
     world.addEventHandler(WpnHandler)
     addSplashDamageMenu()
 	
@@ -4828,9 +6077,16 @@ if (script_enable == 1) then
 	if splash_damage_options.killfeed_enable and splash_damage_options.killfeed_lekas_foothold_integration then
 		timer.scheduleFunction(processSplashKillfeed, {}, timer.getTime() + 60)
 		if splash_damage_options.killfeed_debug then
-			env.info("SplashDamage: Scheduled processSplashKillfeed for Lekas Foothold integration")
+			env.info("SplashDamage: Scheduled process SplashKillfeed for Lekas Foothold integration")
 		end
 	end	
+	
+	--Strobe
+    if splash_damage_options.StrobeMarker_enabled then
+        scanStrobeUnits()
+        timer.scheduleFunction(triggerStrobeMarker, {}, timer.getTime() + splash_damage_options.StrobeMarker_interval)
+        env.info("SPLASH DAMAGE: StrobeMarker initialized with interval " .. splash_damage_options.StrobeMarker_interval .. " seconds")
+    end
 
 end
 
