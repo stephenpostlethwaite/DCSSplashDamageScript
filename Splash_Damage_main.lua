@@ -2,6 +2,12 @@
                                                                 Latest Changes                                       
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
 
+Forum Thread:
+https://forum.dcs.world/topic/370261-splash-damage-3x-script-now-with-more-explosions-version-33-napalm-edition/
+User Files:
+https://www.digitalcombatsimulator.com/en/files/3344761/
+
+
     x x 2025 - 3.4
 
 		(Stevey666) 
