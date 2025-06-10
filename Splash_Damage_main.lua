@@ -13,6 +13,9 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 TO DO: 
 Before 3.4 release -
 
+Clusterbomb killfeed
+
+test trophy 1.1 changes
 cargocook off movement tracking review
 test moving vehicles + cargocookoff - and all vehicles mode, to see what we can do about is moving checks -reduce them so things blow up faster for example, or detect that its not moving over 2 frames an thats good enough, shorter frame tracking
 cargocookoff on dead/killed review
@@ -37,7 +40,10 @@ isolate ground tracking weapons into a different table and gated behind the enab
 	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
 	  - New Feature: Ground Unit Explosion On Death. 
 			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
-	  - New Feature: CBU Bomblet Hit Explosion - on a hit event from a bomblet against a unit it will trigger an explosion the size as per the clusterSubMunTable table
+	  - New Feature: CBU Bomblet Hit Spread - On a Hit event from a cluster bomb, it will scan the local area for nearby vehicles and trigger an additional explosion
+			- This features aims to help wipe out areas, but it works by scanning 20 meters radius (adjustable) for any vehicles nearby the hit vehicle and then 20m (adjustable) from those vehicles
+			- Max of 1 additional explosion will spawn on the vehicles. Not enabled for CBU_97/CBU_105 due to them already being effective.
+			- The spread mechanic could miss vehicles in the area still if one doesnt get hit, or theyre at opposite sides of the hit area and not within 20m (adjustable)
 	  - New Feature: Strobe Marker - generates a tiny explosion above a unit, no smoke but sound + light appears - can be used as a marker for planes
 			- Generates on an active and living unit with "Strobe" in the name
 			- Visible to eye/FLIR(TV mode)
@@ -266,14 +272,18 @@ splash_damage_options = {
 
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
     ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage
-    ["GU_Explode_on_Death_Chance"] = 1, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
+    ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
     ["GU_Explode_on_Death_Explosion_Power"] = 80, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
 	
     ---------------------------------------------------------------------- CBU Bomblet Hit Explosion ---------------------------------------------------------
     ["CBU_Bomblet_Hit_Explosion"] = false, --Enable/Disable - on a hit even by a bomblet it will trigger a small explosion at the units location
     ["CBU_Bomblet_Hit_Explosion_Scaling"] = 1, --Multiplier for the bomblet damage in the explTable
-	
+    ["CBU_Bomblet_Hit_Mimic_Spread"] = true, --Enable/Disable - Mimic spread of clusterbomb warheads by scanning an area around the target that was hit and triggering an explosion against any unit or structure (unitIds can only be hit once by this weaponid)
+    ["CBU_Bomblet_Hit_Spread"] = 20, --Scan radius m to look for units to hit
+    ["CBU_Bomblet_Hit_Spread_SecondaryScan"] = 20, --Scan radius m to look for units to hit
+    ["CBU_Bomblet_Hit_Spread_Duration"] = 2, --Schedule additional unit explosions over this many seconds
+    ["CBU_Bomblet_Hit_OriginUnit_Twice"] = false, --Do you want to hit the unit that DCS already hit again with a boosted bomblet explosion?
     ---------------------------------------------------------------------- Strobe Marker ---------------------------------------------------------	
     ["StrobeMarker_enabled"] = false, --Enable/Disable Strobe Marker - spawns a tiny explosion above a unit with Strobe in its name
     ["StrobeMarker_interval"] = 3, --Interval in seconds for Strobe Marker explosions
@@ -891,7 +901,7 @@ clusterSubMunTable = {
     ["Mk 118"] = { explosive = 2 }, --Rockeye/CBU99
     ["BLU-97B"] = { explosive = 4.3 }, --CBU_87/CBU_103
     ["BLU-97/B"] = { explosive = 4.3 }, --AGM 154s
-    ["BLU-108"] = { explosive = 9.0 }, --CBU_97/CBU_105
+ --   ["BLU-108"] = { explosive = 9.0 }, --CBU_97/CBU_105  **DISABLED DUE TO BEING AFFECTIVE ALREADY**
     ["AO-2-5"] = { explosive = 2.5 }, --RBK_500AO
     ["BLU-3"] = { explosive = 1 }, --Heatblur F4 BLU-3_GROUP
     ["BLU-3B"] = { explosive = 1 }, --Heatblur F4
@@ -1040,6 +1050,8 @@ tracked_weapons = {}
 local processedUnitsGlobal = {}
 napalmCounter = 1
 local recentExplosions = {}
+
+local cbuProcessed  = {} --Table to track processed unitID-weaponID pairs for cbus
 
 -- Helper function to dump table contents (for undocumented event fields)
 local function dumpTable(t, indent)
@@ -4407,7 +4419,7 @@ function VehicleIEDTrigger(coords, unit)
 end
 
 --Function for CBU Bomblet Additional Explosion
-function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, submunitionPower)
+function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, submunitionPower, initiator)
     if not splash_damage_options.CBU_Bomblet_Hit_Explosion then
         debugCBUBombletHit("Disabled, skipping explosion at X: " .. (coords.x or "nil") .. ", Z: " .. (coords.z or "nil") .. " for unit " .. unitName .. " (ID: " .. unitID .. ")")
         return
@@ -4417,10 +4429,176 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, submunitio
         return
     end
     local explosionPower = (submunitionPower or 1) * splash_damage_options.CBU_Bomblet_Hit_Explosion_Scaling * splash_damage_options.overall_scaling
-    debugCBUBombletHit("Triggering explosion for unit " .. unitName .. " (ID: " .. unitID .. ") at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. explosionPower .. " due to weapon " .. weaponName)
-    trigger.action.explosion(coords, explosionPower)
-end	
-	
+    local key = unitID .. "-" .. weaponID
+    if splash_damage_options.CBU_Bomblet_Hit_OriginUnit_Twice then
+        debugCBUBombletHit("Triggering explosion for unit " .. unitName .. " (ID: " .. unitID .. ") at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. explosionPower .. " due to weapon " .. weaponName)
+        trigger.action.explosion(coords, explosionPower)
+        cbuProcessed[key] = true
+    end
+
+    --Mimic spread if enabled
+    if splash_damage_options.CBU_Bomblet_Hit_Mimic_Spread then
+        local scanRadius = splash_damage_options.CBU_Bomblet_Hit_Spread
+        local secondaryScanRadius = splash_damage_options.CBU_Bomblet_Hit_Spread_SecondaryScan or scanRadius
+        local spreadDuration = splash_damage_options.CBU_Bomblet_Hit_Spread_Duration or 2
+        local volS = {
+            id = world.VolumeType.SPHERE,
+            params = {
+                point = coords,
+                radius = scanRadius
+            }
+        }
+        local foundUnits = {}
+        local seenUnitIDs = {} --Track unique unit IDs to avoid duplicates
+        local ifFound = function(obj)
+            local targetUnitID = safeGet(function() return obj:getID() end, "unavailable")
+            local targetUnitName = safeGet(function() return obj:getName() end, "unknown")
+            local targetUnitType = safeGet(function() return obj:getTypeName() end, "unknown")
+            local targetCoords = safeGet(function() return obj:getPosition().p end, nil)
+            local targetHealth = safeGet(function() return obj:getLife() end, 0)
+            if targetUnitID ~= "unavailable" and targetCoords and not seenUnitIDs[targetUnitID] then
+                seenUnitIDs[targetUnitID] = true
+                local distance = math.sqrt((coords.x - targetCoords.x)^2 + (coords.z - targetCoords.z)^2)
+                table.insert(foundUnits, {id = targetUnitID, name = targetUnitName, type = targetUnitType, coords = targetCoords, health = targetHealth, distance = distance})
+            end
+        end
+        debugCBUBombletHit("Primary scan for objects within " .. scanRadius .. "m radius")
+        world.searchObjects(Object.Category.UNIT, volS, ifFound)
+        world.searchObjects(Object.Category.STATIC, volS, ifFound)
+        world.searchObjects(Object.Category.SCENERY, volS, ifFound)
+        world.searchObjects(Object.Category.CARGO, volS, ifFound)
+
+        --Secondary scans for each found unit
+        for _, unit in ipairs(foundUnits) do
+            local secondaryVolS = {
+                id = world.VolumeType.SPHERE,
+                params = {
+                    point = unit.coords,
+                    radius = secondaryScanRadius
+                }
+            }
+            world.searchObjects(Object.Category.UNIT, secondaryVolS, ifFound)
+            world.searchObjects(Object.Category.STATIC, secondaryVolS, ifFound)
+            world.searchObjects(Object.Category.SCENERY, secondaryVolS, ifFound)
+            world.searchObjects(Object.Category.CARGO, secondaryVolS, ifFound)
+        end
+
+        --Sort by distance and display scan results
+        table.sort(foundUnits, function(a, b) return a.distance < b.distance end)
+        local unitDetails = {}
+        for _, unit in ipairs(foundUnits) do
+            table.insert(unitDetails, string.format("%s (ID: %s, Type: %s, Health: %.1f, Distance: %.1fm)", unit.name, unit.id, unit.type, unit.health, unit.distance))
+        end
+        debugCBUBombletHit("Found " .. #foundUnits .. " unique objects: " .. (#unitDetails > 0 and table.concat(unitDetails, ", ") or "none"))
+
+        --Schedule explosions for found units
+        for i, unit in ipairs(foundUnits) do
+            local key = unit.id .. "-" .. weaponID
+            if not cbuProcessed[key] then
+                cbuProcessed[key] = true
+                local delay = (i - 1) * (spreadDuration / math.max(1, #foundUnits)) --Evenly spread over duration
+                timer.scheduleFunction(function()
+                    debugCBUBombletHit("Spread explosion for unit " .. unit.name .. " (ID: " .. unit.id .. ") at X: " .. unit.coords.x .. ", Y: " .. unit.coords.y .. ", Z: " .. unit.coords.z .. " with power " .. explosionPower .. " due to weapon " .. weaponName)
+                    trigger.action.explosion(unit.coords, explosionPower)
+                end, {}, timer.getTime() + delay)
+            end
+        end
+
+        --Post-scan for killfeed with larger radius
+        if splash_damage_options.killfeed_enable and #foundUnits > 0 then
+            local playerName = "Unknown"
+            if initiator then
+                local status, playerNameResult = pcall(function() return initiator:getPlayerName() end)
+                if status and playerNameResult then
+                    playerName = playerNameResult
+                else
+                    local status, unitId = pcall(function() return initiator:getID() end)
+                    if status and unitId then
+                        local playerList = net.get_player_list() or {}
+                        for _, pid in ipairs(playerList) do
+                            local pinfo = net.get_player_info(pid)
+                            if pinfo and pinfo.ucid and (tonumber(pinfo.slot) == unitId or pinfo.slot == initiator:getName()) then
+                                playerName = pinfo.name or "Unknown"
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            if playerName ~= "Unknown" then
+                local status, isPlayer = pcall(function()
+                    local playerList = net.get_player_list() or {}
+                    for _, pid in ipairs(playerList) do
+                        local pinfo = net.get_player_info(pid)
+                        if pinfo and pinfo.name == playerName then
+                            return true
+                        end
+                    end
+                    return false
+                end)
+                if status and isPlayer then
+                    timer.scheduleFunction(function()
+                        local killfeedScanRadius = 2 * scanRadius
+                        local killfeedVolS = {
+                            id = world.VolumeType.SPHERE,
+                            params = {
+                                point = coords,
+                                radius = killfeedScanRadius
+                            }
+                        }
+                        local secondScanUnits = {}
+                        local secondSeenUnitIDs = {}
+                        local ifKillfeedFound = function(obj)
+                            local targetUnitID = safeGet(function() return obj:getID() end, "unavailable")
+                            if targetUnitID ~= "unavailable" and not secondSeenUnitIDs[targetUnitID] then
+                                secondSeenUnitIDs[targetUnitID] = true
+                            end
+                        end
+                        debugCBUBombletHit("Killfeed scan for objects within " .. killfeedScanRadius .. "m radius")
+                        world.searchObjects(Object.Category.UNIT, killfeedVolS, ifKillfeedFound)
+                        world.searchObjects(Object.Category.STATIC, killfeedVolS, ifKillfeedFound)
+                        world.searchObjects(Object.Category.SCENERY, killfeedVolS, ifKillfeedFound)
+                        world.searchObjects(Object.Category.CARGO, killfeedVolS, ifKillfeedFound)
+
+                        for _, unit in ipairs(foundUnits) do
+                            if not secondSeenUnitIDs[unit.id] then
+                                local alreadyInKillfeed = false
+                                for _, entry in ipairs(splashKillfeedTable) do
+                                    if entry.unitId == unit.id then
+                                        alreadyInKillfeed = true
+                                        break
+                                    end
+                                end
+                                if not alreadyInKillfeed then
+                                    table.insert(splashKillfeedTable, {
+                                        unitName = unit.name,
+                                        unitType = unit.type,
+                                        unitId = unit.id,
+                                        playerName = playerName,
+                                        weaponName = weaponName,
+                                        time = timer.getTime(),
+                                        position = unit.coords
+                                    })
+                                    debugCBUBombletHit("Added to splashKillfeed: " .. unit.name .. " destroyed by " .. playerName)
+                                    if splash_damage_options.killfeed_game_messages then
+                                        local msg = string.format("%s destroyed by %s's %s Splash Damage", unit.type, playerName, weaponName)
+                                        local status, err = pcall(function()
+                                            trigger.action.outTextForCoalition(2, msg, splash_damage_options.killfeed_game_message_duration)
+                                        end)
+                                        if not status then
+                                            debugCBUBombletHit("Error displaying killfeed message: " .. tostring(err))
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end, {}, timer.getTime() + 3)
+                end
+            end
+        end
+    end
+end
+
 --A10 MurderMode action block
 --VehicleIED action block
 function logEvent(eventName, eventData)
@@ -5222,7 +5400,9 @@ function logEvent(eventName, eventData)
             local unitID = safeGet(function() return eventData.target:getID() end, "unavailable")
             local unitName = safeGet(function() return eventData.target:getName() end, "unknown")
             local weaponName = safeGet(function() return eventData.weapon:getTypeName():match(".*%.(.*)") or eventData.weapon:getTypeName() end, "unknown")
+            local weaponID = safeGet(function() return eventData.weapon:getID() end, "unknown")
             local rawCoords = safeGet(function() return eventData.target:getPosition().p end, {x = 0, y = 0, z = 0})
+			local initiator = eventData.initiator
 
             if unitID == "unavailable" or type(unitName) ~= "string" then
                 debugCBUBombletHit("Skipping HIT event for invalid unit (ID: " .. tostring(unitID) .. ", Name: " .. tostring(unitName) .. ")")
@@ -5232,8 +5412,16 @@ function logEvent(eventName, eventData)
             --Check if weapon is a submunition in clusterSubMunTable
             local submunitionData = clusterSubMunTable[weaponName]
             if submunitionData then
+            local key = unitID .. "-" .. weaponID
+            if not cbuProcessed[key] then
+                if not splash_damage_options.CBU_Bomblet_Hit_OriginUnit_Twice then
+                    cbuProcessed[key] = true
+                end
                 debugCBUBombletHit("Submunition " .. weaponName .. " detected for unit " .. unitName .. " (ID: " .. unitID .. ")")
-                CBUBombletHitExplosion(rawCoords, unitName, unitID, weaponName, submunitionData.explosive)
+                CBUBombletHitExplosion(rawCoords, unitName, unitID, weaponName, weaponID, submunitionData.explosive, initiator)
+            else
+                debugCBUBombletHit("Unit " .. unitName .. " (ID: " .. unitID .. ") already processed for weapon " .. weaponName)
+            end
             else
                 debugCBUBombletHit("Weapon " .. weaponName .. " is not a submunition in clusterSubMunTable, skipping for unit " .. unitName .. " (ID: " .. unitID .. ")")
             end
