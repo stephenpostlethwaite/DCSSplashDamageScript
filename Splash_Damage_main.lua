@@ -44,7 +44,7 @@ review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STR
 	  - New Feature: Trophy APS System (disabled by default)
 	  - New Feature: Vehicle IEDs.  If a unit is called VehicleIEDTarget(*) it will explode bigly
 	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
-	  - New Feature: Ground Unit Explosion On Death. 
+	  - New Feature: Ground Unit Explosion On Death (when theres a hit event)
 			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
 	  - New Feature: CBU Bomblet Hit Spread - On a Hit event from a cluster bomb, it will scan the local area for nearby vehicles and trigger an additional explosion
 			- This features aims to help wipe out areas, but it works by scanning 20 meters radius (adjustable) for any vehicles nearby the hit vehicle and then 20m (adjustable) from those vehicles
