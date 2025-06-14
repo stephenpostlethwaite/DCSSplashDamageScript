@@ -13,11 +13,11 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 TO DO: 
 Before 3.4 release -
 
-
+figure out cluster bomb to splash cookoff, cookoffs not picking up dead events properly? check with eventlog debug on
 
 test splash/cookoffs again + on moving vehicles and killfeed integration
-Clusterbomb damage think about
-Clusterbomb killfeed test
+Clusterbomb killfeed test again
+cluster bomb video
 
 test trophy 1.1 changes
 
@@ -51,6 +51,7 @@ review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STR
 			- This features aims to help wipe out areas, but it works by scanning 20 meters radius (adjustable) for any vehicles nearby the hit vehicle and then 20m (adjustable) from those vehicles
 			- Max of 1 additional explosion will spawn on the vehicles. Not enabled for CBU_97/CBU_105 due to them already being effective.
 			- The spread mechanic could miss vehicles in the area still if one doesnt get hit, or theyre at opposite sides of the visible area and not within 20m (adjustable)
+			- There is % chance to hit per unit found in the area, % chance for that hit to be indirect, and armour damage modifiers
 	  - New Feature: Strobe Marker - generates a tiny explosion above a unit, no smoke but sound + light appears - can be used as a marker for planes
 			- Generates on an active and living unit with "Strobe" in the name
 			- Good: Visible to eye/FLIR(TV mode)
@@ -135,7 +136,7 @@ splash_damage_options = {
     ["debris_power"] = 1, --Power of each debris explosion
     ["debris_count_min"] = 6, --Minimum debris pieces per cook-off
     ["debris_count_max"] = 12, --Maximum debris pieces per cook-off
-    ["debris_max_distance"] = 10, --Max distance debris can travel (meters), the min distance from the vehicle will be 10% of this
+    ["debris_max_distance"] = 8, --Max distance debris can travel (meters), the min distance from the vehicle will be 10% of this
 	
     ["cookoff_flares_enabled"] = true, --Enable/disable flare effects for cook-offs, this applies to allvehicles too.
     ["cookoff_flare_color"] = 2, 
@@ -157,11 +158,11 @@ splash_damage_options = {
     ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
     ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
-    ["allunits_cookoff_chance"] = 1, -- Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
+    ["allunits_cookoff_chance"] = 0.5, -- Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
 	
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
-    ["ordnance_protection_radius"] = 10, --Distance in meters to protect nearby bombs
+    ["ordnance_protection_radius"] = 20, --Distance in meters to protect nearby bombs
     ["detect_ordnance_destruction"] = true, --Toggle detection of ordnance destroyed by large explosions
     ["snap_to_ground_if_destroyed_by_large_explosion"] = true, --If the ordnance protection fails or is disabled we can snap larger_explosions to the ground (if enabled - power as set in weapon list) - so an explosion still does hit the ground
     ["max_snapped_height"] = 80, --max height it will snap to ground from
@@ -282,17 +283,24 @@ splash_damage_options = {
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
     ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage
     ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
-    ["GU_Explode_on_Death_Explosion_Power"] = 80, --Explosion power for explode on death	
+    ["GU_Explode_on_Death_Explosion_Power"] = 50, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
 	
     ---------------------------------------------------------------------- CBU Bomblet Hit Explosion ---------------------------------------------------------
     ["CBU_Bomblet_Hit_Explosion"] = false, --Enable/Disable - on a hit even by a bomblet it can do extra damage AND/OR scan around the unit to deal damage with additional explosions of the power set in the cluster table
-    ["CBU_Bomblet_Hit_Explosion_Scaling"] = 1, --Multiplier for the bomblet damage in the explTable
+    ["CBU_Bomblet_Hit_Explosion_Scaling"] = 1, --Overall Multiplier for the final bomblet damage result
     ["CBU_Bomblet_Hit_Mimic_Spread"] = true, --Enable/Disable - Mimic spread of clusterbomb warheads by scanning an area around the target that was hit and triggering an explosion against any unit or structure (unitIds can only be hit once by this weaponid)
     ["CBU_Bomblet_Hit_Spread"] = 20, --Scan radius m to look for units to hit
     ["CBU_Bomblet_Hit_Spread_SecondaryScan"] = 20, --Scan radius m to look for units to hit
-    ["CBU_Bomblet_Hit_Spread_Duration"] = 2, --Schedule additional unit explosions over this many seconds
+    ["CBU_Bomblet_Hit_Spread_Duration"] = 4, --Schedule additional unit explosions over this many seconds
     ["CBU_Bomblet_Hit_OriginUnit_Twice"] = false, --Do you want to hit the unit that DCS already hit again with a boosted bomblet explosion?
+    ["CBU_Bomblet_NonArmored_Dmg_Modifier"] = 1.0, --Multiplier damage for NonArmored units (e.g., Infantry, trucks), vulnerable to bomblets
+    ["CBU_Bomblet_LightlyArmored_Dmg_Modifier"] = 0.8, --Multiplier damage for LightlyArmored units. 0.3 = 30% of damage (e.g., BTR-80, ZSU-23-4, moderately vulnerable (e.g., BLU-97B, PTAB-10-5)
+    ["CBU_Bomblet_Armored_Dmg_Modifier"] = 0.3, --Multiplier for damage for Armored units. 0.3 = 30% of damage (e.g., T-90, BMP-3), highly resistant (e.g., Mk 118, HEAT)
+    ["CBU_Bomblet_Hit_Chance"] = 0.7, --Chance that a unit gets hit.  0.7 = 70%.  If there are 10 units found in the area, 7 out of 10 would be hit.
+    ["CBU_Bomblet_Indirect_Hit_Chance"] = 0.3, --Chance that the direct hit was actually indirect or less critical, 0.5% = 50% chance
+    ["CBU_Bomblet_Indirect_Dmg_Modifier"] = 0.5, --Multiplier for if its an indirect or less critical hit 0.5 = 50% reduction
+	
     ---------------------------------------------------------------------- Strobe Marker ---------------------------------------------------------	
     ["StrobeMarker_enabled"] = false, --Enable/Disable Strobe Marker - spawns a tiny explosion above a unit with "Strobe" in its name
     ["StrobeMarker_interval"] = 3, --Interval in seconds for Strobe Marker explosions
@@ -907,35 +915,47 @@ napalm_unitcat_tabl = {
 
 --Table for cluster submunitions
 clusterSubMunTable = {
-    ["Mk 118"] = { explosive = 2 }, --Rockeye/CBU99
-    ["BLU-97B"] = { explosive = 4.3 }, --CBU_87/CBU_103
-    ["BLU-97/B"] = { explosive = 4.3 }, --AGM 154s
- --   ["BLU-108"] = { explosive = 9.0 }, --CBU_97/CBU_105  **DISABLED DUE TO BEING AFFECTIVE ALREADY**
-    ["AO-2-5"] = { explosive = 2.5 }, --RBK_500AO
-    ["BLU-3"] = { explosive = 1 }, --Heatblur F4 BLU-3_GROUP
-    ["BLU-3B"] = { explosive = 1 }, --Heatblur F4
-    ["BLU-4B"] = { explosive = 1 }, --Heatblur F4
-    ["HEAT"] = { explosive = 1.5 }, --BL_755
-    ["MJ2"] = { explosive = 1 }, --Mjolnir
-    ["MJ1"] = { explosive = 1 }, --Gripen/DWS Mjolnir
-    ["GR_66_AC"] = { explosive = 1 }, --BL66_BELOUGA
-    ["9N235"] = { explosive = 1.85 }, --sMERCH 9m55K
-    ["GB-06"] = { explosive = 2 }, --GB6 glide bomb
-    ["SD-10A"] = { explosive = 1 }, --WW2 German cluster/AB_500_1_SD_10A
-    ["PTAB-2.5KO"] = { explosive = 1 }, --PBKF - 12 x PTAB-2.5KO
-    ["PTAB-10-5"] = { explosive = 2.5 }, --RBK_500AO
-    ["OAB-2-5RT"] = { explosive = 1 }, --RBK_500U_OAB_2_5RT
-    ["AO-1SCh"] = { explosive = 1 }, --RBK_250_275_AO_1SCH
-    ["MM-06"] = { explosive = 1.5 }, --GB-6-SFW
-    ["BETAB-M"] = { explosive = 5.0 }, --RBK_500U_BETAB_M
-    ["MJ1-MJ2"] = { explosive = 1 }, --BK90_MJ1_MJ2
-    ["BLU-61"] = { explosive = 1 }, --CBU_52B
-    ["BLG-66 AC"] = { explosive = 1 }, --BLG66
-    ["PTAB-2-5"] = { explosive = 1 }, --KMGU_2_PTAB_2_5KO
-    ["AO-2.5RT"] = { explosive = 1 }, --BKF_AO2_5RT
-    ["M77"] = { explosive = 1 }, --M26
-    ["SD-2"] = { explosive = 1 }, --AB_250_2_SD_2
-    ["BLG-66 EG"] = { explosive = 1 }, --BLG66_EG
+    ["Mk 118"] = { explosive = 2 }, --Rockeye/CBU99, 247 bomblets, 0.18 kg TNT, expected to damage: infantry, light vehicles, light armor (up to ~190 mm penetration)
+    ["BLU-97B"] = { explosive = 3 }, --CBU_87/CBU_103, 202 bomblets, 0.45 kg TNT, expected to damage: infantry, light vehicles, light to medium armor, soft structures
+    ["BLU-97/B"] = { explosive = 3 }, --AGM 154s, variable bomblets, 0.45 kg TNT, expected to damage: infantry, light vehicles, light to medium armor, soft structures
+    --["BLU-108"] = { explosive = 9.0 }, --CBU_97/CBU_105, 40 bomblets, 3.4 kg TNT, expected to damage: medium to heavy armor, vehicles, fortifications **DISABLED DUE TO BEING AFFECTIVE ALREADY**
+    ["AO-2-5"] = { explosive = 2.5 }, --RBK_500AO, 96 bomblets, 0.37 kg TNT, expected to damage: infantry, light vehicles, light armor
+    ["BLU-3"] = { explosive = 1 }, --Heatblur F4 BLU-3_GROUP, 426 bomblets, 0.08 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["BLU-3B"] = { explosive = 1 }, --Heatblur F4, 426 bomblets, 0.08 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["BLU-4B"] = { explosive = 1 }, --Heatblur F4, 96 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["HEAT"] = { explosive = 1.5 }, --BL_755, 147 bomblets, 0.6 kg TNT, expected to damage: infantry, light vehicles, light to medium armor
+    ["MJ2"] = { explosive = 1 }, --Mjolnir, 72 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["MJ1"] = { explosive = 1 }, --Gripen/DWS Mjolnir, 72 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["GR_66_AC"] = { explosive = 1 }, --BL66_BELOUGA, 49 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["9N235"] = { explosive = 1.85 }, --sMERCH 9m55K, 30 bomblets, 0.18 kg TNT, expected to damage: infantry, light vehicles, light armor
+    ["GB-06"] = { explosive = 2 }, --GB6 glide bomb, variable bomblets, 0.3 kg TNT, expected to damage: infantry, light vehicles, light armor
+    ["SD-10A"] = { explosive = 1 }, --WW2 German cluster/AB_500_1_SD_10A, 78 bomblets, 0.07 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["PTAB-2.5KO"] = { explosive = 1 }, --PBKF - 12 x PTAB-2.5KO, 12 bomblets, 0.25 kg TNT, expected to damage: infantry, light vehicles, light armor
+    ["PTAB-10-5"] = { explosive = 2.5 }, --RBK_500AO, 96 bomblets, 0.5 kg TNT, expected to damage: infantry, light vehicles, light to medium armor
+    ["OAB-2-5RT"] = { explosive = 1 }, --RBK_500U_OAB_2_5RT, 126 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["AO-1SCh"] = { explosive = 1 }, --RBK_250_275_AO_1SCH, 275 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["MM-06"] = { explosive = 1.5 }, --GB-6-SFW, variable bomblets, 0.3 kg TNT, expected to damage: infantry, light vehicles, light armor
+    ["BETAB-M"] = { explosive = 5.0 }, --RBK_500U_BETAB_M, 25 bomblets, 0.76 kg TNT, expected to damage: medium armor, fortifications, concrete structures
+    ["MJ1-MJ2"] = { explosive = 1 }, --BK90_MJ1_MJ2, 72 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["BLU-61"] = { explosive = 1 }, --CBU_52B, 72 bomblets, 0.12 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["BLG-66 AC"] = { explosive = 1 }, --BLG66, 49 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["PTAB-2-5"] = { explosive = 1 }, --KMGU_2_PTAB_2_5KO, 96 bomblets, 0.25 kg TNT, expected to damage: infantry, light vehicles, light armor
+    ["AO-2.5RT"] = { explosive = 1 }, --BKF_AO2_5RT, 126 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["M77"] = { explosive = 1 }, --M26, 600 bomblets, 0.09 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["SD-2"] = { explosive = 1 }, --AB_250_2_SD_2, 140 bomblets, 0.06 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+    ["BLG-66 EG"] = { explosive = 1 }, --BLG66_EG, 49 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
+}
+
+unitTypeTable = {
+    ["Infantry"] = { damageModifier = 1.0 }, -- Unarmored, highly vulnerable to explosives and napalm
+    ["Tank"] = { damageModifier = 0.3 }, -- Heavy armor, resistant to most bomblets and napalm
+    ["Artillery"] = { damageModifier = 0.5 }, -- Moderate armor, vulnerable to precise hits
+    ["Armored Vehicle"] = { damageModifier = 0.4 }, -- Light to medium armor, moderately resistant
+    ["Anti-Air"] = { damageModifier = 0.5 }, -- Light armor, exposed systems vulnerable
+    ["Helicopter"] = { damageModifier = 0.6 }, -- Lightly armored, susceptible to fire and shrapnel
+    ["Airplane"] = { damageModifier = 0.5 }, -- Grounded, moderate resilience but vulnerable to fire
+    ["Structure"] = { damageModifier = 0.8 }, -- Varies, but often vulnerable to sustained damage (e.g., napalm, BETAB-M)
+    ["Unarmored Vehicle"] = { damageModifier = 0.9 }, -- Soft-skinned, highly vulnerable to explosives
 }
 
 --Unit types eligible for Trophy APS
@@ -943,7 +963,6 @@ local TrophyAllUnitType = {
     --["M-1 Abrams"] = true,    --Example unit, uncomment to enable Trophy APS for all M1A2 Abrams units as opposed to only name searching.  You can add units too.
 }
 
---Weapons to be tracked by script and max range to be tracked from
 --Weapons to be tracked by script and max range to be tracked from
 local trophyWeapons = {
     --For weapon types: typeName:gsub("^weapons%.missiles%.", ""):gsub("^weapons%.nurs%.", ""), other types not supported in code currently. shells were too fast.
@@ -1751,7 +1770,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex)
     end
 
     local isAllUnitsVehicle = not cargoUnits[unitType] and splash_damage_options.smokeandcookoffeffectallvehicles
-    if isAllUnitsVehicle and math.random() > (splash_damage_options.allunits_cookoff_chance or 1) then
+    if isAllUnitsVehicle and math.random() < (splash_damage_options.allunits_cookoff_chance or 1) then
         debugCargoCookOff("scheduleCargoEffects: Skipped cook-off effects for all-units unit ID " .. tostring(unitID) .. " due to allunits_cookoff_chance (" .. (splash_damage_options.allunits_cookoff_chance or 1) .. ")")
         cargoData.cookOff = false
     end
@@ -4128,7 +4147,7 @@ function CriticalComponent(coords, weaponName, initiator, unitName, unitID, unit
         end
     end
     local chance = splash_damage_options.CriticalComponent_Chance or 0.1
-    if math.random() > chance then
+    if math.random() >= chance then
         if splash_damage_options.CriticalComponent_debug then
             env.info("CriticalComponent: Chance check failed")
         end
@@ -4559,10 +4578,29 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
     end
     local explosionPower = (submunitionPower or 1) * splash_damage_options.CBU_Bomblet_Hit_Explosion_Scaling * splash_damage_options.overall_scaling
     local key = unitID .. "-" .. weaponID
+    local explosionHeight = splash_damage_options.CBU_Bomblet_Explosion_Height or 1.6 -- Default to 1.6m
+    local adjustedCoords = { x = coords.x, y = land.getHeight({x = coords.x, z = coords.z}) + explosionHeight, z = coords.z }
     if splash_damage_options.CBU_Bomblet_Hit_OriginUnit_Twice then
-        debugCBUBombletHit("CBUBomblet: Triggering explosion for unit " .. unitName .. " (ID: " .. unitID .. ") at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. explosionPower .. " due to weapon " .. weaponName)
-        trigger.action.explosion(coords, explosionPower)
-        cbuProcessed[key] = true
+        if math.random() <= splash_damage_options.CBU_Bomblet_Hit_Chance then
+            local isIndirect = math.random() < splash_damage_options.CBU_Bomblet_Indirect_Hit_Chance
+            local indirectMod = isIndirect and splash_damage_options.CBU_Bomblet_Indirect_Dmg_Modifier or 1.0
+            local armorMod = 1.0
+            local unit = Unit.getByName(unitName) or StaticObject.getByName(unitName)
+            if unit then
+                local unitAttrs = unit:getDesc().attributes
+                if unitAttrs["NonArmoredUnits"] then
+                    armorMod = splash_damage_options.CBU_Bomblet_NonArmored_Dmg_Modifier
+                elseif unitAttrs["LightArmoredUnits"] or unitAttrs["NonAndLightArmoredUnits"] then
+                    armorMod = splash_damage_options.CBU_Bomblet_LightlyArmored_Dmg_Modifier
+                elseif unitAttrs["ArmoredUnits"] or unitAttrs["Tanks"] then
+                    armorMod = splash_damage_options.CBU_Bomblet_Armored_Dmg_Modifier
+                end
+            end
+            local finalPower = explosionPower * indirectMod * armorMod
+            debugCBUBombletHit("CBUBomblet: Triggering explosion for unit " .. unitName .. " (ID: " .. unitID .. ") at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. finalPower .. " due to weapon " .. weaponName)
+            cbuProcessed[key] = true
+            trigger.action.explosion(adjustedCoords, finalPower)
+        end
     end
 
     --Mimic spread if enabled
@@ -4573,7 +4611,7 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
         local volS = {
             id = world.VolumeType.SPHERE,
             params = {
-                point = coords,
+                point = adjustedCoords,
                 radius = scanRadius
             }
         }
@@ -4585,10 +4623,11 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
             local targetUnitType = safeGet(function() return obj:getTypeName() end, "unknown")
             local targetCoords = safeGet(function() return obj:getPosition().p end, nil)
             local targetHealth = safeGet(function() return obj:getLife() end, 0)
+            local targetAttrs = safeGet(function() return obj:getDesc().attributes end, {})
             if targetUnitID ~= "unavailable" and targetCoords and not seenUnitIDs[targetUnitID] then
                 seenUnitIDs[targetUnitID] = true
                 local distance = math.sqrt((coords.x - targetCoords.x)^2 + (coords.z - targetCoords.z)^2)
-                table.insert(foundUnits, {id = targetUnitID, name = targetUnitName, type = targetUnitType, coords = targetCoords, health = targetHealth, distance = distance})
+                table.insert(foundUnits, {id = targetUnitID, name = targetUnitName, type = targetUnitType, coords = targetCoords, health = targetHealth, distance = distance, attributes = targetAttrs})
             end
         end
         debugCBUBombletHit("Primary scan for objects within " .. scanRadius .. "m radius")
@@ -4624,12 +4663,37 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
         for i, unit in ipairs(foundUnits) do
             local key = unit.id .. "-" .. weaponID
             if not cbuProcessed[key] then
-                cbuProcessed[key] = true
-                local delay = (i - 1) * (spreadDuration / math.max(1, #foundUnits)) --Evenly spread over duration
-                timer.scheduleFunction(function()
-                    debugCBUBombletHit("CBUBomblet: Spread explosion for unit " .. unit.name .. " (ID: " .. unit.id .. ") at X: " .. unit.coords.x .. ", Y: " .. unit.coords.y .. ", Z: " .. unit.coords.z .. " with power " .. explosionPower .. " due to weapon " .. weaponName)
-                    trigger.action.explosion(unit.coords, explosionPower)
-                end, {}, timer.getTime() + delay)
+                if math.random() <= splash_damage_options.CBU_Bomblet_Hit_Chance then
+                    debugCBUBombletHit("CBUBomblet: hit chance passed (70%) for unit " .. unit.name .. " (ID: " .. unit.id .. ")")
+                    local isIndirect = math.random() < splash_damage_options.CBU_Bomblet_Indirect_Hit_Chance
+                    local indirectMod = isIndirect and splash_damage_options.CBU_Bomblet_Indirect_Dmg_Modifier or 1.0
+                    debugCBUBombletHit("CBUBomblet: Indirect hit check: " .. (isIndirect and "Indirect (by def 30% chance, 50% damage)" or "Direct (100% damage)") .. " for spread unit " .. unit.name)
+                    local armorMod = 1.0
+                    local armorType = "Unknown"
+                    if unit.attributes["NonArmoredUnits"] then
+                        armorMod = splash_damage_options.CBU_Bomblet_NonArmored_Dmg_Modifier
+                        armorType = "NonArmored"
+                    elseif unit.attributes["LightArmoredUnits"] or unit.attributes["NonAndLightArmoredUnits"] then
+                        armorMod = splash_damage_options.CBU_Bomblet_LightlyArmored_Dmg_Modifier
+                        armorType = "LightlyArmored"
+                    elseif unit.attributes["ArmoredUnits"] or unit.attributes["Tanks"] then
+                        armorMod = splash_damage_options.CBU_Bomblet_Armored_Dmg_Modifier
+                        armorType = "Armored"
+                    end
+                    debugCBUBombletHit("CBUBomblet: unit " .. unit.name .. " identified as " .. armorType .. " with armor modifier " .. armorMod)
+                    local finalPower = explosionPower * indirectMod * armorMod
+                    cbuProcessed[key] = true
+                local adjustedUnitCoords = { x = unit.coords.x, y = land.getHeight({x = unit.coords.x, z = unit.coords.z}) + explosionHeight, z = unit.coords.z }
+                    local delay = (i - 1) * (spreadDuration / math.max(1, #foundUnits)) --Evenly spread over duration
+                debugCBUBombletHit("CBUBomblet: Scheduling spread explosion for unit " .. unit.name .. " (ID: " .. unit.id .. ") at X: " .. adjustedUnitCoords.x .. ", Y: " .. adjustedUnitCoords.y .. ", Z: " .. adjustedUnitCoords.z .. " with final power " .. finalPower .. " (indirectMod: " .. indirectMod .. ", armorMod: " .. armorMod .. ") in " .. string.format("%.2f", delay) .. "s")
+                    timer.scheduleFunction(function()
+                    debugCBUBombletHit("CBUBomblet: Spread explosion triggered for unit " .. unit.name .. " (ID: " .. unit.id .. ") at X: " .. adjustedUnitCoords.x .. ", Y: " .. adjustedUnitCoords.y .. ", Z: " .. adjustedUnitCoords.z .. " with power " .. finalPower .. " due to weapon " .. weaponName)
+                        trigger.action.explosion(unit.coords, finalPower)
+                    end, {name = unit.name, id = unit.id, coords = unit.coords}, timer.getTime() + delay)
+                else
+					cbuProcessed[key] = true
+                    debugCBUBombletHit("CBUBomblet: Hit chance failed for spread unit " .. unit.name .. " (ID: " .. unit.id .. "), skipping explosion")
+                end
             end
         end
 
@@ -5322,6 +5386,11 @@ function logEvent(eventName, eventData)
                 unitName = safeGet(function() return unit:getName() end, "unknown")
                 unitType = safeGet(function() return unit:getTypeName() end, "unknown")
                 unitPosition = initiatorPosition or "unavailable"
+            rawCoords = unitPosition ~= "unavailable" and {
+                x = tonumber(unitPosition:match("x=(.-),")) or 0,
+                y = tonumber(unitPosition:match("y=(.-),")) or 0,
+                z = tonumber(unitPosition:match("z=(.-)$")) or 0
+            } or {x = 0, y = 0, z = 0}
                 unitLife = safeGet(function() return unit:getLife() end, 0)
                 maxHealth = safeGet(function() return unit:getDesc().life end, 1)
             end
@@ -5462,82 +5531,103 @@ function logEvent(eventName, eventData)
         end
     end
 
-    --Process GU_Explode_on_Death for ground units
-    if splash_damage_options.GU_Explode_on_Death and eventName == "HIT" then
-        local unit, unitID, unitName, unitType, unitPosition, rawCoords, unitCategory
-        local status, err = pcall(function()
-            unit = eventData.target
-            unitID = safeGet(function() return unit:getID() end, "unavailable")
-            unitName = safeGet(function() return unit:getName() end, "unknown")
-            unitType = safeGet(function() return unit:getTypeName() end, "unknown")
-            unitCategory = safeGet(function() return unit:getDesc().category end, "unknown")
-            unitPosition = safeGet(function()
-                local pos = unit:getPosition().p
-                return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
-            end, "unavailable")
-            rawCoords = safeGet(function()
-                local pos = unit:getPosition().p
-                return {x = pos.x, y = pos.y, z = pos.z}
-            end, {x = 0, y = 0, z = 0})
-        end)
-        if not status and splash_damage_options.GU_Explode_debug then
-            env.info("GU_Explode_on_Death: Error extracting unit data for HIT event: " .. tostring(err))
-        end
-        if unitID ~= "unavailable" and type(unitName) == "string" and unitCategory == Unit.Category.GROUND_UNIT and not safeGet(function() return unit:hasAttribute("Infantry") end, false) then
-            if not processedUnitsGlobal then processedUnitsGlobal = {} end
-            if not GUProcessedUnits then GUProcessedUnits = {} end
-            if processedUnitsGlobal[unitID] or GUProcessedUnits[unitID] then
-                if splash_damage_options.GU_Explode_debug then
-                    env.info("GU_Explode_on_Death: Unit ID " .. unitID .. " (" .. unitName .. ") already processed in global or GU table, skipping")
-                end
-            else
-                local function checkUnitStatus(params)
-                    if processedUnitsGlobal[params.id] or GUProcessedUnits[params.id] then
-                        if splash_damage_options.GU_Explode_debug then
-                            env.info("GU_Explode_on_Death: Unit ID " .. params.id .. " (" .. params.name .. ") already processed after 0.1s check, skipping")
+
+
+--Process GU_Explode_on_Death for ground units
+if splash_damage_options.GU_Explode_on_Death then
+    local unit, unitID, unitName, unitType, unitPosition, rawCoords, unitCategory
+    local status, err = pcall(function()
+        unit = eventData.target
+        unitID = safeGet(function() return unit:getID() end, "unavailable")
+        unitName = safeGet(function() return unit:getName() end, "unknown")
+        unitType = safeGet(function() return unit:getTypeName() end, "unknown")
+        unitCategory = safeGet(function() return unit:getDesc().category end, "unknown")
+        unitPosition = safeGet(function()
+            local pos = unit:getPosition().p
+            return string.format("x=%.0f, y=%.0f, z=%.0f", pos.x, pos.y, pos.z)
+        end, "unavailable")
+        rawCoords = safeGet(function()
+            local pos = unit:getPosition().p
+            return {x = pos.x, y = pos.y, z = pos.z}
+        end, {x = 0, y = 0, z = 0})
+    end)
+    if not status and splash_damage_options.GU_Explode_debug then
+        env.info("GU_Explode_on_Death: Error extracting unit data for " .. eventName .. " event: " .. tostring(err))
+    end
+    local isInfantry = safeGet(function() return unit:hasAttribute("Infantry") end, false)
+    if unitID ~= "unavailable" and type(unitName) == "string" and unitCategory == Unit.Category.GROUND_UNIT and (not splash_damage_options.GU_Explode_Exclude_Infantry or not isInfantry) then
+        if not processedUnitsGlobal then processedUnitsGlobal = {} end
+        if not GUProcessedUnits then GUProcessedUnits = {} end
+        if processedUnitsGlobal[unitID] or GUProcessedUnits[unitID] then
+            if splash_damage_options.GU_Explode_debug then
+                env.info("GU_Explode_on_Death: Unit ID " .. unitID .. " (" .. unitName .. ") already processed in global or GU table, skipping")
+            end
+        else
+            local function checkUnitStatus(params)
+                if processedUnitsGlobal[params.id] or GUProcessedUnits[params.id] then
+                    if splash_damage_options.GU_Explode_debug then
+                        env.info("GU_Explode_on_Death: Unit ID " .. params.id .. " (" .. params.name .. ") already processed after 0.1s check, skipping")
+                    end
+                else
+                    local u = Unit.getByName(params.name)
+                    local isAlive = u and u:isExist() and safeGet(function() return u:getLife() end, 0) > 0
+                    if splash_damage_options.GU_Explode_debug then
+                        env.info("GU_Explode_on_Death: Checking unit " .. params.name .. " (ID: " .. params.id .. ") after 0.1s, alive: " .. tostring(isAlive))
+                    end
+                    if not isAlive then
+                        GUProcessedUnits[params.id] = {
+                            id = params.id,
+                            name = params.name,
+                            type = params.type,
+                            position = params.position,
+                            life = 0,
+                            event = params.event,
+                            time = timer.getTime()
+                        }
+                        if params.coords.x == 0 and params.coords.z == 0 then
+                            if splash_damage_options.GU_Explode_debug then
+                                env.info("GU_Explode_on_Death: Invalid coordinates for unit " .. params.name .. " (ID: " .. params.id .. "), skipping explosion")
+                            end
+                            return
                         end
-                    else
-                        local u = Unit.getByName(params.name)
-                        local isAlive = u and u:isExist() and safeGet(function() return u:getLife() end, 0) > 0
-                        if splash_damage_options.GU_Explode_debug then
-                            env.info("GU_Explode_on_Death: Checking unit " .. params.name .. " (ID: " .. params.id .. ") after 0.1s, alive: " .. tostring(isAlive))
-                        end
-                        if not isAlive then
-                            GUProcessedUnits[params.id] = {
-                                id = params.id,
-                                name = params.name,
-                                type = params.type,
-                                position = params.position,
-                                life = 0,
-                                event = "HIT",
-                                time = timer.getTime()
-                            }
-                            if math.random() <= splash_damage_options.GU_Explode_on_Death_Chance then
-                                local explosionCoords = {x = params.coords.x, y = land.getHeight({x = params.coords.x, y = params.coords.z}) + splash_damage_options.GU_Explode_on_Death_Height, z = params.coords.z}
-                                trigger.action.explosion(explosionCoords, splash_damage_options.GU_Explode_on_Death_Explosion_Power)
-                                if splash_damage_options.GU_Explode_debug then
-                                    env.info("GU_Explode_on_Death: Triggered explosion for unit " .. params.name .. " (ID: " .. params.id .. ") at X: " .. params.coords.x .. ", Z: " .. params.coords.z .. " with power " .. splash_damage_options.GU_Explode_on_Death_Explosion_Power)
-                                end
-                            else
-                                if splash_damage_options.GU_Explode_debug then
-                                    env.info("GU_Explode_on_Death: Chance check failed for unit " .. params.name .. " (ID: " .. params.id .. ")")
-                                end
+                        if math.random() <= splash_damage_options.GU_Explode_on_Death_Chance then
+                            local explosionCoords = {x = params.coords.x, y = land.getHeight({x = params.coords.x, z = params.coords.z}) + splash_damage_options.GU_Explode_on_Death_Height, z = params.coords.z}
+                            trigger.action.explosion(explosionCoords, splash_damage_options.GU_Explode_on_Death_Explosion_Power)
+                            if splash_damage_options.GU_Explode_debug then
+                                env.info("GU_Explode_on_Death: Triggered explosion for unit " .. params.name .. " (ID: " .. params.id .. ") at X: " .. params.coords.x .. ", Z: " .. params.coords.z .. " with power " .. splash_damage_options.GU_Explode_on_Death_Explosion_Power)
+                            end
+                        else
+                            if splash_damage_options.GU_Explode_debug then
+                                env.info("GU_Explode_on_Death: Chance check failed for unit " .. params.name .. " (ID: " .. params.id .. ")")
                             end
                         end
                     end
                 end
+            end
+            if eventName == "HIT" then
                 timer.scheduleFunction(checkUnitStatus, {
                     id = unitID,
                     name = unitName,
                     type = unitType,
                     position = unitPosition,
-                    coords = rawCoords
+                    coords = rawCoords,
+                    event = "HIT"
                 }, timer.getTime() + 0.1)
+            elseif eventName == "DEAD" then
+                checkUnitStatus({
+                    id = unitID,
+                    name = unitName,
+                    type = unitType,
+                    position = unitPosition,
+                    coords = rawCoords,
+                    event = "DEAD"
+                })
             end
-        elseif splash_damage_options.GU_Explode_debug then
-            env.info("GU_Explode_on_Death: Skipping non-ground unit or invalid unit (ID: " .. tostring(unitID) .. ", Name: " .. tostring(unitName) .. ")")
         end
+    elseif splash_damage_options.GU_Explode_debug then
+        env.info("GU_Explode_on_Death: Skipping non-ground unit, invalid unit, or excluded infantry (ID: " .. tostring(unitID) .. ", Name: " .. tostring(unitName) .. ")")
     end
+end
 
     --CBU Bomblet Hit Explosion handling
     if splash_damage_options.CBU_Bomblet_Hit_Explosion and eventName == "HIT" and eventData.initiator and eventData.target and eventData.weapon then
