@@ -13,11 +13,9 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 TO DO: 
 Before 3.4 release -
 
-figure out cluster bomb to splash cookoff, cookoffs not picking up dead events properly? check with eventlog debug on
 
 test splash/cookoffs again + on moving vehicles and killfeed integration
 Clusterbomb killfeed test again
-cluster bomb video
 
 test trophy 1.1 changes
 
@@ -58,6 +56,7 @@ review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STR
 			- Not good: Not visible in IR, audible explosions if you're close to the unit
 	  - New trigger for cookoff - Cookoff with the allunits settings can be enabled for specific units by the having "CargoCookoffTarget" in the name
 	  - Reworked how cookoff works, cookoffs will now follow a moving vehicle as it travels instead of just going off where it was.  Flames/smoke will trigger when the vehicle stops.
+			- You can have a chance of cookoff, smoke with a cookoff and also a chance of smoke only 
 	  - Effects (i.e cookoff) no longer only bound by damage from tracked weapons.  Gun cannon kills will now count!			
 
 	  
@@ -158,8 +157,9 @@ splash_damage_options = {
     ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
     ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
-    ["allunits_cookoff_chance"] = 0.5, -- Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
-	
+    ["allunits_cookoff_chance"] = 0.5, --Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
+    ["allunits_smokewithcookoff"] = true, --Trigger smoke along with cookoff
+    ["allunits_smoke_chance"] = 1, -- Chance of smoke effect if there is no cookoff
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
     ["ordnance_protection_radius"] = 20, --Distance in meters to protect nearby bombs
@@ -1767,17 +1767,24 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
     debugCargoCookOff("Using cargoData for unitType " .. unitType .. ": cookOff=" .. tostring(cargoData.cookOff))
 
 
-    --Handle cook-off for non-cargo units under smokeandcookoffeffectallvehicles
+    --Handle cook-off and smoke for non-cargo units under smokeandcookoffeffectallvehicles
     local isAllUnitsVehicle = not cargoUnits[unitType] and splash_damage_options.smokeandcookoffeffectallvehicles
     if isAllUnitsVehicle then
         local cookoffChance = splash_damage_options.allunits_cookoff_chance or 1
-        if math.random() > cookoffChance then
-            debugCargoCookOff("scheduleCargoEffects: Skipped cook-off effects for all-units unit ID " .. tostring(unitID) .. " due to allunits_cookoff_chance (" .. cookoffChance .. ")")
-            --cargoData.cookOff = false
-			return
-			
-        else
+        if splash_damage_options.allunits_enable_cookoff and math.random() <= cookoffChance then
             debugCargoCookOff("scheduleCargoEffects: Triggering cook-off effects for all-units unit ID " .. tostring(unitID) .. " with allunits_cookoff_chance (" .. cookoffChance .. ")")
+            cargoData.cookOff = true
+            --Set smoke flag if smokewithcookoff is enabled
+            cargoData.isTanker = splash_damage_options.allunits_enable_smoke and splash_damage_options.allunits_smokewithcookoff
+        else
+            debugCargoCookOff("scheduleCargoEffects: Skipped cook-off effects for all-units unit ID " .. tostring(unitID) .. " due to allunits_cookoff_chance (" .. cookoffChance .. ")")
+            cargoData.cookOff = false
+            --Check smoke chance if no cook-off
+            cargoData.isTanker = splash_damage_options.allunits_enable_smoke and math.random() <= splash_damage_options.allunits_smoke_chance
+            if not cargoData.isTanker then
+                debugCargoCookOff("scheduleCargoEffects: Skipped smoke effects for unit ID " .. tostring(unitID) .. " due to allunits_smoke_chance (" .. splash_damage_options.allunits_smoke_chance .. ")")
+                return
+            end
         end
     end
 
@@ -1893,7 +1900,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
     cargoEffectsQueue = {}
 
     --Handle smoke spawning
-    if splash_damage_options.allunits_enable_smoke and entry and not processedSmoke[unitID] then
+    if effect.isTanker and entry and not processedSmoke[unitID] then
         local terrainHeight = land.getHeight({x = effect.coords.x, y = effect.coords.z})
         local adjustedCoords = {x = effect.coords.x, y = terrainHeight + 2, z = effect.coords.z}
         if fromDeadEvent then
@@ -1958,6 +1965,8 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
         end
     end
 end
+
+
 
 --Function to check if a weapon is in the Trophy APS target list
 local function isTrophyWeapon(weaponName)
@@ -5714,7 +5723,6 @@ function logEvent(eventName, eventData)
 	
 	
 	
-    end
 end
 
 
