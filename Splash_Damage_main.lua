@@ -150,6 +150,7 @@ splash_damage_options = {
     ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
     ["allunits_enable_smoke"] = true, -- Enable /disable smoke effects if smokeandcookoffeffectallvehicles is true
     ["allunits_enable_cookoff"] = true, -- Enable /disable cookoffs if smokeandcookoffeffectallvehicles is true
+    ["allunits_damage_threshold"] = 10, --Health % below which cargo/smoke attempts to trigger
     ["allunits_explode_power"] = 50, --Initial power of vehicle exploding
     ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
     ["allunits_default_flame_duration"] = 60, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
@@ -160,6 +161,7 @@ splash_damage_options = {
     ["allunits_cookoff_chance"] = 0.5, --Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
     ["allunits_smokewithcookoff"] = true, --Trigger smoke along with cookoff
     ["allunits_smoke_chance"] = 1, -- Chance of smoke effect if there is no cookoff
+    ["allunits_explode_on_smoke_only"], = 1, --If its a smoke only one, add an explosion to finish the vehicle off 
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
     ["ordnance_protection_radius"] = 20, --Distance in meters to protect nearby bombs
@@ -1906,7 +1908,10 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
             -- For DEAD events, spawn smoke immediately without movement tracking
             processedSmoke[unitID] = true
             debugCargoCookOff("Spawning immediate smoke for unit ID " .. tostring(unitID) .. " from DEAD event at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
-            trigger.action.explosion(adjustedCoords, 30)
+            if not effect.cookOff and splash_damage_options.allunits_explode_on_smoke_only == 1 then
+                debugCargoCookOff("Triggering explosion for smoke-only unit ID " .. tostring(unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
+                trigger.action.explosion(adjustedCoords, splash_damage_options.allunits_explode_power)
+            end
             debugCargoCookOff("Triggered additional explosion for unit ID " .. tostring(unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
             trigger.action.effectSmokeBig(adjustedCoords, effect.flameSize or 3, 1.0, effectSmokeId)
             effectSmokeId = effectSmokeId + 1
@@ -1947,7 +1952,10 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                     local terrainHeight = land.getHeight({x = newPos.x, y = newPos.z})
                     local adjustedCoords = {x = newPos.x, y = terrainHeight + 2, z = newPos.z}
                     debugCargoCookOff("Spawning smoke for unit ID " .. tostring(params.unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
-                    trigger.action.explosion(adjustedCoords, 30)
+                    if not params.cookOff and splash_damage_options.allunits_explode_on_smoke_only == 1 then
+                        debugCargoCookOff("Triggering explosion for smoke-only unit ID " .. tostring(params.unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
+                        trigger.action.explosion(adjustedCoords, splash_damage_options.allunits_explode_power)
+                    end
                     debugCargoCookOff("Triggered additional explosion for unit ID " .. tostring(params.unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
                     trigger.action.effectSmokeBig(adjustedCoords, params.flameSize or 3, 1.0, effectSmokeId)
                     effectSmokeId = effectSmokeId + 1
@@ -5616,7 +5624,8 @@ function logEvent(eventName, eventData)
 				if eventName == "HIT" then
 					local healthPercent = maxHealth > 0 and (unitLife / maxHealth * 100) or 0
 					debugCargoCookOff("Unit ID " .. unitID .. " hit, health: " .. unitLife .. "/" .. maxHealth .. " (" .. string.format("%.2f", healthPercent) .. "%)")
-					if healthPercent <= splash_damage_options.cargo_damage_threshold or unitLife <= 0 then
+			            local damageThreshold = isCargoUnit and splash_damage_options.cargo_damage_threshold or splash_damage_options.allunits_damage_threshold
+			            if healthPercent <= damageThreshold or unitLife <= 0 then
 						CargoCookoffPendingTable[unitID] = {
 							id = unitID,
 							name = unitName,
