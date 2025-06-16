@@ -160,8 +160,9 @@ splash_damage_options = {
     ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
     ["allunits_cookoff_chance"] = 0.5, --Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
     ["allunits_smokewithcookoff"] = true, --Trigger smoke along with cookoff
-    ["allunits_smoke_chance"] = 1, -- Chance of smoke effect if there is no cookoff
-    ["allunits_explode_on_smoke_only"], = 1, --If its a smoke only one, add an explosion to finish the vehicle off 
+    ["allunits_smoke_chance"] = 1, --Chance of smoke effect, 1 = 100%, 0.5 = 50%
+    ["allunits_explode_on_smoke_only"] = 1, --If its a smoke only one, add an explosion to finish the vehicle off 
+	
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
     ["ordnance_protection_radius"] = 20, --Distance in meters to protect nearby bombs
