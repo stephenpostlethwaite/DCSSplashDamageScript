@@ -1766,7 +1766,6 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
     cargoData.cookOff = cargoUnits[unitType] and cargoUnits[unitType].cargoCookOff ~= nil and cargoUnits[unitType].cargoCookOff or cargoData.cookOff
     debugCargoCookOff("Using cargoData for unitType " .. unitType .. ": cookOff=" .. tostring(cargoData.cookOff))
 
-
     --Handle cook-off and smoke for non-cargo units under smokeandcookoffeffectallvehicles
     local isAllUnitsVehicle = not cargoUnits[unitType] and splash_damage_options.smokeandcookoffeffectallvehicles
     if isAllUnitsVehicle then
@@ -1774,14 +1773,14 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
         if splash_damage_options.allunits_enable_cookoff and math.random() <= cookoffChance then
             debugCargoCookOff("scheduleCargoEffects: Triggering cook-off effects for all-units unit ID " .. tostring(unitID) .. " with allunits_cookoff_chance (" .. cookoffChance .. ")")
             cargoData.cookOff = true
-            --Set smoke flag if smokewithcookoff is enabled
+    	--Automatically enable smoke if smokewithcookoff is true
             cargoData.isTanker = splash_damage_options.allunits_enable_smoke and splash_damage_options.allunits_smokewithcookoff
         else
             debugCargoCookOff("scheduleCargoEffects: Skipped cook-off effects for all-units unit ID " .. tostring(unitID) .. " due to allunits_cookoff_chance (" .. cookoffChance .. ")")
             cargoData.cookOff = false
             --Check smoke chance if no cook-off
             cargoData.isTanker = splash_damage_options.allunits_enable_smoke and math.random() <= splash_damage_options.allunits_smoke_chance
-            if not cargoData.isTanker then
+            if not cargoData.isTanker and not cargoData.cookOff then
                 debugCargoCookOff("scheduleCargoEffects: Skipped smoke effects for unit ID " .. tostring(unitID) .. " due to allunits_smoke_chance (" .. splash_damage_options.allunits_smoke_chance .. ")")
                 return
             end
