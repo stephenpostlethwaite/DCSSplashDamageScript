@@ -1909,7 +1909,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
             -- For DEAD events, spawn smoke immediately without movement tracking
             processedSmoke[unitID] = true
             debugCargoCookOff("Spawning immediate smoke for unit ID " .. tostring(unitID) .. " from DEAD event at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
-            if not effect.cookOff and splash_damage_options.allunits_explode_on_smoke_only == 1 then
+            if not effect.cookOff and splash_damage_options.allunits_explode_on_smoke_only then
                 debugCargoCookOff("Triggering explosion for smoke-only unit ID " .. tostring(unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
                 trigger.action.explosion(adjustedCoords, splash_damage_options.allunits_explode_power)
             end
