@@ -13,7 +13,8 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 TO DO: 
 Before 3.4 release -
 
-
+check infantry cluster effects
+tactical weapon using similar function to ied vehicle trigger but on weapon trk instead
 test splash/cookoffs again + on moving vehicles and killfeed integration
 Clusterbomb killfeed test again
 
@@ -42,6 +43,7 @@ review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STR
 			- adds a configurable sized explosion to every hit event with the a10 or the named unit with the name MurderMode in it as an initiator
 	  - New Feature: Trophy APS System (disabled by default)
 	  - New Feature: Vehicle IEDs. (disabled by default)  If a unit is called VehicleIEDTarget(*) it will trigger a large explosion
+	  - New Feature: Tactical Explosion, similar to the IED effect but a little bigger and has the ability to be assigned to a weapon in a table or as an override
 	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
 	  - New Feature: Ground Unit Explosion On Death. 
 			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
@@ -54,6 +56,9 @@ review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STR
 			- Generates on an active and living unit with "Strobe" in the name
 			- Good: Visible to eye/FLIR(TV mode)
 			- Not good: Not visible in IR, audible explosions if you're close to the unit
+	  - New Feature: All Unit Cook/off smoke chances and advanced sequences
+			- It's possible to assign a % chance to allunits having smoke/cookoffs
+			- Advanced sequences allow for having multiple smoke/fire sizes of multiple lengths of time - and have smoke for example indefinitely burn
 	  - New trigger for cookoff - Cookoff with the allunits settings can be enabled for specific units by the having "CargoCookoffTarget" in the name
 	  - Reworked how cookoff works, cookoffs will now follow a moving vehicle as it travels instead of just going off where it was.  Flames/smoke will trigger when the vehicle stops.
 			- You can have a chance of cookoff, smoke with a cookoff and also a chance of smoke only 
@@ -130,7 +135,7 @@ splash_damage_options = {
     ["track_pre_explosion"] = true, --Toggle to enable/disable pre-explosion tracking
     ["enable_cargo_effects"] = true, --Toggle for enabling/disabling cargo explosions and cook-offs  
     ["cargo_effects_chance"] = 1, -- Chance of cargo effects occurring. 0.1 = 10%, 1 = 100%
-    ["cargo_damage_threshold"] = 20, --Health % below which cargo explodes (0 = destroyed only)
+    ["cargo_damage_threshold"] = 25, --Health % below which cargo explodes (0 = destroyed only)
     ["debris_effects"] = true, --Enable debris from cargo cook-offs
     ["debris_power"] = 1, --Power of each debris explosion
     ["debris_count_min"] = 6, --Minimum debris pieces per cook-off
@@ -150,18 +155,31 @@ splash_damage_options = {
     ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
     ["allunits_enable_smoke"] = true, -- Enable /disable smoke effects if smokeandcookoffeffectallvehicles is true
     ["allunits_enable_cookoff"] = true, -- Enable /disable cookoffs if smokeandcookoffeffectallvehicles is true
-    ["allunits_damage_threshold"] = 10, --Health % below which cargo/smoke attempts to trigger
-    ["allunits_explode_power"] = 50, --Initial power of vehicle exploding
+    ["allunits_damage_threshold"] = 25, --Health % below which cargo/smoke attempts to trigger
+    ["allunits_explode_power"] = 40, --Initial power of vehicle exploding
     ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
-    ["allunits_default_flame_duration"] = 60, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
+    ["allunits_default_flame_duration"] = 120, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
     ["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
     ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
-    ["allunits_cookoff_chance"] = 0.5, --Chance of cookoff effects occurring for all vehicles. 0.1 = 10%, 1 = 100%
-    ["allunits_smokewithcookoff"] = true, --Trigger smoke along with cookoff
-    ["allunits_smoke_chance"] = 1, --Chance of smoke effect, 1 = 100%, 0.5 = 50%
-    ["allunits_explode_on_smoke_only"] = 1, --If its a smoke only one, add an explosion to finish the vehicle off 
+    ["allunits_cookoff_chance"] = 0.5, --Chance of cookoff effects occurring for all vehicles. 0.6 = 60%, 1 = 100%
+    ["allunits_smokewithcookoff"] = true, --Automatically smoke along with cookoff, or leave it to chance
+    ["allunits_smoke_chance"] = 0.5, --Chance of smoke effect, 1 = 100%, 0.5 = 50%
+    ["allunits_explode_on_smoke_only"] = true, --If its a smoke only effect, add an explosion to finish the vehicle off (allunits_explode_power)
+	
+    ["allunits_advanced_effect_sequence"] = true,  --When set to true, its possible for units to be trigger an advanced effect sequence.  This will take precedence over the standard allunits cookoff. it will ignore the previous settings for smoke/flame size and duration and instead it will let you program a specific sequence of smoke/flame effects
+    ["allunits_advanced_effect_sequence_chance"] = 0, --Chance of the script picking the advanced effect instead of the standard all unit effect. 1 = 100%, 0.5 = 50%
+    ["allunits_advanced_effect_force_on_name"] = true,  --Regardless of chance, if the unit has "SmokeEffects" in its name it will trigger the advanced sequence
+    ["allunits_advanced_effect_order"] = {"3", "2", "7", "6", "5"},  --List of flame and smoke : sizes, 1 = small smoke and fire, 2 = med, 3 = large, 4 = huge.  5 = small smoke only, 6 = medium, 7 = large,  8 = huge 
+    ["allunits_advanced_effect_timing"] = {"10", "30", "90", "120", "99999999"}, --How many seconds per effect in the order config key above
+    ["allunits_advanced_effect_cookoff_chance"] = 1, --Chance of cookoff effects occurring for the advanced effect sequence
+    ["allunits_advanced_effect_cookoff_count"] = 4, --number of cookoff explosions to schedule
+    ["allunits_advanced_effect_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
+    ["allunits_advanced_effect_cookoff_power"] = 10, --power of the cookoff explosions
+    ["allunits_advanced_effect_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
+    ["allunits_advanced_effect_cookoff_flares_enabled"] = true, --Enable or disable phospor like signal flares, number etc taken from cookoff_flare_instant_count
+    ["allunits_advanced_effect_explode_power"] = 40, --Initial power of vehicle exploding
 	
     ---------------------------------------------------------------------- Ordnance Protection  --------------------------------------------------------------	
     ["ordnance_protection"] = true, --Toggle ordinance protection features
@@ -284,7 +302,7 @@ splash_damage_options = {
     ["CriticalComponent_Specific_Weapons_Only"] = {}, -- {} means all weapons.  List of specific weapons to trigger CriticalComponent, i.e {"GAU8_30_HE", "GAU8_30_AP", "GAU8_30_TP"}
 
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
-    ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage
+    ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
     ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
     ["GU_Explode_on_Death_Explosion_Power"] = 50, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
@@ -310,7 +328,19 @@ splash_damage_options = {
     ["StrobeMarker_enabled"] = false, --Enable/Disable Strobe Marker - spawns a tiny explosion above a unit with "Strobe" in its name
     ["StrobeMarker_interval"] = 3, --Interval in seconds for Strobe Marker explosions
 
-	
+	---------------------------------------------------------------------- Tactical Explosion ----------------------------------------------------
+    ["tactical_explosion"] = true, --Enable tactical explosion effects
+    ["tactical_explosion_override_enabled"] = true, --Set this to true to enable override weapons in the key below
+    ["tactical_explosion_override_weapons"] = "Zuni_127,Mk_82,SAMP125LD", --Comma-separated list of weapons to override as tactical explosion
+    ["tactical_explosion_max_height"] = 40, --Max height above ground for tactical explosion to trigger (meters)
+    ["tactical_explosion_scaling"] = 1, --Scaling of explosion powers, counts, radius
+    ["tactical_explosion_central_power"] = 4000, --Power of central explosion
+    ["tactical_explosion_explosion_power"] = 1000, --Base power for secondary explosions
+    ["tactical_explosion_explosion_count_min"] = 35, --Min number of secondary explosions
+    ["tactical_explosion_explosion_count_max"] = 35, --Max number of secondary explosions
+    ["tactical_explosion_radius"] = 100, --Max radius for secondary explosions (meters)
+    ["tactical_explosion_explosion_delay_max"] = 0.4, --Max delay multiplier for secondary explosions
+    ["tactical_explosion_fueltankspawn"] = false, --Spawn a fuel tank at the explosion location for effect/smoke
 }
 
 local script_enable = 1
@@ -1047,6 +1077,14 @@ local trophyWeapons = {
     ["TOW"] = { range = 3750, name = "TOW" }, --TOW missile
 }
 
+--Weapons tracked for tactical uses
+tacticalwpn_tabl = {
+    -- F22 AGM Nuke
+    ["AGM_88G_N_ARM"] = { nuke = 50000 }, -- Anti-radiation nuke (nuke value unused currently)
+	
+}
+
+
 --Ammo tracking table: { unitId = { FR = count, BL = count } }
 local trophyAmmo = {}
 
@@ -1064,6 +1102,7 @@ local HitEventTempTable = {}
 local VehicleIEDPendingTable = {}
 local CargoCookOffPendingTable = {}
 local processedCookoffs = {}
+local tacticalFuelTankSpawnQueue = {}
 
 local fuelTankSpawnQueue = {}
 local lastSpawnTime = 0
@@ -1746,12 +1785,381 @@ end
     ##### End of HELPER/UTILITY FUNCTIONS #####     ##### End of HELPER/UTILITY FUNCTIONS #####     ##### End of HELPER/UTILITY FUNCTIONS #####
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 
+--Function to trigger tactical explosion (like VehicleIEDTrigger)
+function TacticalExplosionTrigger(coords)
+    if not splash_damage_options.tactical_explosion then
+        if splash_damage_options.debug then
+            env.info("TacticalExplosionTrigger: Disabled, skipping explosion at X: " .. (coords.x or "nil") .. ", Y: " .. (coords.y or "nil") .. ", Z: " .. (coords.z or "nil"))
+        end
+        return
+    end
+    if not coords or not coords.x or not coords.y or not coords.z then
+        if splash_damage_options.debug then
+            env.info("TacticalExplosionTrigger: Invalid coordinates, skipping explosion")
+        end
+        return
+    end
+    
+    --Check height above ground
+    local groundHeight = land.getHeight({x = coords.x, y = coords.z})
+    local heightAboveGround = coords.y - groundHeight
+    if heightAboveGround > splash_damage_options.tactical_explosion_max_height then
+        if splash_damage_options.debug then
+            env.info("TacticalExplosionTrigger: Explosion at height " .. heightAboveGround .. "m exceeds max height " .. splash_damage_options.tactical_explosion_max_height .. "m, skipping")
+        end
+        return
+    end
+    
+    local scaling = splash_damage_options.tactical_explosion_scaling or 1
+    if splash_damage_options.debug then
+        env.info("TacticalExplosionTrigger: Processing at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with " .. splash_damage_options.tactical_explosion_explosion_count_max .. " max explosions, central power: " .. (splash_damage_options.tactical_explosion_central_power * scaling) .. ", fuel tank spawn: " .. tostring(splash_damage_options.tactical_explosion_fueltankspawn) .. ", scaling: " .. scaling)
+    end
+
+    --Prepare fuel tank data if spawning is enabled
+    local tacName = "TAC_FuelTank_" .. tostring(timer.getTime())
+    if splash_damage_options.tactical_explosion_fueltankspawn then
+        table.insert(tacticalFuelTankSpawnQueue, {coords = coords, tacName = tacName})
+        if #tacticalFuelTankSpawnQueue == 1 then
+            tacticalExplosionProcessSpawnQueue()
+        end
+    end
+
+    --Generate explosion points
+    local explosionPoints = {}
+    local baseMinCount = splash_damage_options.tactical_explosion_explosion_count_min
+    local baseMaxCount = splash_damage_options.tactical_explosion_explosion_count_max
+    local explosionCount = math.random(math.floor(baseMinCount * scaling), math.floor(baseMaxCount * scaling))
+    if explosionCount > 0 then
+        --Central explosion
+        local centralPoint = {
+            x = coords.x,
+            y = land.getHeight({x = coords.x, y = coords.z}) + 2,
+            z = coords.z
+        }
+        table.insert(explosionPoints, {point = centralPoint, power = splash_damage_options.tactical_explosion_central_power * scaling, delay = 0.01})
+        --Secondary explosions with Gaussian distribution
+        for i = 1, explosionCount do
+            local offsetX = gaussRandom(0, (splash_damage_options.tactical_explosion_radius * scaling) / 3) * (1 + (math.random() - 0.5) * 0.1)
+            local offsetZ = gaussRandom(0, (splash_damage_options.tactical_explosion_radius * scaling) / 3) * (1 + (math.random() - 0.5) * 0.1)
+            local point = {
+                x = coords.x + offsetX,
+                y = land.getHeight({x = coords.x + offsetX, y = coords.z + offsetZ}) + 1.3,
+                z = coords.z + offsetZ
+            }
+            local basePower = splash_damage_options.tactical_explosion_explosion_power
+            local power = (basePower * scaling)
+            local delay = math.random() * splash_damage_options.tactical_explosion_explosion_delay_max
+            table.insert(explosionPoints, {point = point, power = power, delay = delay})
+        end
+    end
+
+    --Trigger explosions
+    if #explosionPoints > 0 then
+        if splash_damage_options.debug then
+            env.info("TacticalExplosionTrigger: Scheduling " .. #explosionPoints .. " explosions")
+        end
+        for i, entry in ipairs(explosionPoints) do
+            if splash_damage_options.debug then
+                env.info("TacticalExplosionTrigger: Scheduling explosion #" .. i .. " at X: " .. entry.point.x .. ", Y: " .. entry.point.y .. ", Z: " .. entry.point.z .. " with power " .. entry.power .. " and delay " .. entry.delay)
+            end
+            timer.scheduleFunction(function(params)
+                if splash_damage_options.debug then
+                    env.info("TacticalExplosionTrigger: Triggering explosion #" .. params[3] .. " at X: " .. params[1].x .. ", Y: " .. params[1].y .. ", Z: " .. params[1].z .. " with power " .. params[2])
+                end
+                trigger.action.explosion(params[1], params[2])
+            end, {entry.point, entry.power, i}, timer.getTime() + entry.delay)
+        end
+    end
+
+    --Trigger blastWave for central explosion
+    local centralPoint = {
+        x = coords.x,
+        y = land.getHeight({x = coords.x, y = coords.z}) + 0.5,
+        z = coords.z
+    }
+    local dynamicRadius = math.pow(splash_damage_options.tactical_explosion_central_power * scaling, 1/3) * 5 * splash_damage_options.dynamic_blast_radius_modifier
+    if splash_damage_options.debug then
+        env.info("TacticalExplosionTrigger: Triggering blastWave at X: " .. centralPoint.x .. ", Y: " .. centralPoint.y .. ", Z: " .. centralPoint.z .. " with power " .. (splash_damage_options.tactical_explosion_central_power * scaling) .. " and dynamic radius " .. dynamicRadius)
+    end
+    timer.scheduleFunction(function(params)
+        blastWave(params[1], params[2], params[3], params[4], params[5])
+    end, {centralPoint, dynamicRadius, "TacticalExplosion", splash_damage_options.tactical_explosion_central_power * scaling, false}, timer.getTime() + 0.4)
+end
+
+--Function to process the spawn queue for tactical explosion fuel tanks (like vehicleIEDprocessSpawnQueue)
+function tacticalExplosionProcessSpawnQueue()
+    if #tacticalFuelTankSpawnQueue == 0 then return end
+
+    local currentTime = timer.getTime()
+    if currentTime < lastSpawnTime + SPAWN_INTERVAL then
+        timer.scheduleFunction(tacticalExplosionProcessSpawnQueue, {}, currentTime + SPAWN_INTERVAL / 2)
+        return
+    end
+
+    local task = table.remove(tacticalFuelTankSpawnQueue, 1)
+    lastSpawnTime = currentTime
+
+    local coords, tacName = task.coords, task.tacName
+    if splash_damage_options.debug then
+        env.info("TacticalExplosionTrigger: Spawning fuel tank at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z)
+    end
+
+    local owngroupID = math.random(9999, 99999)
+    local cvnunitID = math.random(9999, 99999)
+    local _dataFuel = {
+        ["groupId"] = owngroupID,
+        ["category"] = "Fortifications",
+        ["shape_name"] = "toplivo-bak",
+        ["type"] = "Fuel tank",
+        ["unitId"] = cvnunitID,
+        ["rate"] = 100,
+        ["y"] = coords.z,
+        ["x"] = coords.x,
+        ["name"] = tacName,
+        ["heading"] = 0,
+        ["dead"] = false,
+        ["hidden"] = true,
+    }
+
+    --Attempt to spawn at original coordinates
+    _dataFuel.y = coords.z
+    _dataFuel.x = coords.x
+    local spawnY = land.getHeight({x = coords.x, y = coords.z}) + 0.5
+    _dataFuel.position = {x = coords.x, y = spawnY, z = coords.z}
+    local status, result = pcall(function()
+        return coalition.addStaticObject(coalition.side.BLUE, _dataFuel)
+    end)
+    local spawnSuccess = status and result and StaticObject.getByName(tacName) and StaticObject.getByName(tacName):isExist()
+
+    if splash_damage_options.debug then
+        env.info("TacticalExplosionTrigger: Fuel tank spawn attempt at original coords - " .. (spawnSuccess and "succeeded" or "failed"))
+    end
+
+    --Try offset positions if spawn fails
+    if not spawnSuccess then
+        if splash_damage_options.debug then
+            env.info("TacticalExplosionTrigger: Failed to spawn fuel tank at original coords, attempting 1m offsets")
+        end
+        local offsets = {
+            {x = coords.x + 1, z = coords.z},
+            {x = coords.x - 1, z = coords.z},
+            {x = coords.x, z = coords.z + 1},
+            {x = coords.x, z = coords.z - 1}
+        }
+        for i, offset in ipairs(offsets) do
+            _dataFuel.x = offset.x
+            _dataFuel.y = offset.z
+            _dataFuel.position = {x = offset.x, y = land.getHeight({x = offset.x, y = offset.z}) + 0.5, z = offset.z}
+            _dataFuel.name = tacName .. "_offset" .. i
+            status, result = pcall(function()
+                return coalition.addStaticObject(coalition.side.BLUE, _dataFuel)
+            end)
+            spawnSuccess = status and result and StaticObject.getByName(_dataFuel.name) and StaticObject.getByName(_dataFuel.name):isExist()
+            if spawnSuccess then
+                coords.x = offset.x
+                coords.z = offset.z
+                tacName = _dataFuel.name
+                if splash_damage_options.debug then
+                    env.info("TacticalExplosionTrigger: Successfully spawned fuel tank at offset #" .. i .. " (X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. ")")
+                end
+                break
+            end
+        end
+    end
+
+    if not spawnSuccess and splash_damage_options.debug then
+        env.info("TacticalExplosionTrigger: Failed to spawn fuel tank after all attempts")
+    end
+
+    --Schedule destruction
+    if spawnSuccess then
+        timer.scheduleFunction(function(name)
+            if splash_damage_options.debug then
+                env.info("TacticalExplosionTrigger: Attempting to destroy fuel tank " .. name)
+            end
+            local staticObj = StaticObject.getByName(name)
+            if staticObj then
+                local status, err = pcall(function()
+                    staticObj:destroy()
+                end)
+                if splash_damage_options.debug then
+                    env.info("TacticalExplosionTrigger: Fuel tank " .. name .. " destruction - " .. (status and "succeeded" or "failed: " .. tostring(err)))
+                end
+            else
+                if splash_damage_options.debug then
+                    env.info("TacticalExplosionTrigger: Fuel tank " .. name .. " not found for destruction")
+                end
+            end
+        end, tacName, timer.getTime() + 0.5)
+    end
+
+    --Schedule next spawn if queue is not empty
+    if #tacticalFuelTankSpawnQueue > 0 then
+        timer.scheduleFunction(tacticalExplosionProcessSpawnQueue, {}, timer.getTime() + SPAWN_INTERVAL)
+    end
+end
+
+--Function to trigger smoke effect with specified size and duration
+local function triggerSmokeEffect(coords, flameSize, duration, effectId)
+    local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
+    local adjustedCoords = {x = coords.x, y = terrainHeight + 2, z = coords.z}
+    debugCargoCookOff("Spawning smoke effect at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z .. " with size " .. flameSize .. " (ID: " .. effectId .. ")")
+    trigger.action.effectSmokeBig(adjustedCoords, flameSize, 1, effectId)
+    timer.scheduleFunction(function(id)
+        debugCargoCookOff("Stopping smoke effect (ID: " .. id .. ")")
+        trigger.action.effectSmokeStop(id)
+    end, effectId, timer.getTime() + duration)
+end
+
+local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDeadEvent)
+    local function triggerEffects(pos)
+        processedSmoke[unitID] = true --Ensure unit is marked as processed
+        local effectOrder = splash_damage_options.allunits_advanced_effect_order
+        local effectTiming = splash_damage_options.allunits_advanced_effect_timing
+        local cumulativeTime = 0
+        effectSmokeId = effectSmokeId or 1 --Use global effectSmokeId, initialize if nil
+
+        --Trigger initial explosion at 1.6m off the ground
+        local explosionCoords = {x = pos.x, y = land.getHeight({x = pos.x, y = pos.z}) + 1.6, z = pos.z}
+        timer.scheduleFunction(function(params)
+            debugCargoCookOff("Executing initial explosion for unit ID " .. tostring(params.unitID or "nil") .. " at X: " .. params.coords.x .. ", Y: " .. params.coords.y .. ", Z: " .. params.coords.z)
+            trigger.action.explosion(params.coords, params.power)
+        end, {coords = explosionCoords, power = splash_damage_options.allunits_advanced_effect_explode_power, unitID = unitID}, timer.getTime() + 0.1)
+
+        --Spawn first smoke effect immediately
+        if #effectOrder > 0 then
+            local flameSize = tonumber(effectOrder[1])
+            local duration = tonumber(effectTiming[1]) or 99999999
+            local effectId = effectSmokeId
+            effectSmokeId = effectSmokeId + 1
+            local smokeCoords = {x = pos.x, y = land.getHeight({x = pos.x, y = pos.z}) + 2, z = pos.z}
+            debugCargoCookOff("Spawning immediate smoke effect for unit ID " .. tostring(unitID) .. " at X: " .. smokeCoords.x .. ", Y: " .. smokeCoords.y .. ", Z: " .. smokeCoords.z .. " with size " .. flameSize .. " (ID: " .. effectId .. ")")
+            trigger.action.effectSmokeBig(smokeCoords, flameSize, 0.9, effectId)
+            timer.scheduleFunction(function(id)
+                debugCargoCookOff("Stopping smoke effect (ID: " .. id .. ")")
+                trigger.action.effectSmokeStop(id)
+            end, effectId, timer.getTime() + duration)
+            cumulativeTime = cumulativeTime + duration
+        end
+
+        --Schedule remaining smoke effects
+        for i = 2, #effectOrder do
+            local duration = tonumber(effectTiming[i]) or 99999999
+            local effectId = effectSmokeId
+            effectSmokeId = effectSmokeId + 1
+            timer.scheduleFunction(function(params)
+                triggerSmokeEffect(params.coords, params.flameSize, params.duration, params.effectId)
+            end, {coords = pos, flameSize = tonumber(effectOrder[i]), duration = duration, effectId = effectId}, timer.getTime() + cumulativeTime)
+            cumulativeTime = cumulativeTime + duration
+        end
+
+        if effectData.cookOff and effectData.cookOffCount > 0 then
+            if splash_damage_options.allunits_advanced_effect_cookoff_flares_enabled then
+                timer.scheduleFunction(function(params)
+                    local flareCoords = {x = params[1].coords.x, y = land.getHeight({x = params[1].coords.x, y = params[1].coords.z}) + 1, z = params[1].coords.z}
+                    debugCargoCookOff("Executing flares for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. flareCoords.x .. ", Y: " .. flareCoords.y .. ", Z: " .. flareCoords.z)
+                    scheduleCookOffFlares(flareCoords, params[1].cookOffCount, params[1].cookOffDuration, params[2])
+                end, {effectData, splash_damage_options.cookoff_flare_color}, timer.getTime() + 0.2)
+            end
+            for i = 1, effectData.cookOffCount do
+                local delay = effectData.cookOffRandomTiming and math.random() * effectData.cookOffDuration or (i - 1) * (effectData.cookOffDuration / effectData.cookOffCount)
+                local basePower = effectData.cookOffPower
+                local powerVariation = effectData.cookOffPowerRandom / 100
+                local cookOffPower = effectData.cookOffPowerRandom == 0 and basePower or basePower * (1 + powerVariation * (math.random() * 2 - 1))
+                timer.scheduleFunction(function(params)
+                    local cookOffCoords = {x = params[1].coords.x, y = land.getHeight({x = params[1].coords.x, y = params[1].coords.z}) + 1, z = params[1].coords.z}
+                    debugCargoCookOff("Executing cookoff explosion #" .. params[3] .. " for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. cookOffCoords.x .. ", Y: " .. cookOffCoords.y .. ", Z: " .. cookOffCoords.z)
+                    trigger.action.explosion(cookOffCoords, params[2])
+                end, {effectData, cookOffPower, i}, timer.getTime() + delay)
+            end
+            if splash_damage_options.debris_effects then
+                local debrisCount = math.random(splash_damage_options.debris_count_min, splash_damage_options.debris_count_max)
+                for j = 1, debrisCount do
+                    local theta = math.random() * 2 * math.pi
+                    local phi = math.acos(math.random() * 2 - 1)
+                    local minDist = splash_damage_options.debris_max_distance * 0.1
+                    local maxDist = splash_damage_options.debris_max_distance
+                    local r = math.random() * (maxDist - minDist) + minDist
+                    local debrisDelay = (j - 1) * (effectData.cookOffDuration / debrisCount)
+                    timer.scheduleFunction(function(debrisArgs)
+                        local debrisBaseCoords = {x = debrisArgs[1].coords.x, y = land.getHeight({x = debrisArgs[1].coords.x, y = debrisArgs[1].coords.z}) + 1, z = debrisArgs[1].coords.z}
+                        debugCargoCookOff("Executing debris explosion #" .. debrisArgs[3] .. " for unit ID " .. tostring(debrisArgs[1].unitID or "nil") .. " at X: " .. debrisBaseCoords.x .. ", Y: " .. debrisBaseCoords.y .. ", Z: " .. debrisBaseCoords.z)
+                        local debrisX = debrisBaseCoords.x + r * math.sin(phi) * math.cos(theta)
+                        local debrisZ = debrisBaseCoords.z + r * math.sin(phi) * math.sin(theta)
+                        local terrainY = land.getHeight({x = debrisX, y = debrisZ})
+                        local debrisY = terrainY + math.random() * maxDist
+                        local debrisPos = {x = debrisX, y = debrisY, z = debrisZ}
+                        trigger.action.explosion(debrisPos, debrisArgs[2])
+                    end, {effectData, splash_damage_options.debris_power, j}, timer.getTime() + debrisDelay)
+                end
+            end
+        end
+    end
+
+    local function checkMovement(params)
+        local entry = CargoCookoffPendingTable[params.unitID]
+        if not entry then
+            debugCargoCookOff("Stopped tracking movement for unit ID " .. tostring(params.unitID) .. ": no entry in CargoCookoffPendingTable")
+            --Create fallback entry and trigger effects
+            CargoCookoffPendingTable[params.unitID] = {
+                coords = coords,
+                prevCoords = coords,
+                unit = nil
+            }
+            triggerEffects(coords)
+            return
+        end
+        if processedSmoke[params.unitID] then
+            debugCargoCookOff("Stopped tracking movement for unit ID " .. tostring(params.unitID) .. ": smoke already processed")
+            return
+        end
+        local newPos = entry.coords
+        if entry.unit then
+            local success, pos = pcall(function() return entry.unit:getPosition().p end)
+            if success and pos then
+                newPos = pos
+                debugCargoCookOff("Updated position for unit ID " .. tostring(params.unitID) .. " to X: " .. pos.x .. ", Z: " .. pos.z)
+            else
+                debugCargoCookOff("Failed to get position for unit ID " .. tostring(params.unitID) .. ", using last known coords X: " .. newPos.x .. ", Z: " .. newPos.z)
+            end
+        else
+            debugCargoCookOff("Unit ID " .. tostring(params.unitID) .. " is gone, using last known coords X: " .. newPos.x .. ", Z: " .. newPos.z)
+        end
+        local hasStopped = math.abs(newPos.x - entry.prevCoords.x) < 0.1 and
+                           math.abs(newPos.y - entry.prevCoords.y) < 0.1 and
+                           math.abs(newPos.z - entry.prevCoords.z) < 0.1
+        debugCargoCookOff("Checking movement for unit ID " .. tostring(params.unitID) .. ": stopped=" .. tostring(hasStopped) .. ", newPos X=" .. newPos.x .. ", Z=" .. newPos.z)
+        if hasStopped then
+            entry.coords = newPos
+            triggerEffects(newPos)
+            return
+        end
+        entry.prevCoords = newPos
+        entry.coords = newPos
+        timer.scheduleFunction(checkMovement, params, timer.getTime() + 0.1)
+    end
+
+    --Ensure table entry exists before scheduling movement check
+    local entry = CargoCookoffPendingTable[unitID]
+    if not entry then
+        CargoCookoffPendingTable[unitID] = {
+            coords = coords,
+            prevCoords = coords,
+            unit = Unit.getByName(effectData.name) -- Attempt to get unit, may be nil for DEAD events
+        }
+        entry = CargoCookoffPendingTable[unitID]
+    end
+    entry.prevCoords = coords
+    timer.scheduleFunction(checkMovement, {unitID = unitID}, timer.getTime() + 0.1)
+end
+--Schedule cargo effects
 local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fromDeadEvent)
     if not unitID then
         debugCargoCookOff("scheduleCargoEffects: Skipping call with nil unitID")
         return
     end
     debugCargoCookOff("scheduleCargoEffects called for unit ID " .. tostring(unitID) .. ", unitType: " .. unitType .. ", fromDeadEvent: " .. tostring(fromDeadEvent))
+    
     local cargoData = cargoUnits[unitType] or {
         cargoExplosionPower = splash_damage_options.allunits_explode_power,
         cargoExplosion = true,
@@ -1765,28 +2173,21 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
         flameSize = splash_damage_options.allunits_default_flame_size,
         flameDuration = splash_damage_options.allunits_default_flame_duration
     }
-    --Ensure cookOff uses cargoUnits setting if defined
     cargoData.cookOff = cargoUnits[unitType] and cargoUnits[unitType].cargoCookOff ~= nil and cargoUnits[unitType].cargoCookOff or cargoData.cookOff
     debugCargoCookOff("Using cargoData for unitType " .. unitType .. ": cookOff=" .. tostring(cargoData.cookOff))
 
-    --Handle cook-off and smoke for non-cargo units under smokeandcookoffeffectallvehicles
     local isAllUnitsVehicle = not cargoUnits[unitType] and splash_damage_options.smokeandcookoffeffectallvehicles
-    if isAllUnitsVehicle then
-        local cookoffChance = splash_damage_options.allunits_cookoff_chance or 1
-        if splash_damage_options.allunits_enable_cookoff and math.random() <= cookoffChance then
-            debugCargoCookOff("scheduleCargoEffects: Triggering cook-off effects for all-units unit ID " .. tostring(unitID) .. " with allunits_cookoff_chance (" .. cookoffChance .. ")")
-            cargoData.cookOff = true
-    	--Automatically enable smoke if smokewithcookoff is true
-            cargoData.isTanker = splash_damage_options.allunits_enable_smoke and splash_damage_options.allunits_smokewithcookoff
+    local useAdvancedSequence = false
+
+    if isAllUnitsVehicle and splash_damage_options.allunits_advanced_effect_sequence then
+        if splash_damage_options.allunits_advanced_effect_force_on_name and unitName:find("SmokeEffects") then
+            useAdvancedSequence = true
+            debugCargoCookOff("Forcing advanced effect sequence for unit ID " .. tostring(unitID) .. " due to SmokeEffects in name")
+        elseif math.random() <= splash_damage_options.allunits_advanced_effect_sequence_chance then
+            useAdvancedSequence = true
+            debugCargoCookOff("Selected advanced effect sequence for unit ID " .. tostring(unitID) .. " based on chance")
         else
-            debugCargoCookOff("scheduleCargoEffects: Skipped cook-off effects for all-units unit ID " .. tostring(unitID) .. " due to allunits_cookoff_chance (" .. cookoffChance .. ")")
-            cargoData.cookOff = false
-            --Check smoke chance if no cook-off
-            cargoData.isTanker = splash_damage_options.allunits_enable_smoke and math.random() <= splash_damage_options.allunits_smoke_chance
-            if not cargoData.isTanker and not cargoData.cookOff then
-                debugCargoCookOff("scheduleCargoEffects: Skipped smoke effects for unit ID " .. tostring(unitID) .. " due to allunits_smoke_chance (" .. splash_damage_options.allunits_smoke_chance .. ")")
-                return
-            end
+            debugCargoCookOff("Using standard sequence for unit ID " .. tostring(unitID) .. ", name: " .. tostring(unitName) .. ", chance: " .. tostring(splash_damage_options.allunits_advanced_effect_sequence_chance))
         end
     end
 
@@ -1796,13 +2197,13 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
         coords = {x = 0, y = 0, z = 0},
         power = cargoData.cargoExplosionPower or splash_damage_options.allunits_explode_power,
         explosion = cargoData.cargoExplosion,
-        cookOff = cargoData.cookOff,
-        cookOffCount = cargoData.cookOffCount,
-        cookOffPower = cargoData.cookOffPower,
-        cookOffDuration = cargoData.cookOffDuration,
-        cookOffRandomTiming = cargoData.cookOffRandomTiming,
-        cookOffPowerRandom = cargoData.cookOffPowerRandom,
-        isTanker = cargoData.isTanker,
+        cookOff = cargoData.cookOff, -- Initially set, may be modified
+        cookOffCount = useAdvancedSequence and splash_damage_options.allunits_advanced_effect_cookoff_count or cargoData.cookOffCount,
+        cookOffPower = useAdvancedSequence and splash_damage_options.allunits_advanced_effect_cookoff_power or cargoData.cookOffPower,
+        cookOffDuration = useAdvancedSequence and splash_damage_options.allunits_advanced_effect_cookoff_duration or cargoData.cookOffDuration,
+        cookOffRandomTiming = true,
+        cookOffPowerRandom = useAdvancedSequence and splash_damage_options.allunits_advanced_effect_cookoff_powerrandom or cargoData.cookOffPowerRandom,
+        isTanker = cargoData.isTanker, --Initially set, may be modified
         flameSize = cargoData.flameSize,
         flameDuration = cargoData.flameDuration,
         unitID = unitID
@@ -1812,6 +2213,32 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
     if entry then
         effect.coords = entry.coords
         debugCargoCookOff("Using coords from CargoCookoffPendingTable for unit ID " .. tostring(unitID) .. ": X=" .. effect.coords.x .. ", Z=" .. effect.coords.z)
+    end
+
+    if useAdvancedSequence then
+        --Apply advanced sequence cook-off chance
+        effect.cookOff = math.random() <= splash_damage_options.allunits_advanced_effect_cookoff_chance
+        debugCargoCookOff("Scheduling advanced effect sequence for unit ID " .. tostring(unitID))
+        scheduleAdvancedEffectSequence(unitID, effect.coords, effect, fromDeadEvent)
+        return
+    end
+
+    --Standard sequence: Apply cook-off and smoke chances
+    if isAllUnitsVehicle then
+        local cookoffChance = splash_damage_options.allunits_cookoff_chance or 1
+        if splash_damage_options.allunits_enable_cookoff and math.random() <= cookoffChance then
+            debugCargoCookOff("scheduleCargoEffects: Triggering cook-off effects for all-units unit ID " .. tostring(unitID) .. " with allunits_cookoff_chance (" .. cookoffChance .. ")")
+            effect.cookOff = true
+            effect.isTanker = splash_damage_options.allunits_enable_smoke and splash_damage_options.allunits_smokewithcookoff
+        else
+            debugCargoCookOff("scheduleCargoEffects: Skipped cook-off effects for all-units unit ID " .. tostring(unitID) .. " due to allunits_cookoff_chance (" .. cookoffChance .. ")")
+            effect.cookOff = false
+            effect.isTanker = splash_damage_options.allunits_enable_smoke and math.random() <= splash_damage_options.allunits_smoke_chance
+            if not effect.isTanker and not effect.cookOff then
+                debugCargoCookOff("scheduleCargoEffects: Skipped smoke effects for unit ID " .. tostring(unitID) .. " due to allunits_smoke_chance (" .. splash_damage_options.allunits_smoke_chance .. ")")
+                return
+            end
+        end
     end
 
     table.insert(cargoEffectsQueue, effect)
@@ -1827,7 +2254,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                 local pos = params.coords or (params[1] and params[1].coords)
                 if not id then
                     debugCargoCookOff("Error: No unitID provided in getUnitPosition")
-                    return pos or {x = 0, y = 0, z = 0}
+                    return pos or {x = 0, y = land.getHeight({x = 0, y = 0}) + 1, z = 0}
                 end
                 local entry = CargoCookoffPendingTable[id]
                 if entry then
@@ -1846,20 +2273,23 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                 else
                     debugCargoCookOff("No entry for unit ID " .. id .. ", using coords X: " .. pos.x .. ", Z: " .. pos.z)
                 end
+                --Always adjust y-coordinate to ground level
+                pos.y = land.getHeight({x = pos.x, y = pos.z}) + 1.6
+                debugCargoCookOff("Adjusted position for unit ID " .. id .. " to Y: " .. pos.y)
                 return pos
             end
 
             if eff.explosion then
                 timer.scheduleFunction(function(params)
                     local coords = getUnitPosition(params)
-                    debugCargoCookOff("Executing explosion for unit ID " .. tostring(params.unitID or "nil") .. " at X: " .. coords.x .. ", Z: " .. coords.z)
+                    debugCargoCookOff("Executing explosion for unit ID " .. tostring(params.unitID or "nil") .. " at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z)
                     trigger.action.explosion(coords, params.power)
                 end, eff, timer.getTime() + effectIndex + 0.1)
             end
             if eff.cookOff and eff.cookOffCount > 0 then
                 timer.scheduleFunction(function(params)
                     local coords = getUnitPosition(params[1])
-                    debugCargoCookOff("Executing flares for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. coords.x .. ", Z: " .. coords.z)
+                    debugCargoCookOff("Executing flares for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z)
                     scheduleCookOffFlares(coords, params[1].cookOffCount, params[1].cookOffDuration, params[2])
                 end, {eff, splash_damage_options.cookoff_flare_color}, timer.getTime() + 0.2)
                 for i = 1, eff.cookOffCount do
@@ -1869,7 +2299,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                     local cookOffPower = eff.cookOffPowerRandom == 0 and basePower or basePower * (1 + powerVariation * (math.random() * 2 - 1))
                     timer.scheduleFunction(function(params)
                         local coords = getUnitPosition(params[1])
-                        debugCargoCookOff("Executing cookoff explosion #" .. params[3] .. " for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. coords.x .. ", Z: " .. coords.z)
+                        debugCargoCookOff("Executing cookoff explosion #" .. params[3] .. " for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z)
                         trigger.action.explosion(coords, params[2])
                     end, {eff, cookOffPower, i}, timer.getTime() + effectIndex + delay)
                 end
@@ -1884,7 +2314,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                         local debrisDelay = (j - 1) * (eff.cookOffDuration / debrisCount)
                         timer.scheduleFunction(function(debrisArgs)
                             local coords = getUnitPosition(debrisArgs[1])
-                            debugCargoCookOff("Executing debris explosion #" .. debrisArgs[3] .. " for unit ID " .. tostring(debrisArgs[1].unitID or "nil") .. " at X: " .. coords.x .. ", Z: " .. coords.z)
+                            debugCargoCookOff("Executing debris explosion #" .. debrisArgs[3] .. " for unit ID " .. tostring(debrisArgs[1].unitID or "nil") .. " at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z)
                             local debrisX = coords.x + r * math.sin(phi) * math.cos(theta)
                             local debrisZ = coords.z + r * math.sin(phi) * math.sin(theta)
                             local terrainY = land.getHeight({x = debrisX, y = debrisZ})
@@ -1901,12 +2331,12 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
     end
     cargoEffectsQueue = {}
 
-    --Handle smoke spawning
+    --Handle smoke spawning for non-advanced sequence
     if effect.isTanker and entry and not processedSmoke[unitID] then
         local terrainHeight = land.getHeight({x = effect.coords.x, y = effect.coords.z})
         local adjustedCoords = {x = effect.coords.x, y = terrainHeight + 2, z = effect.coords.z}
         if fromDeadEvent then
-            -- For DEAD events, spawn smoke immediately without movement tracking
+            --For DEAD events, spawn smoke immediately without movement tracking
             processedSmoke[unitID] = true
             debugCargoCookOff("Spawning immediate smoke for unit ID " .. tostring(unitID) .. " from DEAD event at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
             if not effect.cookOff and splash_damage_options.allunits_explode_on_smoke_only then
@@ -1920,7 +2350,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                 trigger.action.effectSmokeStop(id)
             end, effectSmokeId - 1, timer.getTime() + (effect.flameDuration or splash_damage_options.allunits_default_flame_duration))
         else
-            -- For HIT/KILL events, track movement until stationary
+            --For HIT/KILL events, track movement until stationary
             local function checkMovement(params)
                 local entry = CargoCookoffPendingTable[params.unitID]
                 if not entry then
@@ -1953,7 +2383,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                     local terrainHeight = land.getHeight({x = newPos.x, y = newPos.z})
                     local adjustedCoords = {x = newPos.x, y = terrainHeight + 2, z = newPos.z}
                     debugCargoCookOff("Spawning smoke for unit ID " .. tostring(params.unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
-                    if not params.cookOff and splash_damage_options.allunits_explode_on_smoke_only == 1 then
+                    if not params.cookOff and splash_damage_options.allunits_explode_on_smoke_only then
                         debugCargoCookOff("Triggering explosion for smoke-only unit ID " .. tostring(params.unitID) .. " at X: " .. adjustedCoords.x .. ", Z: " .. adjustedCoords.z)
                         trigger.action.explosion(adjustedCoords, splash_damage_options.allunits_explode_power)
                     end
@@ -1973,8 +2403,6 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
         end
     end
 end
-
-
 
 --Function to check if a weapon is in the Trophy APS target list
 local function isTrophyWeapon(weaponName)
@@ -3185,6 +3613,32 @@ function track_wpns()
                 end
                 local chosenTargets = wpnData.tightTargets or {}
                 local safeToBlast = true
+                --Check for tactical explosion conditions
+                local isTactical = false
+                --Check tactical weapons table
+                if tacticalwpn_tabl[wpnData.name] then
+                    isTactical = true
+                    if splash_damage_options.debug then
+                        debugMsg("Tactical explosion triggered for weapon: " .. wpnData.name .. " at X: " .. explosionPoint.x .. ", Z: " .. explosionPoint.z)
+                    end
+                    TacticalExplosionTrigger(explosionPoint)
+                    table.insert(weaponsToRemove, wpn_id_)
+                end
+                --Check tactical override weapons
+				if splash_damage_options.tactical_explosion and splash_damage_options.tactical_explosion_override_enabled then
+					local tacticalWeapons = {}
+					for weapon in splash_damage_options.tactical_explosion_override_weapons:gmatch("[^,]+") do
+						tacticalWeapons[trim(weapon:upper())] = true -- Normalize to uppercase
+					end
+					if tacticalWeapons[wpnData.name:upper()] then -- Compare in uppercase
+						isTactical = true
+						if splash_damage_options.debug then
+							debugMsg("Tactical explosion override triggered for " .. wpnData.name .. " at X: " .. explosionPoint.x .. ", Z: " .. explosionPoint.z)
+						end
+						TacticalExplosionTrigger(explosionPoint)
+						table.insert(weaponsToRemove, wpn_id_)
+					end
+				end
                 --Check if weapon is napalm
                 local isNapalm = false
                 --Check for napalm override weapons
@@ -3211,7 +3665,7 @@ function track_wpns()
                     napalmOnImpact(explosionPoint, wpnData.speed, wpnData.name, wpnData.initiatorPilotName or wpnData.init or "unknown") -- Pass initiatorPilotName
                     table.insert(weaponsToRemove, wpn_id_)
                 end
-                if not isNapalm then
+                if not isNapalm and not isTactical then
                     if splash_damage_options.ordnance_protection then
                         local checkVol = { id = world.VolumeType.SPHERE, params = { point = explosionPoint, radius = splash_damage_options.ordnance_protection_radius } }
                         if splash_damage_options.debug then
@@ -4514,7 +4968,7 @@ function VehicleIEDTrigger(coords, unit)
         --Central explosion
         local centralPoint = {
             x = coords.x,
-            y = land.getHeight({x = coords.x, y = coords.z}) + 1.6,
+            y = land.getHeight({x = coords.x, y = coords.z}) + 0.1,
             z = coords.z
         }
 		local centralPointGroundLevel = {
@@ -4526,8 +4980,8 @@ function VehicleIEDTrigger(coords, unit)
         table.insert(explosionPoints, {point = centralPointGroundLevel, power = splash_damage_options.vehicleied_central_power * scaling, delay = 0.01})
         --Secondary explosions with Gaussian distribution
         for i = 1, explosionCount do
-            local offsetX = gaussRandom(0, (splash_damage_options.vehicleied_radius * scaling) / 3) * (1 + (math.random() - 0.5) * 0.1)
-            local offsetZ = gaussRandom(0, (splash_damage_options.vehicleied_radius * scaling) / 3) * (1 + (math.random() - 0.5) * 0.1)
+            local offsetX = gaussRandom(0, (splash_damage_options.vehicleied_radius * scaling) / 2) * (1 + (math.random() - 0.5) * 0.1)
+            local offsetZ = gaussRandom(0, (splash_damage_options.vehicleied_radius * scaling) / 2) * (1 + (math.random() - 0.5) * 0.1)
             local point = {
                 x = coords.x + offsetX,
                 y = land.getHeight({x = coords.x + offsetX, y = coords.z + offsetZ}) + 0.3,
@@ -5576,7 +6030,7 @@ function logEvent(eventName, eventData)
 						local pos = unit:getPosition().p
 						return {x = pos.x, y = pos.y, z = pos.z}
 					end, {x = 0, y = 0, z = 0})
-					-- Fallback to CargoCookoffPendingTable coords if available
+					--Fallback to CargoCookoffPendingTable coords if available
 					if rawCoords.x == 0 and rawCoords.y == 0 and rawCoords.z == 0 then
 						local pendingEntry = CargoCookoffPendingTable[unitID]
 						if pendingEntry and pendingEntry.coords then
@@ -5589,10 +6043,14 @@ function logEvent(eventName, eventData)
 					maxHealth = safeGet(function() return unit:getDesc().life end, 1)
 				end
 				unitName = tostring(unitName)
-				-- Exclude static objects and fortifications unless explicitly in cargoUnits or named CargoCookoffTarget
+				--Exclude static objects and fortifications unless explicitly in cargoUnits or named CargoCookoffTarget
 				local objectCategory = safeGet(function() return Object.getCategory(unit) end, "unknown")
 				if (objectCategory == Object.Category.STATIC or objectCategory == Object.Category.FORTIFICATION) and not (cargoUnits[unitType] or unitName:find("CargoCookoffTarget")) then
 					debugCargoCookOff("Unit ID " .. unitID .. " is a static object or fortification (" .. unitType .. "), skipping unless in cargoUnits or CargoCookoffTarget")
+			            return false
+			        end
+			        if unitName:find("VehicleIEDTarget") then
+			            debugCargoCookOff("Unit ID " .. unitID .. " is a VehicleIEDTarget (" .. unitName .. "), skipping cargo cookoff")
 					return false
 				end
 				if cargoUnits[unitType] then
@@ -5641,6 +6099,7 @@ function logEvent(eventName, eventData)
 						processedUnitsGlobal[unitID] = {
 							id = unitID,
 							name = unitName,
+							
 							type = unitType,
 							position = unitPosition,
 							life = unitLife,
@@ -5651,7 +6110,7 @@ function logEvent(eventName, eventData)
 						debugCargoCookOff("Added unit ID " .. unitID .. " to CargoCookoffPendingTable")
 						debugCargoCookOff("Marked unit ID " .. unitID .. " as processed in processedUnitsGlobal and processedCookoffs")
 						debugCargoCookOff("Triggering cookoff for unit ID " .. unitID .. ", isCargoUnit: " .. tostring(isCargoUnit))
-						scheduleCargoEffects(unitType, unitName, unitID, 0, false) -- Pass fromDeadEvent = false
+						scheduleCargoEffects(unitType, unitName, unitID, 0, false) --Pass fromDeadEvent = false
 					end
 				elseif eventName == "KILL" then
 					debugCargoCookOff("Unit ID " .. unitID .. " triggered KILL, processing")
@@ -5679,7 +6138,7 @@ function logEvent(eventName, eventData)
 					debugCargoCookOff("Added unit ID " .. unitID .. " to CargoCookoffPendingTable")
 					debugCargoCookOff("Marked unit ID " .. unitID .. " as processed in processedUnitsGlobal and processedCookoffs")
 					debugCargoCookOff("Triggering cookoff for unit ID " .. unitID .. ", isCargoUnit: " .. tostring(isCargoUnit))
-					scheduleCargoEffects(unitType, unitName, unitID, 0, false) -- Pass fromDeadEvent = false
+					scheduleCargoEffects(unitType, unitName, unitID, 0, false) --Pass fromDeadEvent = false
 				elseif eventName == "DEAD" then
 					debugCargoCookOff("Unit ID " .. unitID .. " triggered DEAD, processing")
 					local coords = CargoCookoffPendingTable[unitID] and CargoCookoffPendingTable[unitID].coords or rawCoords
@@ -5703,7 +6162,7 @@ function logEvent(eventName, eventData)
 							type = unitType,
 							coords = coords,
 							prevCoords = coords,
-							unit = nil, -- Unit is dead
+							unit = nil, --Unit is dead
 							startTime = timer.getTime(),
 							isCargoCookoff = true,
 							isDead = true
@@ -5720,7 +6179,7 @@ function logEvent(eventName, eventData)
 						processedCookoffs[unitID] = true
 						debugCargoCookOff("Marked unit ID " .. unitID .. " as processed in processedUnitsGlobal and processedCookoffs")
 						debugCargoCookOff("Triggering cookoff for unit ID " .. unitID .. " at X: " .. coords.x .. ", Z: " .. coords.z .. ", isCargoUnit: " .. tostring(isCargoUnit))
-						scheduleCargoEffects(unitType, unitName, unitID, 0, true) -- Pass fromDeadEvent = true
+						scheduleCargoEffects(unitType, unitName, unitID, 0, true) --Pass fromDeadEvent = true
 						CargoCookoffPendingTable[unitID] = nil
 					end
 				end
