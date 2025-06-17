@@ -330,8 +330,8 @@ splash_damage_options = {
 
 	---------------------------------------------------------------------- Tactical Explosion ----------------------------------------------------
     ["tactical_explosion"] = true, --Enable tactical explosion effects
-    ["tactical_explosion_override_enabled"] = true, --Set this to true to enable override weapons in the key below
-    ["tactical_explosion_override_weapons"] = "Zuni_127,Mk_82,SAMP125LD", --Comma-separated list of weapons to override as tactical explosion
+    ["tactical_explosion_override_enabled"] = false, --Set this to true to enable override weapons in the key below
+    ["tactical_explosion_override_weapons"] = "Zuni_127,Mk_82,SAMP125LD", --Comma-separated list of weapons to override as tactical explosion, can be changed as needed.  Needs to be enabled in the key above.
     ["tactical_explosion_max_height"] = 40, --Max height above ground for tactical explosion to trigger (meters)
     ["tactical_explosion_scaling"] = 1, --Scaling of explosion powers, counts, radius
     ["tactical_explosion_central_power"] = 4000, --Power of central explosion
