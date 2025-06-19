@@ -14,11 +14,11 @@ TO DO:
 Before 3.4 release -
 
 test skipping of ground weapons if track_groundunitordnance is false
-change giant explosions to trigger on events
+
 review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
 
 Clusterbomb killfeed test again
-
+test cook off flare % and number %
 test trophy 1.1 changes
 
 test test test
@@ -213,8 +213,6 @@ splash_damage_options = {
     ["giant_explosion_scale"] = 1,     --Size scale factor (default 1)
     ["giant_explosion_duration"] = 3.0,  --Total duration in seconds (default 3s)
     ["giant_explosion_count"] = 250,      --Number of explosions (default 250)
-    ["giant_explosion_target_static"] = true, --Toggle to true for static targets (store position once), false for dynamic (update every second)
-    ["giant_explosion_poll_rate"] = 1,    --Polling rate in seconds for flag checks (default 1s)
     ["giantexplosion_ondamage"] = true,   --Trigger explosion when unit is damaged
     ["giantexplosion_ondeath"] = true,    --Trigger explosion when unit is destroyed
     ["giantexplosion_testmode"] = true,  --Enable test mode with separate array for radio commands	
