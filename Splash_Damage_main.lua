@@ -23,7 +23,7 @@ test trophy 1.1 changes
 test test test
 isolate ground tracking weapons into a different table and gated behind the enable, so that the extra explosion effects etc dont auto apply
 	change missing weapon function to check both ground and expl tables
-	
+change giant explosions to trigger on events	
 review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
 	
 --noting this from gashpl - for easy script release testing, mission start: assert(loadfile("C:\\Users\\[USER]\\Saved Games\\DCS\\Missions\\Splash_Damage_3.4aab.lua"))()
@@ -204,7 +204,7 @@ splash_damage_options = {
 
     ---------------------------------------------------------------------- Giant Explosions ------------------------------------------------------------------
     	--Remember, any target you want to blow up needs to be named "GiantExplosionTarget(X)"  (X) being any value/name etc
-    ["giant_explosion_enabled"] = true,  --Toggle to enable/disable Giant Explosion
+    ["giant_explosion_enabled"] = false,  --Toggle to enable/disable Giant Explosion
     ["giant_explosion_power"] = 6000,    --Power in kg of TNT (default 8 tons)
     ["giant_explosion_scale"] = 1,     --Size scale factor (default 1)
     ["giant_explosion_duration"] = 3.0,  --Total duration in seconds (default 3s)
@@ -329,7 +329,7 @@ splash_damage_options = {
     ["StrobeMarker_interval"] = 3, --Interval in seconds for Strobe Marker explosions
 
 	---------------------------------------------------------------------- Tactical Explosion ----------------------------------------------------
-    ["tactical_explosion"] = true, --Enable tactical explosion effects
+    ["tactical_explosion"] = false, --Enable tactical explosion effects
     ["tactical_explosion_override_enabled"] = false, --Set this to true to enable override weapons in the key below
     ["tactical_explosion_override_weapons"] = "Zuni_127,Mk_82,SAMP125LD", --Comma-separated list of weapons to override as tactical explosion, can be changed as needed.  Needs to be enabled in the key above.
     ["tactical_explosion_max_height"] = 40, --Max height above ground for tactical explosion to trigger (meters)
@@ -2011,6 +2011,7 @@ local function triggerSmokeEffect(coords, flameSize, duration, effectId)
     end, effectId, timer.getTime() + duration)
 end
 
+--Schedule advanced sequence cargo effects
 local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDeadEvent)
     local function triggerEffects(pos)
         processedSmoke[unitID] = true --Ensure unit is marked as processed
@@ -2019,12 +2020,26 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
         local cumulativeTime = 0
         effectSmokeId = effectSmokeId or 1 --Use global effectSmokeId, initialize if nil
 
+        --Helper function to get current unit position
+        local function getUnitPosition()
+            local entry = CargoCookoffPendingTable[unitID]
+            if entry and entry.unit then
+                local success, newPos = pcall(function() return entry.unit:getPosition().p end)
+                if success and newPos then
+                    entry.coords = newPos
+                    return newPos
+                end
+            end
+            return pos
+        end
+
         --Trigger initial explosion at 1.6m off the ground
-        local explosionCoords = {x = pos.x, y = land.getHeight({x = pos.x, y = pos.z}) + 1.6, z = pos.z}
         timer.scheduleFunction(function(params)
-            debugCargoCookOff("Executing initial explosion for unit ID " .. tostring(params.unitID or "nil") .. " at X: " .. params.coords.x .. ", Y: " .. params.coords.y .. ", Z: " .. params.coords.z)
-            trigger.action.explosion(params.coords, params.power)
-        end, {coords = explosionCoords, power = splash_damage_options.allunits_advanced_effect_explode_power, unitID = unitID}, timer.getTime() + 0.1)
+            local currentPos = getUnitPosition()
+            local explosionCoords = {x = currentPos.x, y = land.getHeight({x = currentPos.x, y = currentPos.z}) + 1.6, z = currentPos.z}
+            debugCargoCookOff("Executing initial explosion for unit ID " .. tostring(params.unitID or "nil") .. " at X: " .. explosionCoords.x .. ", Y: " .. explosionCoords.y .. ", Z: " .. explosionCoords.z)
+            trigger.action.explosion(explosionCoords, params.power)
+        end, {power = splash_damage_options.allunits_advanced_effect_explode_power, unitID = unitID}, timer.getTime() + 0.1)
 
         --Spawn first smoke effect immediately
         if #effectOrder > 0 then
@@ -2048,15 +2063,17 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
             local effectId = effectSmokeId
             effectSmokeId = effectSmokeId + 1
             timer.scheduleFunction(function(params)
-                triggerSmokeEffect(params.coords, params.flameSize, params.duration, params.effectId)
-            end, {coords = pos, flameSize = tonumber(effectOrder[i]), duration = duration, effectId = effectId}, timer.getTime() + cumulativeTime)
+                local currentPos = getUnitPosition()
+                triggerSmokeEffect({x = currentPos.x, y = land.getHeight({x = currentPos.x, y = currentPos.z}) + 2, z = currentPos.z}, params.flameSize, params.duration, params.effectId)
+            end, {flameSize = tonumber(effectOrder[i]), duration = duration, effectId = effectId}, timer.getTime() + cumulativeTime)
             cumulativeTime = cumulativeTime + duration
         end
 
         if effectData.cookOff and effectData.cookOffCount > 0 then
             if splash_damage_options.allunits_advanced_effect_cookoff_flares_enabled then
                 timer.scheduleFunction(function(params)
-                    local flareCoords = {x = params[1].coords.x, y = land.getHeight({x = params[1].coords.x, y = params[1].coords.z}) + 1, z = params[1].coords.z}
+                    local currentPos = getUnitPosition()
+                    local flareCoords = {x = currentPos.x, y = land.getHeight({x = currentPos.x, y = currentPos.z}) + 1, z = currentPos.z}
                     debugCargoCookOff("Executing flares for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. flareCoords.x .. ", Y: " .. flareCoords.y .. ", Z: " .. flareCoords.z)
                     scheduleCookOffFlares(flareCoords, params[1].cookOffCount, params[1].cookOffDuration, params[2])
                 end, {effectData, splash_damage_options.cookoff_flare_color}, timer.getTime() + 0.2)
@@ -2067,7 +2084,8 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
                 local powerVariation = effectData.cookOffPowerRandom / 100
                 local cookOffPower = effectData.cookOffPowerRandom == 0 and basePower or basePower * (1 + powerVariation * (math.random() * 2 - 1))
                 timer.scheduleFunction(function(params)
-                    local cookOffCoords = {x = params[1].coords.x, y = land.getHeight({x = params[1].coords.x, y = params[1].coords.z}) + 1, z = params[1].coords.z}
+                    local currentPos = getUnitPosition()
+                    local cookOffCoords = {x = currentPos.x, y = land.getHeight({x = currentPos.x, y = currentPos.z}) + 1, z = currentPos.z}
                     debugCargoCookOff("Executing cookoff explosion #" .. params[3] .. " for unit ID " .. tostring(params[1].unitID or "nil") .. " at X: " .. cookOffCoords.x .. ", Y: " .. cookOffCoords.y .. ", Z: " .. cookOffCoords.z)
                     trigger.action.explosion(cookOffCoords, params[2])
                 end, {effectData, cookOffPower, i}, timer.getTime() + delay)
@@ -2082,7 +2100,8 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
                     local r = math.random() * (maxDist - minDist) + minDist
                     local debrisDelay = (j - 1) * (effectData.cookOffDuration / debrisCount)
                     timer.scheduleFunction(function(debrisArgs)
-                        local debrisBaseCoords = {x = debrisArgs[1].coords.x, y = land.getHeight({x = debrisArgs[1].coords.x, y = debrisArgs[1].coords.z}) + 1, z = debrisArgs[1].coords.z}
+                        local currentPos = getUnitPosition()
+                        local debrisBaseCoords = {x = currentPos.x, y = land.getHeight({x = currentPos.x, y = currentPos.z}) + 1, z = currentPos.z}
                         debugCargoCookOff("Executing debris explosion #" .. debrisArgs[3] .. " for unit ID " .. tostring(debrisArgs[1].unitID or "nil") .. " at X: " .. debrisBaseCoords.x .. ", Y: " .. debrisBaseCoords.y .. ", Z: " .. debrisBaseCoords.z)
                         local debrisX = debrisBaseCoords.x + r * math.sin(phi) * math.cos(theta)
                         local debrisZ = debrisBaseCoords.z + r * math.sin(phi) * math.sin(theta)
@@ -2129,7 +2148,7 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
                            math.abs(newPos.y - entry.prevCoords.y) < 0.1 and
                            math.abs(newPos.z - entry.prevCoords.z) < 0.1
         debugCargoCookOff("Checking movement for unit ID " .. tostring(params.unitID) .. ": stopped=" .. tostring(hasStopped) .. ", newPos X=" .. newPos.x .. ", Z=" .. newPos.z)
-        if hasStopped then
+        if hasStopped or fromDeadEvent then
             entry.coords = newPos
             triggerEffects(newPos)
             return
@@ -2152,6 +2171,8 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
     entry.prevCoords = coords
     timer.scheduleFunction(checkMovement, {unitID = unitID}, timer.getTime() + 0.1)
 end
+
+
 --Schedule cargo effects
 local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fromDeadEvent)
     if not unitID then
