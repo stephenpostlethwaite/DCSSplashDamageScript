@@ -13,6 +13,7 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 TO DO: 
 Before 3.4 release -
 
+test GUED n vehicle name
 test skipping of ground weapons if track_groundunitordnance is false
 
 review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
@@ -47,6 +48,8 @@ test test test
 	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
 	  - New Feature: Ground Unit Explosion On Death. 
 			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
+			- There's a % chance settable
+			- You can also trigger this to happen if the unit has "GUED" in its name even if chance is set to 0
 	  - New Feature: CBU Bomblet Hit Spread - On a Hit event from a cluster bomb, it will scan the local area for nearby vehicles and trigger an additional explosion
 			- This features aims to help wipe out areas, but it works by scanning 20 meters radius (adjustable) for any vehicles nearby the hit vehicle and then 20m (adjustable) from those vehicles
 			- Max of 1 additional explosion will spawn on the vehicles. Not enabled for CBU_97/CBU_105 due to them already being effective.
@@ -304,6 +307,7 @@ splash_damage_options = {
     ["CriticalComponent_Specific_Weapons_Only"] = {}, -- {} means all weapons.  List of specific weapons to trigger CriticalComponent, i.e {"GAU8_30_HE", "GAU8_30_AP", "GAU8_30_TP"}
 
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
+		--You can also trigger this to happen if the unit has "GUED" in its name - so you can set the chance to 0 and still have them go off for specific units
     ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
     ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
     ["GU_Explode_on_Death_Explosion_Power"] = 50, --Explosion power for explode on death	
@@ -325,9 +329,13 @@ splash_damage_options = {
     ["CBU_Bomblet_Indirect_Dmg_Modifier"] = 0.4, --Multiplier for if its an indirect or less critical hit 0.4 = 40% of damage/60% reduction
     ["CBU_Bomblet_Explosion_Height"] = 0.1, -- Explosions at ground height do less damage and typically kick up more dirt, increase height by this much
 	
-    ---------------------------------------------------------------------- Strobe Marker ---------------------------------------------------------	
-    ["StrobeMarker_enabled"] = false, --Enable/Disable Strobe Marker - spawns a tiny explosion above a unit with "Strobe" in its name
-    ["StrobeMarker_interval"] = 3, --Interval in seconds for Strobe Marker explosions
+    ---------------------------------------------------------------------- Strobe Marker / Beacon ------------------------------------------------------------
+    	--Only enable one of the strobe methods at a time
+    ["StrobeMarker_allstrobeunits"] = false, --Constantly fire off strobe for all living, active units and not invisible units with Strobe in the name
+    ["StrobeMarker_individuals"] = false, --Ability to enable or diable the strobing via radio commands for indiviudual "Strobe" units
+    ["StrobeMarker_interval"] = 2, --Default interval in seconds for strobing explosions
+	
+	
 
 	---------------------------------------------------------------------- Tactical Explosion ----------------------------------------------------
     ["tactical_explosion"] = false, --Enable tactical explosion effects
@@ -1114,6 +1122,7 @@ local trophyHandler = {}
 local trophyWeaponsLookup = {}
 local recentExplosions = {}
 local strobeUnits = {}
+local individualStrobeUnits = {}
 local processedSmoke = {}
 giantExplosionTargets = {}
 giantExplosionTestTargets = {}
@@ -4471,7 +4480,7 @@ end
 
 --StrobeMarker function
 local function triggerStrobeMarker()
-    if not splash_damage_options.StrobeMarker_enabled then
+    if not splash_damage_options.StrobeMarker_allstrobeunits then
         debugStrobeMarker("StrobeMarker disabled, skipping execution")
         return timer.getTime() + splash_damage_options.StrobeMarker_interval
     end
@@ -4487,11 +4496,11 @@ local function triggerStrobeMarker()
                 if life > 0 then
                     local pos = unit:getPosition().p
                     pos.y = pos.y + heightOffset
-					pos.z = pos.z + heightOffset
-					pos.x = pos.x + heightOffset
+					--[[pos.z = pos.z + heightOffset
+					pos.x = pos.x + heightOffset]]--
                     debugStrobeMarker("Triggering explosion for unit " .. strobeData.name .. " (ID: " .. strobeData.id .. ") at X: " .. pos.x .. ", Y: " .. pos.y .. ", Z: " .. pos.z .. " with power " .. explosionPower)
                     trigger.action.explosion(pos, explosionPower)
-					local pos = unit:getPosition().p
+				--[[	local pos = unit:getPosition().p
                     pos.y = pos.y + heightOffset
 					pos.z = pos.z - heightOffset
 					pos.x = pos.x - heightOffset
@@ -4505,7 +4514,7 @@ local function triggerStrobeMarker()
                     pos.y = pos.y + heightOffset
 					pos.z = pos.z + heightOffset
 					pos.x = pos.x - heightOffset
-					trigger.action.explosion(pos, explosionPower)
+					trigger.action.explosion(pos, explosionPower)]]--
 					
                 else
                     debugStrobeMarker("Skipping unit " .. strobeData.name .. " (ID: " .. strobeData.id .. "): Unit is dead (life: " .. life .. ")")
@@ -4521,6 +4530,148 @@ local function triggerStrobeMarker()
 
     return timer.getTime() + splash_damage_options.StrobeMarker_interval
 end
+
+--Function for individual unit strobing
+local function triggerIndividualStrobe(unitId)
+    local strobeData = individualStrobeUnits[unitId]
+    if not strobeData or not strobeData.enabled then
+        return timer.getTime() + (strobeData and strobeData.interval or splash_damage_options.StrobeMarker_interval)
+    end
+
+    local unit = strobeData.unit
+    local status, err = pcall(function()
+        if unit:isExist() and unit:isActive() and not unit:getDesc().isInvisible then
+            local life = unit:getLife() or 0
+            if life > 0 then
+                local pos = unit:getPosition().p
+                local explosionPower = 0.000001
+                local heightOffset = 3
+                pos.y = pos.y + heightOffset
+                pos.z = pos.z + heightOffset
+                pos.x = pos.x + heightOffset
+                trigger.action.explosion(pos, explosionPower)
+                pos = unit:getPosition().p
+                pos.y = pos.y + heightOffset
+                pos.z = pos.z - heightOffset
+                pos.x = pos.x - heightOffset
+                trigger.action.explosion(pos, explosionPower)
+                pos = unit:getPosition().p
+                pos.y = pos.y + heightOffset
+                pos.z = pos.z - heightOffset
+                pos.x = pos.x + heightOffset
+                trigger.action.explosion(pos, explosionPower)
+                pos = unit:getPosition().p
+                pos.y = pos.y + heightOffset
+                pos.z = pos.z + heightOffset
+                pos.x = pos.x - heightOffset
+                trigger.action.explosion(pos, explosionPower)
+            end
+        end
+    end)
+    if not status then
+        debugStrobeMarker("Error triggering individual strobe for unit ID " .. unitId .. ": " .. tostring(err))
+    end
+
+    return timer.getTime() + strobeData.interval
+end
+
+--toggle individual strobe
+local function toggleIndividualStrobe(args)
+    local unitId, enable = args.unitId, args.enable
+    if individualStrobeUnits[unitId] then
+        individualStrobeUnits[unitId].enabled = enable
+        if enable then
+            timer.scheduleFunction(triggerIndividualStrobe, unitId, timer.getTime() + individualStrobeUnits[unitId].interval)
+        end
+        debugStrobeMarker("Strobe for unit ID " .. unitId .. " " .. (enable and "enabled" or "disabled"))
+    end
+end
+--set individual strobe interval
+local function setIndividualStrobeInterval(args)
+    local unitId, interval = args.unitId, args.interval
+    if individualStrobeUnits[unitId] then
+        individualStrobeUnits[unitId].interval = interval
+        if individualStrobeUnits[unitId].enabled then
+            timer.scheduleFunction(triggerIndividualStrobe, unitId, timer.getTime() + interval)
+        end
+        debugStrobeMarker("Strobe interval for unit ID " .. unitId .. " set to " .. interval .. " seconds")
+    end
+end
+
+--Create strobe radio menu
+local function createStrobeRadioMenu()
+    missionCommands.removeItem({"Strobe Control"})
+    local mainMenu = missionCommands.addSubMenu("Strobe Control")
+
+    --Scan for Strobe/Beacon units
+    local strobeTargets = {}
+    local function processObject(obj)
+        if obj:isExist() then
+            local name = obj:getName()
+            if string.find(name:lower(), "strobe") or string.find(name:lower(), "beacon") then
+                table.insert(strobeTargets, {name = name, id = obj:getID(), unit = obj})
+                debugStrobeMarker("Found Strobe/Beacon unit: " .. name)
+            end
+        end
+    end
+    for coa = 0, 2 do
+        local groups = coalition.getGroups(coa)
+        if groups then
+            for _, group in pairs(groups) do
+                local units = group:getUnits()
+                if units then
+                    for _, unit in pairs(units) do
+                        processObject(unit)
+                    end
+                end
+            end
+        end
+        local statics = coalition.getStaticObjects(coa)
+        if statics then
+            for _, static in pairs(statics) do
+                processObject(static)
+            end
+        end
+    end
+
+    if #strobeTargets == 0 then
+        --("No Strobe or Beacon units found!")
+        return
+    end
+
+    --Create menu for each found unit
+    for _, target in ipairs(strobeTargets) do
+        local unitId = target.id
+        --Initialize individual strobe unit if not already
+        if not individualStrobeUnits[unitId] then
+            individualStrobeUnits[unitId] = {
+                unit = target.unit,
+                enabled = false,
+                interval = splash_damage_options.StrobeMarker_interval,
+            }
+        end
+        local unitMenu = missionCommands.addSubMenu(target.name, mainMenu)
+        missionCommands.addCommand("Enable Strobe", unitMenu, toggleIndividualStrobe, {unitId = unitId, enable = true})
+        missionCommands.addCommand("Disable Strobe", unitMenu, toggleIndividualStrobe, {unitId = unitId, enable = false})
+        local intervalMenu = missionCommands.addSubMenu("Set Interval", unitMenu)
+        for _, interval in ipairs({1, 2, 3, 5, 10}) do
+            missionCommands.addCommand(interval .. " seconds", intervalMenu, setIndividualStrobeInterval, {unitId = unitId, interval = interval})
+        end
+    end
+end
+
+--Initialize individual strobe units
+local function initIndividualStrobeUnits()
+    individualStrobeUnits = {}
+    for _, strobeData in ipairs(strobeUnits) do
+        individualStrobeUnits[strobeData.id] = {
+            unit = strobeData.unit,
+            enabled = false,
+            interval = splash_damage_options.StrobeMarker_interval,
+        }
+    end
+end
+
 
 --Function to trigger CriticalComponent explosion
 function CriticalComponent(coords, weaponName, initiator, unitName, unitID, unitType)
@@ -5890,7 +6041,7 @@ function logEvent(eventName, eventData)
                             env.info("GU_Explode_on_Death: Unit " .. params.name .. " (ID: " .. params.id .. ") is " .. string.format("%.1f", heightAboveGround) .. "m above ground, forcing to terrain height")
                         end
                     end
-                    if math.random() <= splash_damage_options.GU_Explode_on_Death_Chance then
+                    if params.name:find("GUED") or math.random() <= splash_damage_options.GU_Explode_on_Death_Chance then
                         local explosionCoords = {
                             x = params.coords.x,
                             y = terrainHeight + (splash_damage_options.GU_Explode_on_Death_Height or 0),
@@ -5907,7 +6058,8 @@ function logEvent(eventName, eventData)
                         }
 									trigger.action.explosion(explosionCoords, splash_damage_options.GU_Explode_on_Death_Explosion_Power)
 									if splash_damage_options.GU_Explode_debug then
-                            env.info("GU_Explode_on_Death: Triggered explosion for unit " .. params.name .. " (ID: " .. params.id .. ") at X: " .. string.format("%.1f", explosionCoords.x) .. ", Y: " .. string.format("%.1f", explosionCoords.y) .. ", Z: " .. string.format("%.1f", explosionCoords.z) .. " with power " .. splash_damage_options.GU_Explode_on_Death_Explosion_Power)
+                            local reason = params.name:find("GUED") and "GUED in name" or "chance check passed"
+                            env.info("GU_Explode_on_Death: Triggered explosion for unit " .. params.name .. " (ID: " .. params.id .. ") at X: " .. string.format("%.1f", explosionCoords.x) .. ", Y: " .. string.format("%.1f", explosionCoords.y) .. ", Z: " .. string.format("%.1f", explosionCoords.z) .. " with power " .. splash_damage_options.GU_Explode_on_Death_Explosion_Power .. " (" .. reason .. ")")
 									end
 								else
 									if splash_damage_options.GU_Explode_debug then
@@ -6173,8 +6325,9 @@ function logEvent(eventName, eventData)
 	
 	
 	
-	
 end
+
+
 
 function WpnHandler:onEvent(event)
 	protectedCall(onWpnEvent, event)
@@ -7147,9 +7300,6 @@ end)
 end
 
 
-
-
-
 if (script_enable == 1) then
     gameMsg("SPLASH DAMAGE 3.4 SCRIPT RUNNING")
     env.info("SPLASH DAMAGE 3.4 SCRIPT RUNNING")
@@ -7182,11 +7332,19 @@ if (script_enable == 1) then
 	end	
 	
 	--Strobe
-    if splash_damage_options.StrobeMarker_enabled then
-        scanStrobeUnits()
-        timer.scheduleFunction(triggerStrobeMarker, {}, timer.getTime() + splash_damage_options.StrobeMarker_interval)
-        env.info("SPLASH DAMAGE: StrobeMarker initialized with interval " .. splash_damage_options.StrobeMarker_interval .. " seconds")
-    end
+	if splash_damage_options.StrobeMarker_allstrobeunits then
+		scanStrobeUnits()
+		timer.scheduleFunction(triggerStrobeMarker, {}, timer.getTime() + splash_damage_options.StrobeMarker_interval)
+		--env.info("SPLASH DAMAGE: StrobeMarker initialized with interval " .. splash_damage_options.StrobeMarker_interval .. " seconds")
+	end
+
+	if splash_damage_options.StrobeMarker_individuals then
+		scanStrobeUnits()
+		initIndividualStrobeUnits()
+		createStrobeRadioMenu()
+		--env.info("SPLASH DAMAGE: Individual StrobeMarker initialized")
+	end
+
 
 end
 
