@@ -79,7 +79,7 @@ splash_damage_options = {
     ---------------------------------------------------------------------- Debug and Messages ----------------------------------------------------------------
     ["game_messages"] = true, --enable some messages on screen
     ["debug"] = false,  --enable debugging messages 
-    ["weapon_missing_message"] = true, --false disables messages alerting you to weapons missing from the explTable
+    ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
     ["napalm_unitdamage_debug"] = false, --Enable detailed debug messages for napalm unit damage tracking
