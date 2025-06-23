@@ -346,7 +346,7 @@ splash_damage_options = {
     ["tactical_explosion_explosion_count_max"] = 14, --Max number of secondary explosions
     ["tactical_explosion_radius"] = 35, --Max radius for secondary explosions (meters)
     ["tactical_explosion_explosion_delay_max"] = 0.4, --Max delay multiplier for secondary explosions
-    ["tactical_explosion_fueltankspawn"] = true, --Spawn a fuel tank at the explosion location for effect/smoke
+    ["tactical_explosion_fueltankspawn"] = false, --Spawn a fuel tank at the explosion location for effect/smoke
 }
 
 local script_enable = 1
