@@ -13,12 +13,8 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 TO DO: 
 Before 3.4 release -
 
-test GUED n vehicle name
-test skipping of ground weapons if track_groundunitordnance is false
-
 review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
 
-Clusterbomb killfeed test again
 test cook off flare % and number %
 test trophy 1.1 changes
 
@@ -112,7 +108,7 @@ splash_damage_options = {
     ["dynamic_blast_radius_modifier"] = 2,  --multiplier for the blast radius
     ["blast_stun"] = false, --not implemented
     ["overall_scaling"] = 1,    --overall scaling for explosive power
-
+    ["only_players_weapons"] = true, --track only weapons launched by players
     ---------------------------------------------------------------------- Units -----------------------------------------------------------------------------
     ["unit_disabled_health"] = 30, --if health is below this value after our explosions, disable its movement 
     ["unit_cant_fire_health"] = 40, --if health is below this value after our explosions, set ROE to HOLD to simulate damage weapon systems
@@ -309,13 +305,13 @@ splash_damage_options = {
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
 		--You can also trigger this to happen if the unit has "GUED" in its name - so you can set the chance to 0 and still have them go off for specific units
     ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
-    ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
-    ["GU_Explode_on_Death_Explosion_Power"] = 50, --Explosion power for explode on death	
+    ["GU_Explode_on_Death_Chance"] = 1, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
+    ["GU_Explode_on_Death_Explosion_Power"] = 30, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
     ["GU_Explode_Exclude_Infantry"] = true,  --Set to false to make infantry blow up too
 		
     ---------------------------------------------------------------------- CBU Bomblet Hit Explosion ---------------------------------------------------------
-    ["CBU_Bomblet_Hit_Explosion"] = false, --Enable/Disable - on a hit even by a bomblet it can do extra damage AND/OR scan around the unit to deal damage with additional explosions of the power set in the cluster table
+    ["CBU_Bomblet_Hit_Explosion"] = false, --ONLY TESTED WITH JSOW-A - Enable/Disable - on a hit even by a bomblet it can do extra damage AND/OR scan around the unit to deal damage with additional explosions of the power set in the cluster table
     ["CBU_Bomblet_Hit_Explosion_Scaling"] = 35, --Overall Multiplier for the final bomblet damage result.  Default 35 to get the effects we want when the ground level is less than 1.6 - WHEN TESTED WITH JSOW-A
     ["CBU_Bomblet_Hit_Mimic_Spread"] = true, --Enable/Disable - Mimic spread of clusterbomb warheads by scanning an area around the target that was hit and triggering an explosion against any unit or structure (unitIds can only be hit once by this weaponid)
     ["CBU_Bomblet_Hit_Spread"] = 50, --Scan radius m to look for units to hit
@@ -340,7 +336,7 @@ splash_damage_options = {
 	---------------------------------------------------------------------- Tactical Explosion ----------------------------------------------------
     ["tactical_explosion"] = false, --Enable tactical explosion effects
     ["tactical_explosion_override_enabled"] = false, --Set this to true to enable override weapons in the key below
-    ["tactical_explosion_override_weapons"] = "Zuni_127,Mk_82,SAMP125LD", --Comma-separated list of weapons to override as tactical explosion, can be changed as needed.  Needs to be enabled in the key above.
+    ["tactical_explosion_override_weapons"] = "BGM_109B,Mk_82", --Comma-separated list of weapons to override as tactical explosion, can be changed as needed.  Needs to be enabled in the key above.  Current has tomahawks and mk82 bombs there as examples
     ["tactical_explosion_max_height"] = 40, --Max height above ground for tactical explosion to trigger (meters)
     ["tactical_explosion_scaling"] = 1, --Scaling of explosion powers, counts, radius
     ["tactical_explosion_central_power"] = 4000, --Power of central explosion
@@ -922,8 +918,9 @@ explTable = {
 	["weapons.shells.HESH_105"] = { explosive = 6, shaped_charge = false, groundordnance = true }, --105mm HESH shell, M1128 Stryker (~4-6 kg TNT equiv)
 	
 	---*** Naval ***
-	["weapons.missiles.AGM_84S"] = { explosive = 225, shaped_charge = false, groundordnance = true }, --Harpoon missile, Ticonderoga (~200-250 kg TNT equiv)
-	["weapons.missiles.P_500"] = { explosive = 500, shaped_charge = false, groundordnance = true }, --P-500 Bazalt missile, Moscow (~450-550 kg TNT equiv)	
+	["BGM_109B"] = { explosive = 450, shaped_charge = false, groundordnance = true }, -- Tomahawk
+	["AGM_84S"] = { explosive = 225, shaped_charge = false, groundordnance = true }, --Harpoon missile, Ticonderoga (~200-250 kg TNT equiv)
+	["P_500"] = { explosive = 500, shaped_charge = false, groundordnance = true }, --P-500 Bazalt missile, Moscow (~450-550 kg TNT equiv)	
 	
 	["weapons.shells.AK176_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, AK-176 (~0.7-1 kg TNT equiv)
 	["weapons.shells.A222_130"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, A-222 Bereg (~4-5 kg TNT equiv)
@@ -990,6 +987,7 @@ clusterSubMunTable = {
     ["BLG-66 EG"] = { explosive = 1 }, --BLG66_EG, 49 bomblets, 0.1 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
 }
 
+--currently unused
 unitTypeTable = {
     ["Infantry"] = { damageModifier = 1.0 }, -- Unarmored, highly vulnerable to explosives and napalm
     ["Tank"] = { damageModifier = 0.3 }, -- Heavy armor, resistant to most bomblets and napalm
@@ -1135,6 +1133,7 @@ napalmCounter = 1
 local recentExplosions = {}
 
 local cbuProcessed  = {} --Table to track processed unitID-weaponID pairs for cbus
+local cbuParentUnits = {}
 
 -- Helper function to dump table contents (for undocumented event fields)
 local function dumpTable(t, indent)
@@ -4092,6 +4091,14 @@ function onWpnEvent(event)
                 env.info("Weapon [" .. typeName .. "] fired by player " .. playerName)
                 debugMsg("Weapon [" .. typeName .. "] fired by player " .. playerName)
             end
+            --Skip non-player weapons if only_players_weapons is enabled
+            if splash_damage_options.only_players_weapons and playerName == "Unknown" then
+                if splash_damage_options.debug then
+                    env.info("SplashDamage: Skipping non-player weapon [" .. typeName .. "]")
+                    debugMsg("Skipping non-player weapon [" .. typeName .. "]")
+                end
+                return
+            end
 		if splash_damage_options.napalmoverride_enabled then
 			local napalmWeapons = {}
 			for weapon in splash_damage_options.napalm_override_weapons:gmatch("[^,]+") do
@@ -4223,6 +4230,8 @@ function onWpnEvent(event)
             end
         end
 
+
+
 function splashKillFeed()
     if not splash_damage_options.killfeed_enable then return end
 
@@ -4253,7 +4262,7 @@ function splashKillFeed()
                     env.info(string.format("SplashKillFeed: Skipped duplicate splash kill in batch for unit ID %s (%s) by %s with %s at %.2f",
                         unitId, unitType, playerName, weaponName, timer.getTime()))
                 end
-                return --Skip to next iteration
+                return --skip to next iteration
             end
 
             local unitExists = false
@@ -4272,19 +4281,41 @@ function splashKillFeed()
             end
 
             if not unitExists then
-                local isDuplicate = false
-                for _, killEntry in ipairs(killfeedTable) do
-                    if killEntry.unitID == unitId then
-                        isDuplicate = true
-                        if splash_damage_options.killfeed_debug then
-                            env.info(string.format("SplashKillFeed: Skipped duplicate splash kill for unit ID %s (%s) by %s with %s at %.2f",
-                                unitId, unitType, playerName, weaponName, timer.getTime()))
-                        end
+                --Check if unit is in killfeedTable with "Unknown" killer
+                local killfeedIndex = nil
+                for i, killEntry in ipairs(killfeedTable) do
+                    if killEntry.unitID == unitId and killEntry.killer == "Unknown" then
+                        killfeedIndex = i
                         break
                     end
                 end
 
-                if not isDuplicate then
+                --Check if unit is in splashKillfeedTable
+                local splashIndex = nil
+                for i, splashEntry in ipairs(splashKillfeedTable) do
+                    if splashEntry.unitId == unitId then
+                        splashIndex = i
+                        break
+                    end
+                end
+
+                if killfeedIndex and playerName ~= "Unknown" then
+                    --Replace "Unknown" killfeed entry with splash kill
+                    table.remove(killfeedTable, killfeedIndex)
+                    if splash_damage_options.killfeed_debug then
+                        env.info(string.format("SplashKillFeed: Replaced Unknown killfeed entry for unit ID %s (%s) with splash kill by %s at %.2f",
+                            unitId, unitType, playerName, timer.getTime()))
+                    end
+                elseif splashIndex then
+                    --Skip if already in splashKillfeedTable
+                    if splash_damage_options.killfeed_debug then
+                        env.info(string.format("SplashKillFeed: Skipped duplicate splash kill for unit ID %s (%s) by %s with %s at %.2f",
+                            unitId, unitType, playerName, weaponName, timer.getTime()))
+                    end
+                    return
+                end
+
+                if not splashIndex then
                     local msg = string.format("%s destroyed by %s's %s Splash Damage", unitType, playerName, weaponName)
                     if splash_damage_options.killfeed_game_messages then
                         local status, err = pcall(function()
@@ -5134,7 +5165,7 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
     end
     local explosionPower = (submunitionPower or 1) * splash_damage_options.CBU_Bomblet_Hit_Explosion_Scaling * splash_damage_options.overall_scaling
     local key = unitID .. "-" .. weaponID
-    local explosionHeight = splash_damage_options.CBU_Bomblet_Explosion_Height or 1.6 -- Default to 1.6m
+    local explosionHeight = splash_damage_options.CBU_Bomblet_Explosion_Height or 1.6 --Default to 1.6m
     local adjustedCoords = { x = coords.x, y = land.getHeight({x = coords.x, z = coords.z}) + explosionHeight, z = coords.z }
 
     --Mimic spread if enabled
@@ -5218,7 +5249,7 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
                     debugCBUBombletHit("CBUBomblet: unit " .. unit.name .. " identified as " .. armorType .. " with armor modifier " .. armorMod)
                     local finalPower = explosionPower * indirectMod * armorMod
 					if unit.attributes["Infantry"] then
-					finalPower = 1 -- Set explosion power to 1 for infantry
+					finalPower = 1 --Set explosion power to 1 for infantry
 					explosionHeight = 2
 					end
                     cbuProcessed[key] = true
@@ -5238,27 +5269,43 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
             end
         end
 
-        --Post-scan for killfeed with larger radius
+        --Post-scan for killfeed with 200m radius around first unit
         if splash_damage_options.killfeed_enable and #foundUnits > 0 then
             local playerName = "Unknown"
             if initiator then
                 local status, playerNameResult = pcall(function() return initiator:getPlayerName() end)
-                if status and playerNameResult then
+                debugCBUBombletHit("CBUBomblet: Attempting to get player name from initiator, status: " .. tostring(status) .. ", result: " .. tostring(playerNameResult))
+                if status and playerNameResult and playerNameResult ~= "" then
                     playerName = playerNameResult
                 else
                     local status, unitId = pcall(function() return initiator:getID() end)
+                    debugCBUBombletHit("CBUBomblet: Initiator ID check, status: " .. tostring(status) .. ", unitId: " .. tostring(unitId))
                     if status and unitId then
                         local playerList = net.get_player_list() or {}
                         for _, pid in ipairs(playerList) do
                             local pinfo = net.get_player_info(pid)
-                            if pinfo and pinfo.ucid and (tonumber(pinfo.slot) == unitId or pinfo.slot == initiator:getName()) then
+                            if pinfo and pinfo.ucid and (tonumber(pinfo.slot) == unitId or (initiator.getName and pinfo.slot == initiator:getName())) then
                                 playerName = pinfo.name or "Unknown"
+                                debugCBUBombletHit("CBUBomblet: Player name found via slot match: " .. playerName)
                                 break
+                            end
+                        end
+                    end
+                    --Fallback for submunition initiator
+                    if playerName == "Unknown" and initiator.getTypeName and initiator:getTypeName() == "BLU-97/B" then
+                        local status, launcher = pcall(function() return Weapon.getLauncher(initiator) end)
+                        debugCBUBombletHit("CBUBomblet: Weapon launcher check, status: " .. tostring(status) .. ", launcher: " .. tostring(launcher))
+                        if status and launcher then
+                            local status, launcherName = pcall(function() return launcher:getPlayerName() end)
+                            if status and launcherName and launcherName ~= "" then
+                                playerName = launcherName
+                                debugCBUBombletHit("CBUBomblet: Player name from launcher: " .. playerName)
                             end
                         end
                     end
                 end
             end
+            debugCBUBombletHit("CBUBomblet: Final playerName: " .. playerName)
             if playerName ~= "Unknown" then
                 local status, isPlayer = pcall(function()
                     local playerList = net.get_player_list() or {}
@@ -5270,13 +5317,16 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
                     end
                     return false
                 end)
+                debugCBUBombletHit("CBUBomblet: Player validation, status: " .. tostring(status) .. ", isPlayer: " .. tostring(isPlayer))
                 if status and isPlayer then
-                    timer.scheduleFunction(function()
-                        local killfeedScanRadius = 3 * scanRadius
+                    local function performKillfeedScan(delay, attempt)
+                        local killfeedScanRadius = 200
+                        local firstUnit = foundUnits[1]
+                        debugCBUBombletHit("CBUBomblet: Starting killfeed scan (attempt " .. attempt .. "), first unit: " .. tostring(firstUnit.name) .. ", coords: X=" .. firstUnit.coords.x .. ", Z=" .. firstUnit.coords.z)
                         local killfeedVolS = {
                             id = world.VolumeType.SPHERE,
                             params = {
-                                point = coords,
+                                point = firstUnit.coords,
                                 radius = killfeedScanRadius
                             }
                         }
@@ -5285,12 +5335,17 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
                         local ifKillfeedFound = function(obj)
                             local targetUnitID = safeGet(function() return obj:getID() end, "unavailable")
                             local targetHealth = safeGet(function() return obj:getLife() end, 0)
-                            if targetUnitID ~= "unavailable" and targetHealth > 0 then
-                                secondSeenUnitIDs[targetUnitID] = true
-                                debugCBUBombletHit("CBUBomblet: Killfeed scan found unit ID: " .. targetUnitID .. " (Health: " .. targetHealth .. ")")
+                            local isExist = safeGet(function() return obj:isExist() end, false)
+                            if targetUnitID ~= "unavailable" then
+                                if isExist and targetHealth > 0 then
+                                    secondSeenUnitIDs[targetUnitID] = true
+                                    debugCBUBombletHit("CBUBomblet: Killfeed scan (attempt " .. attempt .. ") found unit ID: " .. targetUnitID .. " (Health: " .. targetHealth .. ", isExist: " .. tostring(isExist) .. ")")
+                                else
+                                    debugCBUBombletHit("CBUBomblet: Killfeed scan (attempt " .. attempt .. ") found unit ID: " .. targetUnitID .. " marked as dead (Health: " .. targetHealth .. ", isExist: " .. tostring(isExist) .. ")")
+                                end
                             end
                         end
-                        debugCBUBombletHit("CBUBomblet: Killfeed scan for objects within " .. killfeedScanRadius .. "m radius")
+                        debugCBUBombletHit("CBUBomblet: Killfeed scan for objects within " .. killfeedScanRadius .. "m radius around first unit (attempt " .. attempt .. ")")
                         world.searchObjects(Object.Category.UNIT, killfeedVolS, ifKillfeedFound)
                         world.searchObjects(Object.Category.STATIC, killfeedVolS, ifKillfeedFound)
                         world.searchObjects(Object.Category.SCENERY, killfeedVolS, ifKillfeedFound)
@@ -5301,13 +5356,15 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
                         for k in pairs(secondSeenUnitIDs) do
                             table.insert(keys, k)
                         end
-                        debugCBUBombletHit("CBUBomblet: Post-scan unit IDs: " .. table.concat(keys, ", "))
+                        debugCBUBombletHit("CBUBomblet: Post-scan unit IDs (attempt " .. attempt .. "): " .. table.concat(keys, ", "))
                         for _, unit in ipairs(foundUnits) do
+                            debugCBUBombletHit("CBUBomblet: Checking unit " .. unit.name .. " (ID: " .. unit.id .. ") for splash killfeed (attempt " .. attempt .. ")")
                             if not secondSeenUnitIDs[unit.id] then
                                 local alreadyInKillfeed = false
                                 for _, entry in ipairs(splashKillfeedTable) do
                                     if entry.unitId == unit.id then
                                         alreadyInKillfeed = true
+                                        debugCBUBombletHit("CBUBomblet: Unit " .. unit.name .. " (ID: " .. unit.id .. ") already in splashKillfeedTable, skipping (attempt " .. attempt .. ")")
                                         break
                                     end
                                 end
@@ -5321,23 +5378,37 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
                                         time = timer.getTime(),
                                         position = unit.coords
                                     })
-                                    debugCBUBombletHit("CBUBomblet: Added to splashKillfeed: " .. unit.name .. " destroyed by " .. playerName)
+                                    debugCBUBombletHit("CBUBomblet: Added to splashKillfeed: " .. unit.name .. " destroyed by " .. playerName .. " (attempt " .. attempt .. ")")
                                     if splash_damage_options.killfeed_game_messages then
                                         local msg = string.format("%s destroyed by %s's %s Splash Damage", unit.type, playerName, weaponName)
                                         local status, err = pcall(function()
                                             trigger.action.outTextForCoalition(2, msg, splash_damage_options.killfeed_game_message_duration)
                                         end)
                                         if not status then
-                                            debugCBUBombletHit("CBUBomblet Error displaying killfeed message: " .. tostring(err))
+                                            debugCBUBombletHit("CBUBomblet Error displaying killfeed message: " .. tostring(err) .. " (attempt " .. attempt .. ")")
                                         end
                                     end
                                 end
+                            else
+                                debugCBUBombletHit("CBUBomblet: Unit " .. unit.name .. " (ID: " .. unit.id .. ") still alive, not added to splashKillfeed (attempt " .. attempt .. ")")
                             end
                         end
-                        debugCBUBombletHit("CBUBomblet: splashKillfeedTemp size: " .. #splashKillfeedTemp)
-                    end, {}, timer.getTime() + 3)
+                        debugCBUBombletHit("CBUBomblet: splashKillfeedTemp size: " .. #splashKillfeedTemp .. " (attempt " .. attempt .. ")")
+                        --Schedule retry if first attempt and no kills added
+                        if attempt == 1 and #splashKillfeedTemp == 0 then
+                            debugCBUBombletHit("CBUBomblet: No kills added on first scan, scheduling retry in 5 seconds")
+                            timer.scheduleFunction(performKillfeedScan, 35, timer.getTime() + 5, 2)
+                        end
+                    end
+                    timer.scheduleFunction(performKillfeedScan, 30, timer.getTime() + 30, 1)
+                else
+                    debugCBUBombletHit("CBUBomblet: Killfeed scan skipped, player validation failed")
                 end
+            else
+                debugCBUBombletHit("CBUBomblet: Killfeed scan skipped, playerName is Unknown")
             end
+        else
+            debugCBUBombletHit("CBUBomblet: Killfeed scan skipped, no units found or killfeed disabled")
         end
     end
 end
@@ -5975,6 +6046,7 @@ function logEvent(eventName, eventData)
 			end
 		end
 		
+		
 		--Process GU_Explode_on_Death for ground units
 		if splash_damage_options.GU_Explode_on_Death then
 			local unit, unitID, unitName, unitType, unitPosition, rawCoords, unitCategory
@@ -6095,6 +6167,15 @@ function logEvent(eventName, eventData)
 
 
     --CBU Bomblet Hit Explosion handling
+if eventName == "SHOT" and eventData.initiator and eventData.weapon then
+    local weaponName = safeGet(function() return eventData.weapon:getTypeName():match(".*%.(.*)") or eventData.weapon:getTypeName() end, "unknown")
+    local weaponID = safeGet(function() return eventData.weapon:getID() end, "unknown")
+    --Check if the weapon is in clusterSubMunTable
+    if clusterSubMunTable[weaponName] then
+        cbuParentUnits[weaponID] = eventData.initiator
+        debugCBUBombletHit("CBUBomblet: Stored parent unit for weapon " .. weaponName .. " (ID: " .. weaponID .. ")")
+    end
+end
     if splash_damage_options.CBU_Bomblet_Hit_Explosion and eventName == "HIT" and eventData.initiator and eventData.target and eventData.weapon then
         local status, err = pcall(function()
             local unitID = safeGet(function() return eventData.target:getID() end, "unavailable")
@@ -6103,6 +6184,16 @@ function logEvent(eventName, eventData)
             local weaponID = safeGet(function() return eventData.weapon:getID() end, "unknown")
             local rawCoords = safeGet(function() return eventData.target:getPosition().p end, {x = 0, y = 0, z = 0})
             local initiator = eventData.initiator
+        --If initiator is a submunition, try to find the parent unit
+        if clusterSubMunTable[weaponName] then
+            for storedWeaponID, parentInitiator in pairs(cbuParentUnits) do
+                if parentInitiator and parentInitiator:isExist() then
+                    initiator = parentInitiator
+                    debugCBUBombletHit("CBUBomblet: Using parent unit for submunition " .. weaponName .. " (ID: " .. weaponID .. ")")
+                    break
+                end
+            end
+        end
 
             if unitID == "unavailable" or type(unitName) ~= "string" then
                 debugCBUBombletHit("CBUBomblet: Skipping HIT event for invalid unit (ID: " .. tostring(unitID) .. ", Name: " .. tostring(unitName) .. ")")
@@ -6321,7 +6412,6 @@ function logEvent(eventName, eventData)
 			end
 		end
  	
-	
 	
 	
 	
