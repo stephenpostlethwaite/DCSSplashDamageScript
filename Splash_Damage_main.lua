@@ -64,7 +64,11 @@ test test test
 			- Added chance options to the flares for cookoffs also
 	  - Effects (i.e cookoff) no longer only bound by damage from tracked weapons.  Gun cannon kills will now count!  May time until the unit pops before it triggers a cookoff
 	  - Giant explosion effects now tracked on events instead of checking the unit every second
-
+	  - Jogaredi's suggestion added - ["only_players_weapons"] = true, --track only weapons launch by players, this will be defaulted to false
+	  - Due to ED boosting damage values for MK82s and a few others, added the ability to skip larger_explosion and damage_model by having a specific entry in the explosive table
+			- Example below, you would need to add this to each weapon that you need this for (or I can do it in the base script if multiple people think its a good idea)
+			- ["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
+				
 	  
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
                                                                 Full Changelog at the bottom of the script
@@ -108,7 +112,8 @@ splash_damage_options = {
     ["dynamic_blast_radius_modifier"] = 2,  --multiplier for the blast radius
     ["blast_stun"] = false, --not implemented
     ["overall_scaling"] = 1,    --overall scaling for explosive power
-    ["only_players_weapons"] = true, --track only weapons launched by players
+	["only_players_weapons"] = false, --track only weapons launched by players
+	
     ---------------------------------------------------------------------- Units -----------------------------------------------------------------------------
     ["unit_disabled_health"] = 30, --if health is below this value after our explosions, disable its movement 
     ["unit_cant_fire_health"] = 40, --if health is below this value after our explosions, set ROE to HOLD to simulate damage weapon systems
@@ -174,8 +179,8 @@ splash_damage_options = {
     ["allunits_advanced_effect_sequence"] = true,  --When set to true, its possible for units to be trigger an advanced effect sequence.  This will take precedence over the standard allunits cookoff. it will ignore the previous settings for smoke/flame size and duration and instead it will let you program a specific sequence of smoke/flame effects
     ["allunits_advanced_effect_sequence_chance"] = 0, --Chance of the script picking the advanced effect instead of the standard all unit effect. 1 = 100%, 0.5 = 50%
     ["allunits_advanced_effect_force_on_name"] = true,  --Regardless of chance, if the unit has "SmokeEffects" in its name it will trigger the advanced sequence
-    ["allunits_advanced_effect_order"] = {"3", "2", "7", "6", "5"},  --List of flame and smoke : sizes, 1 = small smoke and fire, 2 = med, 3 = large, 4 = huge.  5 = small smoke only, 6 = medium, 7 = large,  8 = huge 
-    ["allunits_advanced_effect_timing"] = {"10", "30", "90", "120", "99999999"}, --How many seconds per effect in the order config key above
+    ["allunits_advanced_effect_order"] = {"2", "7", "6", "5"},  --List of flame and smoke : sizes, 1 = small smoke and fire, 2 = med, 3 = large, 4 = huge.  5 = small smoke only, 6 = medium, 7 = large,  8 = huge 
+    ["allunits_advanced_effect_timing"] = {"30", "90", "120", "99999999"}, --How many seconds per effect in the order config key above
     ["allunits_advanced_effect_cookoff_chance"] = 1, --Chance of cookoff effects occurring for the advanced effect sequence
     ["allunits_advanced_effect_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_advanced_effect_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
@@ -599,152 +604,155 @@ flamesize:
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-
                                                                 Weapon Explosive Table             
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
+
+--If you want to the specific weapon to skip the damage_model (blastwave damage) or the larger_explosion you can modify the entry like so:
+    --["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
 explTable = {
     --*** WWII BOMBS ***
-    ["British_GP_250LB_Bomb_Mk1"] = { explosive = 100, shaped_charge = false },
-    ["British_GP_250LB_Bomb_Mk4"] = { explosive = 100, shaped_charge = false },
-    ["British_GP_250LB_Bomb_Mk5"] = { explosive = 100, shaped_charge = false },
-    ["British_GP_500LB_Bomb_Mk1"] = { explosive = 213, shaped_charge = false },
-    ["British_GP_500LB_Bomb_Mk4"] = { explosive = 213, shaped_charge = false },
-    ["British_GP_500LB_Bomb_Mk4_Short"] = { explosive = 213, shaped_charge = false },
-    ["British_GP_500LB_Bomb_Mk5"] = { explosive = 213, shaped_charge = false },
-    ["British_MC_250LB_Bomb_Mk1"] = { explosive = 100, shaped_charge = false },
-    ["British_MC_250LB_Bomb_Mk2"] = { explosive = 100, shaped_charge = false },
-    ["British_MC_500LB_Bomb_Mk1_Short"] = { explosive = 213, shaped_charge = false },
-    ["British_MC_500LB_Bomb_Mk2"] = { explosive = 213, shaped_charge = false },
-    ["British_SAP_250LB_Bomb_Mk5"] = { explosive = 100, shaped_charge = false },
-    ["British_SAP_500LB_Bomb_Mk5"] = { explosive = 213, shaped_charge = false },
-    ["British_AP_25LBNo1_3INCHNo1"] = { explosive = 4, shaped_charge = false },
-    ["British_HE_60LBSAPNo2_3INCHNo1"] = { explosive = 4, shaped_charge = false },
-    ["British_HE_60LBFNo1_3INCHNo1"] = { explosive = 4, shaped_charge = false },
+    ["British_GP_250LB_Bomb_Mk1"] = { explosive = 100 },
+    ["British_GP_250LB_Bomb_Mk4"] = { explosive = 100 },
+    ["British_GP_250LB_Bomb_Mk5"] = { explosive = 100 },
+    ["British_GP_500LB_Bomb_Mk1"] = { explosive = 213 },
+    ["British_GP_500LB_Bomb_Mk4"] = { explosive = 213 },
+    ["British_GP_500LB_Bomb_Mk4_Short"] = { explosive = 213 },
+    ["British_GP_500LB_Bomb_Mk5"] = { explosive = 213 },
+    ["British_MC_250LB_Bomb_Mk1"] = { explosive = 100 },
+    ["British_MC_250LB_Bomb_Mk2"] = { explosive = 100 },
+    ["British_MC_500LB_Bomb_Mk1_Short"] = { explosive = 213 },
+    ["British_MC_500LB_Bomb_Mk2"] = { explosive = 213 },
+    ["British_SAP_250LB_Bomb_Mk5"] = { explosive = 100 },
+    ["British_SAP_500LB_Bomb_Mk5"] = { explosive = 213 },
+    ["British_AP_25LBNo1_3INCHNo1"] = { explosive = 4 },
+    ["British_HE_60LBSAPNo2_3INCHNo1"] = { explosive = 4 },
+    ["British_HE_60LBFNo1_3INCHNo1"] = { explosive = 4 },
   
-    ["SC_50"] = { explosive = 20, shaped_charge = false },
-    ["ER_4_SC50"] = { explosive = 20, shaped_charge = false },
-    ["SC_250_T1_L2"] = { explosive = 100, shaped_charge = false },
-    ["SC_501_SC250"] = { explosive = 100, shaped_charge = false },
-    ["Schloss500XIIC1_SC_250_T3_J"] = { explosive = 100, shaped_charge = false },
-    ["SC_501_SC500"] = { explosive = 213, shaped_charge = false },
-    ["SC_500_L2"] = { explosive = 213, shaped_charge = false },
-    ["SD_250_Stg"] = { explosive = 100, shaped_charge = false },
-    ["SD_500_A"] = { explosive = 213, shaped_charge = false },
+    ["SC_50"] = { explosive = 20 },
+    ["ER_4_SC50"] = { explosive = 20 },
+    ["SC_250_T1_L2"] = { explosive = 100 },
+    ["SC_501_SC250"] = { explosive = 100 },
+    ["Schloss500XIIC1_SC_250_T3_J"] = { explosive = 100 },
+    ["SC_501_SC500"] = { explosive = 213 },
+    ["SC_500_L2"] = { explosive = 213 },
+    ["SD_250_Stg"] = { explosive = 100 },
+    ["SD_500_A"] = { explosive = 213 },
   
     --*** WWII CBU ***
-    ["AB_250_2_SD_2"] = { explosive = 100, shaped_charge = false },
-    ["AB_250_2_SD_10A"] = { explosive = 100, shaped_charge = false },
-    ["AB_500_1_SD_10A"] = { explosive = 213, shaped_charge = false },
+    ["AB_250_2_SD_2"] = { explosive = 100 },
+    ["AB_250_2_SD_10A"] = { explosive = 100 },
+    ["AB_500_1_SD_10A"] = { explosive = 213 },
   
     --*** WWII ROCKETS ***
-    ["3xM8_ROCKETS_IN_TUBES"] = { explosive = 4, shaped_charge = false },
-    ["WGr21"] = { explosive = 4, shaped_charge = false },
+    ["3xM8_ROCKETS_IN_TUBES"] = { explosive = 4 },
+    ["WGr21"] = { explosive = 4 },
   
     --*** UNGUIDED BOMBS (UGB) ***
-    ["M_117"] = { explosive = 201, shaped_charge = false },
-    ["AN_M30A1"] = { explosive = 45, shaped_charge = false },
-    ["AN_M57"] = { explosive = 100, shaped_charge = false },
-    ["AN_M64"] = { explosive = 121, shaped_charge = false },
-    ["AN_M65"] = { explosive = 400, shaped_charge = false },
-    ["AN_M66"] = { explosive = 800, shaped_charge = false },
-    ["AN-M66A2"] = { explosive = 536, shaped_charge = false },
-    ["AN-M81"] = { explosive = 100, shaped_charge = false },
-    ["AN-M88"] = { explosive = 100, shaped_charge = false },
+    ["M_117"] = { explosive = 201 },
+    ["AN_M30A1"] = { explosive = 45 },
+    ["AN_M57"] = { explosive = 100 },
+    ["AN_M64"] = { explosive = 121 },
+    ["AN_M65"] = { explosive = 400 },
+    ["AN_M66"] = { explosive = 800 },
+    ["AN-M66A2"] = { explosive = 536 },
+    ["AN-M81"] = { explosive = 100 },
+    ["AN-M88"] = { explosive = 100 },
   
-    ["Mk_81"] = { explosive = 60, shaped_charge = false },
-    ["MK-81SE"] = { explosive = 60, shaped_charge = false },
-    ["Mk_82"] = { explosive = 100, shaped_charge = false },
-    ["MK_82AIR"] = { explosive = 100, shaped_charge = false },
-    ["MK_82SNAKEYE"] = { explosive = 100, shaped_charge = false },
-    ["Mk_83"] = { explosive = 274, shaped_charge = false },
-    ["Mk_84"] = { explosive = 582, shaped_charge = false },
+    ["Mk_81"] = { explosive = 60 },
+    ["MK-81SE"] = { explosive = 60 },
+	["Mk_82"] = { explosive = 100},
+    ["MK_82AIR"] = { explosive = 100 },
+    ["MK_82SNAKEYE"] = { explosive = 100 },
+    ["Mk_83"] = { explosive = 274 },
+    ["Mk_84"] = { explosive = 582 },
   
-    ["HEBOMB"] = { explosive = 40, shaped_charge = false },
-    ["HEBOMBD"] = { explosive = 40, shaped_charge = false },
+    ["HEBOMB"] = { explosive = 40 },
+    ["HEBOMBD"] = { explosive = 40 },
   
-    ["SAMP125LD"] = { explosive = 60, shaped_charge = false },
-    ["SAMP250LD"] = { explosive = 118, shaped_charge = false },
-    ["SAMP250HD"] = { explosive = 118, shaped_charge = false },
-    ["SAMP400LD"] = { explosive = 274, shaped_charge = false },
-    ["SAMP400HD"] = { explosive = 274, shaped_charge = false },
+    ["SAMP125LD"] = { explosive = 60 },
+    ["SAMP250LD"] = { explosive = 118 },
+    ["SAMP250HD"] = { explosive = 118 },
+    ["SAMP400LD"] = { explosive = 274 },
+    ["SAMP400HD"] = { explosive = 274 },
   
-    ["BR_250"] = { explosive = 100, shaped_charge = false },
-    ["BR_500"] = { explosive = 100, shaped_charge = false },
+    ["BR_250"] = { explosive = 100 },
+    ["BR_500"] = { explosive = 100 },
   
-    ["FAB_100"] = { explosive = 45, shaped_charge = false },
-    ["FAB_250"] = { explosive = 118, shaped_charge = false },
-    ["FAB_250M54TU"] = { explosive = 118, shaped_charge = false },
-    ["FAB-250-M62"] = { explosive = 118, shaped_charge = false },
-    ["FAB_500"] = { explosive = 213, shaped_charge = false },
-    ["FAB_1500"] = { explosive = 675, shaped_charge = false },
+    ["FAB_100"] = { explosive = 45 },
+    ["FAB_250"] = { explosive = 118 },
+    ["FAB_250M54TU"] = { explosive = 118 },
+    ["FAB-250-M62"] = { explosive = 118 },
+    ["FAB_500"] = { explosive = 213 },
+    ["FAB_1500"] = { explosive = 675 },
   
     --*** UNGUIDED BOMBS WITH PENETRATOR / ANTI-RUNWAY ***
-    ["Durandal"] = { explosive = 64, shaped_charge = false },
-    ["BLU107B_DURANDAL"] = { explosive = 64, shaped_charge = false },
-    ["BAP_100"] = { explosive = 32, shaped_charge = false },
-    ["BAP-100"] = { explosive = 32, shaped_charge = false },
-    ["BAT-120"] = { explosive = 32, shaped_charge = false },
-    ["TYPE-200A"] = { explosive = 107, shaped_charge = false },
-    ["BetAB_500"] = { explosive = 98, shaped_charge = false },
-    ["BetAB_500ShP"] = { explosive = 107, shaped_charge = false },
+    ["Durandal"] = { explosive = 64 },
+    ["BLU107B_DURANDAL"] = { explosive = 64 },
+    ["BAP_100"] = { explosive = 32 },
+    ["BAP-100"] = { explosive = 32 },
+    ["BAT-120"] = { explosive = 32 },
+    ["TYPE-200A"] = { explosive = 107 },
+    ["BetAB_500"] = { explosive = 98 },
+    ["BetAB_500ShP"] = { explosive = 107 },
     
     --*** GUIDED BOMBS (GBU) ***
-    ["GBU_10"] = { explosive = 582, shaped_charge = false },
-    ["GBU_12"] = { explosive = 100, shaped_charge = false },
-    ["GBU_16"] = { explosive = 274, shaped_charge = false },
-    ["GBU_24"] = { explosive = 582, shaped_charge = false },
-    ["KAB_1500Kr"] = { explosive = 675, shaped_charge = false },
-    ["KAB_500Kr"] = { explosive = 213, shaped_charge = false },
-    ["KAB_500"] = { explosive = 213, shaped_charge = false },
+    ["GBU_10"] = { explosive = 582 },
+    ["GBU_12"] = { explosive = 100 }, 
+    ["GBU_16"] = { explosive = 274 },
+    ["GBU_24"] = { explosive = 582 },
+    ["KAB_1500Kr"] = { explosive = 675 },
+    ["KAB_500Kr"] = { explosive = 213 },
+    ["KAB_500"] = { explosive = 213 },
   
     --*** CLUSTER BOMBS (CBU) ***
 	--I don't have most of these so can't test them with debug on
 	--For the CBU_Bomblet_Hit_Explosion feature, see a different table called "clusterSubMunTable"
-    ["MK77mod0-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
-    ["MK77mod1-WPN"] = { explosive = 0, shaped_charge = false, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
-    ["CBU_99"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye variant, confirmed 247 Mk 118 bomblets
-    ["ROCKEYE"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye, confirmed 247 Mk 118 bomblets
-    ["BLU_3B_GROUP"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 19, submunition_explosive = 0.2, submunition_name = "BLU_3B" }, --Not in datamine, possibly custom or outdated; submunition name guessed
-    ["CBU_87"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --Confirmed 202 BLU-97/B bomblets
-    ["CBU_103"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --WCMD variant of CBU-87, confirmed 202 BLU-97/B bomblets
-    ["CBU_97"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 10, submunition_explosive = 15, submunition_name = "BLU_108" }, --Confirmed 10 BLU-108 submunitions, each with 4 skeets
-    ["CBU_105"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 10, submunition_explosive = 15, submunition_name = "BLU_108" }, --WCMD variant of CBU-97, confirmed 10 BLU-108 submunitions
-    ["BELOUGA"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 151, submunition_explosive = 0.3, submunition_name = "grenade_AC" }, --Confirmed 151 grenade_AC bomblets (French BLG-66)
-    ["BLG66_BELOUGA"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 151, submunition_explosive = 0.3, submunition_name = "grenade_AC" }, --Alias for BELOUGA, confirmed 151 grenade_AC bomblets
-    ["BL_755"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 147, submunition_explosive = 0.4, submunition_name = "BL_755_bomblet" }, --Confirmed 147 bomblets, submunition name from your table
-    ["RBK_250"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 60, submunition_explosive = 0.5, submunition_name = "PTAB_25M" }, --Confirmed 60 PTAB-2.5M anti-tank bomblets
-    ["RBK_250_275_AO_1SCH"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 150, submunition_explosive = 0.2, submunition_name = "AO_1SCh" }, --Confirmed 150 AO-1SCh fragmentation bomblets
-    ["RBK_500"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 108, submunition_explosive = 0.5, submunition_name = "PTAB_10_5" }, --Confirmed 108 PTAB-10-5 anti-tank bomblets
-    ["RBK_500U"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
-    ["RBK_500AO"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 108, submunition_explosive = 0.5, submunition_name = "AO_25RT" }, --Confirmed 108 AO-2.5RT fragmentation bomblets
-    ["RBK_500U_OAB_2_5RT"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
-    ["RBK_500_255_PTO_1M"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 126, submunition_explosive = 0.5, submunition_name = "PTO_1M" },
-    ["RBK_500_255_ShO"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 565, submunition_explosive = 0.1, submunition_name = "ShO" },  
+    ["MK77mod0-WPN"] = { explosive = 0, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
+    ["MK77mod1-WPN"] = { explosive = 0, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
+    ["CBU_99"] = { explosive = 0, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye variant, confirmed 247 Mk 118 bomblets
+    ["ROCKEYE"] = { explosive = 0, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye, confirmed 247 Mk 118 bomblets
+    ["BLU_3B_GROUP"] = { explosive = 0, cluster = true, submunition_count = 19, submunition_explosive = 0.2, submunition_name = "BLU_3B" }, --Not in datamine, possibly custom or outdated; submunition name guessed
+    ["CBU_87"] = { explosive = 0, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --Confirmed 202 BLU-97/B bomblets
+    ["CBU_103"] = { explosive = 0, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --WCMD variant of CBU-87, confirmed 202 BLU-97/B bomblets
+    ["CBU_97"] = { explosive = 0, cluster = true, submunition_count = 10, submunition_explosive = 15, submunition_name = "BLU_108" }, --Confirmed 10 BLU-108 submunitions, each with 4 skeets
+    ["CBU_105"] = { explosive = 0, cluster = true, submunition_count = 10, submunition_explosive = 15, submunition_name = "BLU_108" }, --WCMD variant of CBU-97, confirmed 10 BLU-108 submunitions
+    ["BELOUGA"] = { explosive = 0, cluster = true, submunition_count = 151, submunition_explosive = 0.3, submunition_name = "grenade_AC" }, --Confirmed 151 grenade_AC bomblets (French BLG-66)
+    ["BLG66_BELOUGA"] = { explosive = 0, cluster = true, submunition_count = 151, submunition_explosive = 0.3, submunition_name = "grenade_AC" }, --Alias for BELOUGA, confirmed 151 grenade_AC bomblets
+    ["BL_755"] = { explosive = 0, cluster = true, submunition_count = 147, submunition_explosive = 0.4, submunition_name = "BL_755_bomblet" }, --Confirmed 147 bomblets, submunition name from your table
+    ["RBK_250"] = { explosive = 0, cluster = true, submunition_count = 60, submunition_explosive = 0.5, submunition_name = "PTAB_25M" }, --Confirmed 60 PTAB-2.5M anti-tank bomblets
+    ["RBK_250_275_AO_1SCH"] = { explosive = 0, cluster = true, submunition_count = 150, submunition_explosive = 0.2, submunition_name = "AO_1SCh" }, --Confirmed 150 AO-1SCh fragmentation bomblets
+    ["RBK_500"] = { explosive = 0, cluster = true, submunition_count = 108, submunition_explosive = 0.5, submunition_name = "PTAB_10_5" }, --Confirmed 108 PTAB-10-5 anti-tank bomblets
+    ["RBK_500U"] = { explosive = 0, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
+    ["RBK_500AO"] = { explosive = 0, cluster = true, submunition_count = 108, submunition_explosive = 0.5, submunition_name = "AO_25RT" }, --Confirmed 108 AO-2.5RT fragmentation bomblets
+    ["RBK_500U_OAB_2_5RT"] = { explosive = 0, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
+    ["RBK_500_255_PTO_1M"] = { explosive = 0, cluster = true, submunition_count = 126, submunition_explosive = 0.5, submunition_name = "PTO_1M" },
+    ["RBK_500_255_ShO"] = { explosive = 0, cluster = true, submunition_count = 565, submunition_explosive = 0.1, submunition_name = "ShO" },  
 
     --*** INS/GPS BOMBS (JDAM) ***
-    ["GBU_31"] = { explosive = 582, shaped_charge = false },
-    ["GBU_31_V_3B"] = { explosive = 582, shaped_charge = false },
-    ["GBU_31_V_2B"] = { explosive = 582, shaped_charge = false },
-    ["GBU_31_V_4B"] = { explosive = 582, shaped_charge = false },
-    ["GBU_32_V_2B"] = { explosive = 202, shaped_charge = false },
-    ["GBU_38"] = { explosive = 100, shaped_charge = false },
-    ["GBU_54_V_1B"] = { explosive = 100, shaped_charge = false },
+    ["GBU_31"] = { explosive = 582 },
+    ["GBU_31_V_3B"] = { explosive = 582 },
+    ["GBU_31_V_2B"] = { explosive = 582 },
+    ["GBU_31_V_4B"] = { explosive = 582 },
+    ["GBU_32_V_2B"] = { explosive = 202 },
+    ["GBU_38"] = { explosive = 100 },
+    ["GBU_54_V_1B"] = { explosive = 100 },
   
     --*** GLIDE BOMBS (JSOW) ***
-    ["AGM_154A"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 145, submunition_explosive = 2, submunition_name = "BLU-97/B" }, --JSOW-A, confirmed 145 BLU-97 bomblets from datamine
-    ["AGM_154C"] = { explosive = 305, shaped_charge = false },
-    ["AGM_154"] = { explosive = 305, shaped_charge = false },
-    ["BK90_MJ1"] = { explosive = 0, shaped_charge = false },
-    ["BK90_MJ1_MJ2"] = { explosive = 0, shaped_charge = false },
-    ["BK90_MJ2"] = { explosive = 0, shaped_charge = false },
+    ["AGM_154A"] = { explosive = 0, cluster = true, submunition_count = 145, submunition_explosive = 2, submunition_name = "BLU-97/B" }, --JSOW-A, confirmed 145 BLU-97 bomblets from datamine
+    ["AGM_154C"] = { explosive = 305 },
+    ["AGM_154"] = { explosive = 305 },
+    ["BK90_MJ1"] = { explosive = 0 },
+    ["BK90_MJ1_MJ2"] = { explosive = 0 },
+    ["BK90_MJ2"] = { explosive = 0 },
   
-    ["LS-6-100"] = { explosive = 45, shaped_charge = false },
-    ["LS-6-250"] = { explosive = 100, shaped_charge = false },
-    ["LS-6-500"] = { explosive = 274, shaped_charge = false },
-    ["GB-6"] = { explosive = 0, shaped_charge = false },
-    ["GB-6-HE"] = { explosive = 0, shaped_charge = false },
-    ["GB-6-SFW"] = { explosive = 0, shaped_charge = false },
-    ["X_65"] = { explosive = 100, shaped_charge = false },
+    ["LS-6-100"] = { explosive = 45 },
+    ["LS-6-250"] = { explosive = 100 },
+    ["LS-6-500"] = { explosive = 274 },
+    ["GB-6"] = { explosive = 0 },
+    ["GB-6-HE"] = { explosive = 0 },
+    ["GB-6-SFW"] = { explosive = 0 },
+    ["X_65"] = { explosive = 100 },
   
     --*** AIR GROUND MISSILE (AGM) ***
-    ["AGM_62"] = { explosive = 400, shaped_charge = false },
+    ["AGM_62"] = { explosive = 400 },
     ["AGM_65D"] = { explosive = 38, shaped_charge = true },
     ["AGM_65E"] = { explosive = 80, shaped_charge = true },
     ["AGM_65F"] = { explosive = 80, shaped_charge = true },
@@ -752,194 +760,194 @@ explTable = {
     ["AGM_65H"] = { explosive = 38, shaped_charge = true },
     ["AGM_65K"] = { explosive = 80, shaped_charge = true },
     ["AGM_65L"] = { explosive = 80, shaped_charge = true },
-    ["AGM_123"] = { explosive = 274, shaped_charge = false },
-    ["AGM_130"] = { explosive = 582, shaped_charge = false },
-    ["AGM_119"] = { explosive = 176, shaped_charge = false },
+    ["AGM_123"] = { explosive = 274 },
+    ["AGM_130"] = { explosive = 582 },
+    ["AGM_119"] = { explosive = 176 },
     ["AGM_114"] = { explosive = 10, shaped_charge = true },
     ["AGM_114K"] = { explosive = 10, shaped_charge = true },
   
-    ["Rb 05A"] = { explosive = 217, shaped_charge = false },
-    ["RB75"] = { explosive = 38, shaped_charge = false },
-    ["RB75A"] = { explosive = 38, shaped_charge = false },
-    ["RB75B"] = { explosive = 38, shaped_charge = false },
-    ["RB75T"] = { explosive = 80, shaped_charge = false },
-    ["HOT3_MBDA"] = { explosive = 15, shaped_charge = false },
-    ["C-701T"] = { explosive = 38, shaped_charge = false },
-    ["C-701IR"] = { explosive = 38, shaped_charge = false },
+    ["Rb 05A"] = { explosive = 217 },
+    ["RB75"] = { explosive = 38 },
+    ["RB75A"] = { explosive = 38 },
+    ["RB75B"] = { explosive = 38 },
+    ["RB75T"] = { explosive = 80 },
+    ["HOT3_MBDA"] = { explosive = 15 },
+    ["C-701T"] = { explosive = 38 },
+    ["C-701IR"] = { explosive = 38 },
   
-    ["Vikhr_M"] = { explosive = 11, shaped_charge = false },
-    ["Vikhr_9M127_1"] = { explosive = 11, shaped_charge = false },
-    ["AT_6"] = { explosive = 11, shaped_charge = false },
-    ["Ataka_9M120"] = { explosive = 11, shaped_charge = false },
-    ["Ataka_9M120F"] = { explosive = 11, shaped_charge = false },
-    ["P_9M117"] = { explosive = 0, shaped_charge = false },
+    ["Vikhr_M"] = { explosive = 11 },
+    ["Vikhr_9M127_1"] = { explosive = 11 },
+    ["AT_6"] = { explosive = 11 },
+    ["Ataka_9M120"] = { explosive = 11 },
+    ["Ataka_9M120F"] = { explosive = 11 },
+    ["P_9M117"] = { explosive = 0 },
     
-    ["KH-66_Grom"] = { explosive = 108, shaped_charge = false },
-    ["X_23"] = { explosive = 111, shaped_charge = false },
-    ["X_23L"] = { explosive = 111, shaped_charge = false },
-    ["X_28"] = { explosive = 160, shaped_charge = false },
-    ["X_25ML"] = { explosive = 89, shaped_charge = false },
-    ["X_25MR"] = { explosive = 140, shaped_charge = false },
-    ["X_29L"] = { explosive = 320, shaped_charge = false },
-    ["X_29T"] = { explosive = 320, shaped_charge = false },
-    ["X_29TE"] = { explosive = 320, shaped_charge = false },
+    ["KH-66_Grom"] = { explosive = 108 },
+    ["X_23"] = { explosive = 111 },
+    ["X_23L"] = { explosive = 111 },
+    ["X_28"] = { explosive = 160 },
+    ["X_25ML"] = { explosive = 89 },
+    ["X_25MR"] = { explosive = 140 },
+    ["X_29L"] = { explosive = 320 },
+    ["X_29T"] = { explosive = 320 },
+    ["X_29TE"] = { explosive = 320 },
 	
-    ["AKD-10"] = { explosive = 10, shaped_charge = false }, --drone
+    ["AKD-10"] = { explosive = 10 }, --drone
 	
     --*** ANTI-RADAR MISSILE (ARM) ***
-    ["AGM_88C"] = { explosive = 69, shaped_charge = false },
-    ["AGM_88"] = { explosive = 69, shaped_charge = false },
-    ["AGM_122"] = { explosive = 12, shaped_charge = false },
-    ["LD-10"] = { explosive = 75, shaped_charge = false },
-    ["AGM_45A"] = { explosive = 66, shaped_charge = false },
-	["AGM_45B"] = { explosive = 66, shaped_charge = false },
-    ["X_58"] = { explosive = 149, shaped_charge = false },
-    ["X_25MP"] = { explosive = 90, shaped_charge = false },
+    ["AGM_88C"] = { explosive = 69 },
+    ["AGM_88"] = { explosive = 69 },
+    ["AGM_122"] = { explosive = 12 },
+    ["LD-10"] = { explosive = 75 },
+    ["AGM_45A"] = { explosive = 66 },
+	["AGM_45B"] = { explosive = 66 },
+    ["X_58"] = { explosive = 149 },
+    ["X_25MP"] = { explosive = 90 },
     ["X_31P"]    = { explosive = 90,  shaped_charge = false },
   
     --*** ANTI-SHIP MISSILE (ASh) ***
-    ["AGM_84D"] = { explosive = 488, shaped_charge = false },
-    ["Rb 15F"] = { explosive = 500, shaped_charge = false },
-    ["C-802AK"] = { explosive = 500, shaped_charge = false },
+    ["AGM_84D"] = { explosive = 488 },
+    ["Rb 15F"] = { explosive = 500 },
+    ["C-802AK"] = { explosive = 500 },
     ["X_31A"]    = { explosive = 89,  shaped_charge = false }, --KH-31A ASh
     ["X_22"]    = { explosive = 1200,  shaped_charge = false }, --Ash 1ton RDX = 1600KG TNT
     ["X_35"]    = { explosive = 145,  shaped_charge = true }, --ASh 145KG
 	
     --*** CRUISE MISSILE ***
-    ["CM-802AKG"] = { explosive = 240, shaped_charge = false },
-    ["AGM_84E"] = { explosive = 360, shaped_charge = false },
-    ["AGM_84H"] = { explosive = 380, shaped_charge = false },
-    ["X_59M"] = { explosive = 340, shaped_charge = false },
-    ["X_65"] = { explosive = 545, shaped_charge = false },
+    ["CM-802AKG"] = { explosive = 240 },
+    ["AGM_84E"] = { explosive = 360 },
+    ["AGM_84H"] = { explosive = 380 },
+    ["X_59M"] = { explosive = 340 },
+    ["X_65"] = { explosive = 545 },
   
     --*** ROCKETS ***
-    ["HYDRA_70M15"] = { explosive = 5, shaped_charge = false },
-    ["HYDRA_70_MK1"] = { explosive = 5, shaped_charge = false },
-    ["HYDRA_70_MK5"] = { explosive = 8, shaped_charge = false },
-    ["HYDRA_70_M151"] = { explosive = 5, shaped_charge = false },
-    ["HYDRA_70_M151_M433"] = { explosive = 5, shaped_charge = false },
-    ["HYDRA_70_M229"] = { explosive = 10, shaped_charge = false },
-    ["FFAR Mk1 HE"] = { explosive = 5, shaped_charge = false },
-    ["FFAR Mk5 HEAT"] = { explosive = 8, shaped_charge = false },
-    ["HVAR"] = { explosive = 5, shaped_charge = false },
-    ["Zuni_127"] = { explosive = 8, shaped_charge = false },
-    ["ARAKM70BHE"] = { explosive = 5, shaped_charge = false },
-    ["ARAKM70BAP"] = { explosive = 8, shaped_charge = false },
-    ["SNEB_TYPE251_F1B"] = { explosive = 4, shaped_charge = false },
-    ["SNEB_TYPE252_F1B"] = { explosive = 4, shaped_charge = false },
-    ["SNEB_TYPE253_F1B"] = { explosive = 5, shaped_charge = false },
-    ["SNEB_TYPE256_F1B"] = { explosive = 6, shaped_charge = false },
-    ["SNEB_TYPE257_F1B"] = { explosive = 8, shaped_charge = false },
-    ["SNEB_TYPE251_F4B"] = { explosive = 4, shaped_charge = false },
-    ["SNEB_TYPE252_F4B"] = { explosive = 4, shaped_charge = false },
-    ["SNEB_TYPE253_F4B"] = { explosive = 5, shaped_charge = false },
-    ["SNEB_TYPE256_F4B"] = { explosive = 6, shaped_charge = false },
-    ["SNEB_TYPE257_F4B"] = { explosive = 8, shaped_charge = false },
-    ["SNEB_TYPE251_H1"] = { explosive = 4, shaped_charge = false },
-    ["SNEB_TYPE252_H1"] = { explosive = 4, shaped_charge = false },
-    ["SNEB_TYPE253_H1"] = { explosive = 5, shaped_charge = false },
-    ["SNEB_TYPE256_H1"] = { explosive = 6, shaped_charge = false },
-    ["SNEB_TYPE257_H1"] = { explosive = 8, shaped_charge = false },
-    ["MATRA_F4_SNEBT251"] = { explosive = 8, shaped_charge = false },
-    ["MATRA_F4_SNEBT253"] = { explosive = 8, shaped_charge = false },
-    ["MATRA_F4_SNEBT256"] = { explosive = 8, shaped_charge = false },
-    ["MATRA_F1_SNEBT253"] = { explosive = 8, shaped_charge = false },
-    ["MATRA_F1_SNEBT256"] = { explosive = 8, shaped_charge = false },
-    ["TELSON8_SNEBT251"] = { explosive = 4, shaped_charge = false },
-    ["TELSON8_SNEBT253"] = { explosive = 8, shaped_charge = false },
-    ["TELSON8_SNEBT256"] = { explosive = 4, shaped_charge = false },
-    ["TELSON8_SNEBT257"] = { explosive = 6, shaped_charge = false },
-    ["ARF8M3API"] = { explosive = 8, shaped_charge = false },
-    ["UG_90MM"] = { explosive = 8, shaped_charge = false },
-    ["S-24A"] = { explosive = 24, shaped_charge = false },
-    ["S-25OF"] = { explosive = 194, shaped_charge = false },
-    ["S-25OFM"] = { explosive = 150, shaped_charge = false },
-    ["S-25O"] = { explosive = 150, shaped_charge = false },
-    ["S-25-O"] = { explosive = 150, shaped_charge = false },
-    ["S_25L"] = { explosive = 190, shaped_charge = false },
-    ["S-5M"] = { explosive = 3, shaped_charge = false },
-    ["C_5"] = { explosive = 8, shaped_charge = false },
-    ["C5"] = { explosive = 5, shaped_charge = false },
-    ["C_8"] = { explosive = 5, shaped_charge = false },
-    ["C_8OFP2"] = { explosive = 5, shaped_charge = false },
-    ["C_13"] = { explosive = 21, shaped_charge = false },
-    ["C_24"] = { explosive = 123, shaped_charge = false },
-    ["C_25"] = { explosive = 151, shaped_charge = false },
+    ["HYDRA_70M15"] = { explosive = 5 },
+    ["HYDRA_70_MK1"] = { explosive = 5 },
+    ["HYDRA_70_MK5"] = { explosive = 8 },
+    ["HYDRA_70_M151"] = { explosive = 5 },
+    ["HYDRA_70_M151_M433"] = { explosive = 5 },
+    ["HYDRA_70_M229"] = { explosive = 10 },
+    ["FFAR Mk1 HE"] = { explosive = 5 },
+    ["FFAR Mk5 HEAT"] = { explosive = 8 },
+    ["HVAR"] = { explosive = 5 },
+    ["Zuni_127"] = { explosive = 8 },
+    ["ARAKM70BHE"] = { explosive = 5 },
+    ["ARAKM70BAP"] = { explosive = 8 },
+    ["SNEB_TYPE251_F1B"] = { explosive = 4 },
+    ["SNEB_TYPE252_F1B"] = { explosive = 4 },
+    ["SNEB_TYPE253_F1B"] = { explosive = 5 },
+    ["SNEB_TYPE256_F1B"] = { explosive = 6 },
+    ["SNEB_TYPE257_F1B"] = { explosive = 8 },
+    ["SNEB_TYPE251_F4B"] = { explosive = 4 },
+    ["SNEB_TYPE252_F4B"] = { explosive = 4 },
+    ["SNEB_TYPE253_F4B"] = { explosive = 5 },
+    ["SNEB_TYPE256_F4B"] = { explosive = 6 },
+    ["SNEB_TYPE257_F4B"] = { explosive = 8 },
+    ["SNEB_TYPE251_H1"] = { explosive = 4 },
+    ["SNEB_TYPE252_H1"] = { explosive = 4 },
+    ["SNEB_TYPE253_H1"] = { explosive = 5 },
+    ["SNEB_TYPE256_H1"] = { explosive = 6 },
+    ["SNEB_TYPE257_H1"] = { explosive = 8 },
+    ["MATRA_F4_SNEBT251"] = { explosive = 8 },
+    ["MATRA_F4_SNEBT253"] = { explosive = 8 },
+    ["MATRA_F4_SNEBT256"] = { explosive = 8 },
+    ["MATRA_F1_SNEBT253"] = { explosive = 8 },
+    ["MATRA_F1_SNEBT256"] = { explosive = 8 },
+    ["TELSON8_SNEBT251"] = { explosive = 4 },
+    ["TELSON8_SNEBT253"] = { explosive = 8 },
+    ["TELSON8_SNEBT256"] = { explosive = 4 },
+    ["TELSON8_SNEBT257"] = { explosive = 6 },
+    ["ARF8M3API"] = { explosive = 8 },
+    ["UG_90MM"] = { explosive = 8 },
+    ["S-24A"] = { explosive = 24 },
+    ["S-25OF"] = { explosive = 194 },
+    ["S-25OFM"] = { explosive = 150 },
+    ["S-25O"] = { explosive = 150 },
+    ["S-25-O"] = { explosive = 150 },
+    ["S_25L"] = { explosive = 190 },
+    ["S-5M"] = { explosive = 3 },
+    ["C_5"] = { explosive = 8 },
+    ["C5"] = { explosive = 5 },
+    ["C_8"] = { explosive = 5 },
+    ["C_8OFP2"] = { explosive = 5 },
+    ["C_13"] = { explosive = 21 },
+    ["C_24"] = { explosive = 123 },
+    ["C_25"] = { explosive = 151 },
   
     --*** LASER ROCKETS ***
-    ["AGR_20"] = { explosive = 8, shaped_charge = false },
-    ["AGR_20A"] = { explosive = 8, shaped_charge = false },
-    ["AGR_20_M282"] = { explosive = 8, shaped_charge = false },
+    ["AGR_20"] = { explosive = 8 },
+    ["AGR_20A"] = { explosive = 8 },
+    ["AGR_20_M282"] = { explosive = 8 },
     ["Hydra_70_M282_MPP"] = { explosive = 5, shaped_charge = true },
-    ["BRM-1_90MM"] = { explosive = 8, shaped_charge = false },
+    ["BRM-1_90MM"] = { explosive = 8 },
 
     --*** JF17 weapons changes as per Kurdes ***
-    ["C_701T"] = { explosive = 38, shaped_charge = false },
-    ["C_701IR"] = { explosive = 38, shaped_charge = false },
-    ["LS_6_100"] = { explosive = 45, shaped_charge = false },
-    ["LS_6"] = { explosive = 100, shaped_charge = false },
-    ["LS_6_500"] = { explosive = 274, shaped_charge = false },
-    ["Type_200A"] = { explosive = 107, shaped_charge = false },
-    ["C_802AK"] = { explosive = 500, shaped_charge = false },
-    ["CM_802AKG"] = { explosive = 240, shaped_charge = false },    
+    ["C_701T"] = { explosive = 38 },
+    ["C_701IR"] = { explosive = 38 },
+    ["LS_6_100"] = { explosive = 45 },
+    ["LS_6"] = { explosive = 100 },
+    ["LS_6_500"] = { explosive = 274 },
+    ["Type_200A"] = { explosive = 107 },
+    ["C_802AK"] = { explosive = 500 },
+    ["CM_802AKG"] = { explosive = 240 },    
     
     --*** JF39 Mod by Whisky.Actual as per Kurdes ***
     ["Brimstone Laser Guided Missile x3"] = { explosive = 38, shaped_charge = true },    
-    ["MAR-1 High Speed Anti-Radiation Missile"] = { explosive = 75, shaped_charge = false },
-    ["GBU-39 SDB 285lb Guided Glide-Bomb"] = { explosive = 45, shaped_charge = false },
-    ["SPEAR-3 Air-to-Ground Glide Missile"] = { explosive = 38, shaped_charge = false },
-    ["Spear EW"] = { explosive = 0, shaped_charge = false },
+    ["MAR-1 High Speed Anti-Radiation Missile"] = { explosive = 75 },
+    ["GBU-39 SDB 285lb Guided Glide-Bomb"] = { explosive = 45 },
+    ["SPEAR-3 Air-to-Ground Glide Missile"] = { explosive = 38 },
+    ["Spear EW"] = { explosive = 0 },
 	
     --==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--
 	                        --*** Vehicle/Ship based ***--	
     --==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--
     
 	--*** Rocketry ***
-    ["9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
-    ["GRAD_9M22U"] = { explosive = 25, shaped_charge = false, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
-       -- ["M26"] = { explosive = 0, shaped_charge = false, groundordnance = true}, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
-    ["M26"] = { explosive = 0, shaped_charge = false, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
-    ["SCUD_RAKETA"] = { explosive = 985, shaped_charge = false, groundordnance = true },
-    ["SMERCH_9M55F"] = { explosive = 46, shaped_charge = false, groundordnance = true }, --220mm HE rocket, (~25-45 kg TNT equiv)
+    ["9M22U"] = { explosive = 25, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
+    ["GRAD_9M22U"] = { explosive = 25, groundordnance = true }, --122mm HE rocket, BM-21 Grad (~20-30 kg TNT equiv)
+       -- ["M26"] = { explosive = 0, groundordnance = true}, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+    ["M26"] = { explosive = 0, cluster = true, submunition_count = 644, submunition_explosive = 0.1, submunition_name = "M77", groundordnance = true }, --227mm cluster rocket, M270 MLRS (adjusted for cluster)
+    ["SCUD_RAKETA"] = { explosive = 985, groundordnance = true },
+    ["SMERCH_9M55F"] = { explosive = 46, groundordnance = true }, --220mm HE rocket, (~25-45 kg TNT equiv)
 	
 	["TOW2"] = { explosive = 6.5, shaped_charge = true, groundordnance = true },  --ATGM
 	
 	--*** Shells ***
-	["weapons.shells.M_105mm_HE"] = { explosive = 12, shaped_charge = false, groundordnance = true }, --105mm HE shell, M119/M102 (~10-15 kg TNT equiv)
-	["weapons.shells.M_155mm_HE"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, M777/M109 (~50-70 kg TNT equiv)
-	["weapons.shells.2A60_120"] = { explosive = 18, shaped_charge = false, groundordnance = true }, --120mm HE shell, 2B11 mortar (~15-20 kg TNT equiv)
-	["weapons.shells.2A18_122"] = { explosive = 22, shaped_charge = false, groundordnance = true }, --122mm HE shell, D-30 (~20-25 kg TNT equiv)
-	["weapons.shells.2A33_152"] = { explosive = 50, shaped_charge = false, groundordnance = true }, --152mm HE shell, SAU Akatsia (~40-60 kg TNT equiv)
-	["weapons.shells.PLZ_155_HE"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, PLZ05 (~50-70 kg TNT equiv)
-	["weapons.shells.M185_155"] = { explosive = 60, shaped_charge = false, groundordnance = true }, --155mm HE shell, M109 (~50-70 kg TNT equiv)
-	["weapons.shells.2A64_152"] = { explosive = 50, shaped_charge = false, groundordnance = true }, --152mm HE shell, SAU Msta (~40-60 kg TNT equiv) 
+	["weapons.shells.M_105mm_HE"] = { explosive = 12, groundordnance = true }, --105mm HE shell, M119/M102 (~10-15 kg TNT equiv)
+	["weapons.shells.M_155mm_HE"] = { explosive = 60, groundordnance = true }, --155mm HE shell, M777/M109 (~50-70 kg TNT equiv)
+	["weapons.shells.2A60_120"] = { explosive = 18, groundordnance = true }, --120mm HE shell, 2B11 mortar (~15-20 kg TNT equiv)
+	["weapons.shells.2A18_122"] = { explosive = 22, groundordnance = true }, --122mm HE shell, D-30 (~20-25 kg TNT equiv)
+	["weapons.shells.2A33_152"] = { explosive = 50, groundordnance = true }, --152mm HE shell, SAU Akatsia (~40-60 kg TNT equiv)
+	["weapons.shells.PLZ_155_HE"] = { explosive = 60, groundordnance = true }, --155mm HE shell, PLZ05 (~50-70 kg TNT equiv)
+	["weapons.shells.M185_155"] = { explosive = 60, groundordnance = true }, --155mm HE shell, M109 (~50-70 kg TNT equiv)
+	["weapons.shells.2A64_152"] = { explosive = 50, groundordnance = true }, --152mm HE shell, SAU Msta (~40-60 kg TNT equiv) 
 	
-	["weapons.shells.2A46M_125_HE"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --125mm HE shell, T-90 (~5-6 kg TNT equiv)
-	["weapons.shells.HESH_105"] = { explosive = 6, shaped_charge = false, groundordnance = true }, --105mm HESH shell, M1128 Stryker (~4-6 kg TNT equiv)
+	["weapons.shells.2A46M_125_HE"] = { explosive = 5, groundordnance = true }, --125mm HE shell, T-90 (~5-6 kg TNT equiv)
+	["weapons.shells.HESH_105"] = { explosive = 6, groundordnance = true }, --105mm HESH shell, M1128 Stryker (~4-6 kg TNT equiv)
 	
 	---*** Naval ***
-	["BGM_109B"] = { explosive = 450, shaped_charge = false, groundordnance = true }, -- Tomahawk
-	["AGM_84S"] = { explosive = 225, shaped_charge = false, groundordnance = true }, --Harpoon missile, Ticonderoga (~200-250 kg TNT equiv)
-	["P_500"] = { explosive = 500, shaped_charge = false, groundordnance = true }, --P-500 Bazalt missile, Moscow (~450-550 kg TNT equiv)	
+	["BGM_109B"] = { explosive = 450, groundordnance = true }, -- Tomahawk
+	["AGM_84S"] = { explosive = 225, groundordnance = true }, --Harpoon missile, Ticonderoga (~200-250 kg TNT equiv)
+	["P_500"] = { explosive = 500, groundordnance = true }, --P-500 Bazalt missile, Moscow (~450-550 kg TNT equiv)	
 	
-	["weapons.shells.AK176_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, AK-176 (~0.7-1 kg TNT equiv)
-	["weapons.shells.A222_130"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, A-222 Bereg (~4-5 kg TNT equiv)
-	["weapons.shells.53-UBR-281U"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
-	["weapons.shells.PJ87_100_PFHE"] = { explosive = 3, shaped_charge = false, groundordnance = true }, --100mm HE-PF shell, Type 052B (~2.4-3.4 kg TNT equiv)
-	["weapons.shells.AK100_100"] = { explosive = 3, shaped_charge = false, groundordnance = true }, --100mm HE shell, AK-100 (~2.5-3.5 kg TNT equiv) AK-100 100mm (e.g., on Project 1135 Krivak-class)
-	["weapons.shells.AK130_130"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, AK-130 (~4-5 kg TNT equiv) AK-130 130mm (e.g., on Project 956 Sovremenny-class)
-	["weapons.shells.2A70_100"] = { explosive = 3, shaped_charge = false, groundordnance = true }, --100mm HE shell, 2A70 (~3-3.5 kg TNT equiv) 2A70 100mm (e.g., on Project 775 Ropucha-class)
-	["weapons.shells.OTO_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, OTO Melara (~0.8-1.1 kg TNT equiv) OTO Melara 76mm (e.g., on NATO frigates like Oliver Hazard Perry-class)
-	["weapons.shells.MK45_127"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --127mm HE shell, Mark 45 (~4.8-5.6 kg TNT equiv) Mark 45 127mm (e.g., on Arleigh Burke-class destroyers)
-	["weapons.shells.PJ26_76_PFHE"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE-PF shell, PJ-26 (~0.8-1.1 kg TNT equiv)
-	["weapons.shells.53-UOR-281U"] = { explosive = 5, shaped_charge = false, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
-	["weapons.shells.MK75_76"] = { explosive = 1, shaped_charge = false, groundordnance = true }, --76mm HE shell, Mk 75 (~0.8-1.1 kg TNT equiv)
+	["weapons.shells.AK176_76"] = { explosive = 1, groundordnance = true }, --76mm HE shell, AK-176 (~0.7-1 kg TNT equiv)
+	["weapons.shells.A222_130"] = { explosive = 5, groundordnance = true }, --130mm HE shell, A-222 Bereg (~4-5 kg TNT equiv)
+	["weapons.shells.53-UBR-281U"] = { explosive = 5, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
+	["weapons.shells.PJ87_100_PFHE"] = { explosive = 3, groundordnance = true }, --100mm HE-PF shell, Type 052B (~2.4-3.4 kg TNT equiv)
+	["weapons.shells.AK100_100"] = { explosive = 3, groundordnance = true }, --100mm HE shell, AK-100 (~2.5-3.5 kg TNT equiv) AK-100 100mm (e.g., on Project 1135 Krivak-class)
+	["weapons.shells.AK130_130"] = { explosive = 5, groundordnance = true }, --130mm HE shell, AK-130 (~4-5 kg TNT equiv) AK-130 130mm (e.g., on Project 956 Sovremenny-class)
+	["weapons.shells.2A70_100"] = { explosive = 3, groundordnance = true }, --100mm HE shell, 2A70 (~3-3.5 kg TNT equiv) 2A70 100mm (e.g., on Project 775 Ropucha-class)
+	["weapons.shells.OTO_76"] = { explosive = 1, groundordnance = true }, --76mm HE shell, OTO Melara (~0.8-1.1 kg TNT equiv) OTO Melara 76mm (e.g., on NATO frigates like Oliver Hazard Perry-class)
+	["weapons.shells.MK45_127"] = { explosive = 5, groundordnance = true }, --127mm HE shell, Mark 45 (~4.8-5.6 kg TNT equiv) Mark 45 127mm (e.g., on Arleigh Burke-class destroyers)
+	["weapons.shells.PJ26_76_PFHE"] = { explosive = 1, groundordnance = true }, --76mm HE-PF shell, PJ-26 (~0.8-1.1 kg TNT equiv)
+	["weapons.shells.53-UOR-281U"] = { explosive = 5, groundordnance = true }, --130mm HE shell, SM-2-1 (~4-5 kg TNT equiv)
+	["weapons.shells.MK75_76"] = { explosive = 1, groundordnance = true }, --76mm HE shell, Mk 75 (~0.8-1.1 kg TNT equiv)
 	
 	--*** Bismark Mod Weapon ***
-    ["weapons.shells.Breda_37_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
+    ["weapons.shells.Breda_37_HE"] = { explosive = 70, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
 	--*** Bismark Mod Weapons ***
-	["weapons.shells.380mm_HE"] = { explosive = 70, shaped_charge = false, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
-	["weapons.shells.SK_C_33_105_HE"] = { explosive = 15, shaped_charge = false, groundordnance = true }, --105mm HE shell, SK C/33 (~12-16 kg TNT equiv)
+	["weapons.shells.380mm_HE"] = { explosive = 70, groundordnance = true }, --380mm HE shell, 38 cm SK C/34 (~60-75 kg TNT equiv)
+	["weapons.shells.SK_C_33_105_HE"] = { explosive = 15, groundordnance = true }, --105mm HE shell, SK C/33 (~12-16 kg TNT equiv)
 
 }
 
@@ -1709,7 +1717,7 @@ function napalmOnImpact(impactPoint, velocity, weaponName, playerName)
                     scanUnitsForNapalm(point.x, point.y, point.z, playerName) -- New: Pass playerName
             end)
             if not status then
-                env.info("napalmOnImpact: Error during unit scan for point (X: " .. point.x .. ", Y: " .. point.y .. ", Z: " .. point.z .. "): " .. tostring(err))
+                --env.info("napalmOnImpact: Error during unit scan for point (X: " .. point.x .. ", Y: " .. point.y .. ", Z: " .. point.z .. "): " .. tostring(err))
             end
         end
         --Add flame effect if enabled
@@ -3381,6 +3389,7 @@ function track_wpns()
 			--Skip ground ordnance if track_groundunitordnance is disabled
             if wpnData.isGroundUnitOrdnance and not splash_damage_options.track_groundunitordnance then
                 debugMsg("Ground unit ordnance weapon, track_groundunitordnance set to false, skipping tracking + effects")
+                table.insert(weaponsToRemove, wpn_id_)
                 return --Exit this weapon's processing
             end
                 if wpnData.wpn:isExist() then
@@ -3545,20 +3554,20 @@ function track_wpns()
                     table.insert(weaponsToRemove, wpn_id_)
                 end
                 --Check tactical override weapons
-				if splash_damage_options.tactical_explosion and splash_damage_options.tactical_explosion_override_enabled then
-					local tacticalWeapons = {}
-					for weapon in splash_damage_options.tactical_explosion_override_weapons:gmatch("[^,]+") do
-						tacticalWeapons[trim(weapon:upper())] = true -- Normalize to uppercase
-					end
-					if tacticalWeapons[wpnData.name:upper()] then -- Compare in uppercase
-						isTactical = true
-						if splash_damage_options.debug then
-							debugMsg("Tactical explosion override triggered for " .. wpnData.name .. " at X: " .. explosionPoint.x .. ", Z: " .. explosionPoint.z)
-						end
-						TacticalExplosionTrigger(explosionPoint)
-						table.insert(weaponsToRemove, wpn_id_)
-					end
-				end
+                if splash_damage_options.tactical_explosion and splash_damage_options.tactical_explosion_override_enabled then
+                    local tacticalWeapons = {}
+                    for weapon in splash_damage_options.tactical_explosion_override_weapons:gmatch("[^,]+") do
+                        tacticalWeapons[trim(weapon:upper())] = true -- Normalize to uppercase
+                    end
+                    if tacticalWeapons[wpnData.name:upper()] then -- Compare in uppercase
+                        isTactical = true
+                        if splash_damage_options.debug then
+                            debugMsg("Tactical explosion override triggered for " .. wpnData.name .. " at X: " .. explosionPoint.x .. ", Z: " .. explosionPoint.z)
+                        end
+                        TacticalExplosionTrigger(explosionPoint)
+                        table.insert(weaponsToRemove, wpn_id_)
+                    end
+                end
                 --Check if weapon is napalm
                 local isNapalm = false
                 --Check for napalm override weapons
@@ -3641,7 +3650,7 @@ function track_wpns()
                             end
                         end
                         --Cluster Bomb Handling
-                        local weaponData = explTable[wpnData.name] or { explosive = 0, shaped_charge = false }
+                        local weaponData = explTable[wpnData.name] or { explosive = 0, shaped_charge = false, Skip_larger_explosions = false, Skip_damage_model = false }
                         local isCluster = weaponData.cluster or false
                         if splash_damage_options.cluster_enabled and isCluster then
                             local submunitionCount = weaponData.submunition_count or 30
@@ -3659,7 +3668,7 @@ function track_wpns()
                             timer.scheduleFunction(track_wpns_cluster_scan, {explosionPoint, wpnData.dir, wpnData.name, submunitionName, submunitionCount, submunitionPower, wpnData.speed}, timer.getTime() + 0.3)
                         else
                             --Standard explosion handling
-                            if splash_damage_options.larger_explosions then
+                            if splash_damage_options.larger_explosions and not (weaponData.Skip_larger_explosions or false) then
                                 if splash_damage_options.debug then
                                     debugMsg("Triggering initial explosion for '" .. wpnData.name .. "' at power " .. explosionPower)
                                 end
@@ -3677,11 +3686,17 @@ function track_wpns()
                                         end
                                     end
                                 end
+                            elseif splash_damage_options.debug and (weaponData.Skip_larger_explosions or false) then
+                                debugMsg("Skipped larger explosion for '" .. wpnData.name .. "' due to Skip_larger_explosions = true")
                             end
-                            blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                            if not (weaponData.Skip_damage_model or false) then
+                                blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                            elseif splash_damage_options.debug then
+                                debugMsg("Skipped damage model for '" .. wpnData.name .. "' due to Skip_damage_model = true")
+                            end
                         end
                         --detect_ordnance_destruction comes before recent_large_explosion_snap in original
-                        if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions then
+                        if splash_damage_options.ordnance_protection and splash_damage_options.detect_ordnance_destruction and splash_damage_options.larger_explosions and not (weaponData.Skip_larger_explosions or false) then
                             timer.scheduleFunction(function(args)
                                 local explosionPoint = args[1]
                                 local blastRadius = args[2]
@@ -3721,7 +3736,7 @@ function track_wpns()
                             end, {explosionPoint, blastRadius, wpnData.name, preExplosionWeapons}, timer.getTime() + 0.2)
                         end
                         --recent_large_explosion_snap comes after main explosion and detect_ordnance_destruction
-                        if splash_damage_options.ordnance_protection and splash_damage_options.larger_explosions and splash_damage_options.recent_large_explosion_snap and splash_damage_options.snap_to_ground_if_destroyed_by_large_explosion then
+                        if splash_damage_options.ordnance_protection and splash_damage_options.larger_explosions and splash_damage_options.recent_large_explosion_snap and splash_damage_options.snap_to_ground_if_destroyed_by_large_explosion and not (weaponData.Skip_larger_explosions or false) then
                             local currentTime = timer.getTime()
                             for id, data in pairs(tracked_weapons) do
                                 if id ~= wpn_id_ and not data.wpn:isExist() then
@@ -3831,7 +3846,11 @@ function track_wpns()
                                         end
                                     end
                                 end
-                                blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                                if not (weaponData.Skip_damage_model or false) then
+                                    blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                                elseif splash_damage_options.debug then
+                                    debugMsg("Skipped damage model for '" .. wpnData.name .. "' due to Skip_damage_model = true in scheduled explosion handling")
+                                end
                                 --Post-explosion analysis
                                 if splash_damage_options.track_pre_explosion then
                                     timer.scheduleFunction(function(innerArgs)
@@ -4013,21 +4032,25 @@ function track_wpns()
                         if splash_damage_options.debug then
                             debugMsg("Explosion skipped due to ordnance protection for '" .. wpnData.name .. "'")
                         end
-                        if splash_damage_options.larger_explosions then
+                        if splash_damage_options.larger_explosions and not (weaponData.Skip_larger_explosions or false) then
                             table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
                             if splash_damage_options.debug then
                                 debugMsg("Skipped explosion logged for snap check for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
                             end
+                        elseif splash_damage_options.debug then
+                            debugMsg("Skipped recentExplosions logging for '" .. wpnData.name .. "' due to Skip_larger_explosions = true")
                         end
                     end
-                    table.insert(weaponsToRemove, wpn_id_)
+                    table.insert(weaponsToRemove, wpn_id_) -- Ensure removal even if safeToBlast is false
                 end
+                table.insert(weaponsToRemove, wpn_id_) -- Ensure removal after processing impact
             end
         end)
         if not status then
             if splash_damage_options.debug then
                 debugMsg("Error in track_wpns for '" .. (wpnData.name or "unknown weapon") .. "': " .. err)
             end
+            table.insert(weaponsToRemove, wpn_id_) -- Remove weapon on error to prevent looping
         end
     end
     --Perform all removals after iteration
@@ -4036,7 +4059,6 @@ function track_wpns()
     end
     return timer.getTime() + refreshRate
 end
-
 
 
 
@@ -6414,7 +6436,6 @@ end
  	
 	
 	
-	
 end
 
 
@@ -6773,6 +6794,7 @@ function explodeObject(args)
 end
   
 function blastWave(_point, _radius, weapon, power, isShapedCharge)
+    local weaponData = explTable[weapon] or { Skip_damage_model = false, Skip_larger_explosions = false }
     if isShapedCharge then
         _radius = _radius * splash_damage_options.shaped_charge_multiplier
     end
@@ -6942,13 +6964,15 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
     if splash_damage_options.debug then
         debugMsg("Found " .. #foundUnits .. " ground units for damage modeling")
     end
-    --Apply damage model if enabled
-    if splash_damage_options.damage_model then
+    --Apply damage model if enabled and not skipped
+    if splash_damage_options.damage_model and not (weaponData.Skip_damage_model or false) then
         timer.scheduleFunction(modelUnitDamage, foundUnits, timer.getTime() + 1.5)
+    elseif splash_damage_options.debug and (weaponData.Skip_damage_model or false) then
+        debugMsg("Skipped damage model application for '" .. weapon .. "' due to Skip_damage_model = true")
     end
 end
-  
-  
+ 
+ 
 function modelUnitDamage(units)
     for i, unit in ipairs(units) do
         if unit:isExist() then
