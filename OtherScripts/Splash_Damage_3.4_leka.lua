@@ -9,19 +9,9 @@ https://www.digitalcombatsimulator.com/en/files/3344761/
 
 Any issues/suggestions etc feel free to post on the forum or DM me in Discord - stevey9062
 
-
-TO DO: 
-Before 3.4 release
-
-test mk84damage with and without script  as it seemed to be travelling accross the runway
-review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
-
-
-
-	
---noting this from gashpl - for easy script release testing, mission start: assert(loadfile("C:\\Users\\thepo\\Saved Games\\DCS\\Missions\\Splash_Damage_3.4aab.lua"))()
-
     x x 2025 - 3.4
+
+this is a 3.4 version for leka
 
 		(Stevey666) 
 		
