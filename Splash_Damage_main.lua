@@ -9,23 +9,10 @@ https://www.digitalcombatsimulator.com/en/files/3344761/
 
 Any issues/suggestions etc feel free to post on the forum or DM me in Discord - stevey9062
 
-
-TO DO: 
-Before 3.4 release -
-
-review ["static_damage_boost"] = 2000, --apply extra damage to Unit.Category.STRUCTUREs with wave explosions
-
-test cook off flare % and number %
-test trophy 1.1 changes
-
-test test test
-
-(lekas foothold) killfeed for cluster weapons, cookoffs, napalm, others?
-
 	
---noting this from gashpl - for easy script release testing, mission start: assert(loadfile("C:\\Users\\[USER]\\Saved Games\\DCS\\Missions\\Splash_Damage_3.4aab.lua"))()
+--noting this from gashpl - for easy script release/config testing, add this as the do script trigger: assert(loadfile("C:\\Users\\[USER]\\Saved Games\\DCS\\Missions\\Splash_Damage_3.4.lua"))()
 
-    x x 2025 - 3.4
+    4th July 2025 - 3.4
 
 		(Stevey666) 
 		
@@ -39,7 +26,9 @@ test test test
 	  - New Feature: A-10 Murder Mode, Named Unit Murder Mode (disabled by default) 
 			- adds a configurable sized explosion to every hit event with the a10 or the named unit with the name MurderMode in it as an initiator
 	  - New Feature: Trophy APS System (disabled by default)
-	  - New Feature: Vehicle IEDs. (disabled by default)  If a unit is called VehicleIEDTarget(*) it will trigger a large explosion
+			-The script tracks weapons heading towards a TrophyAPS vehicle, triggers a small explosion by the unit to mimic the Trophy system and triggers a larger explosion at the co-ords of the incoming weapon.   The script mimics there being a Trophy system on the front right and back left of the vehicle, with each launcher having 4 rounds.
+			-It contains 2 methods of enabling, either the vehicle has TrophyAPS in its name or you put the unit type into the AllUnitType table. By default, only the name method is enabled, both can be enabled at the same time as below:
+	  - New Feature: Vehicle IEDs. (disabled by default)  If a unit is contains VehicleIEDTarget (or other names as set in the config) it will trigger a large configurable explosion
 	  - New Feature: Tactical Explosion, similar to the IED effect but a little bigger and has the ability to be assigned to a weapon in a table or as an override
 	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
 	  - New Feature: Ground Unit Explosion On Death. 
@@ -112,7 +101,7 @@ splash_damage_options = {
     ["dynamic_blast_radius_modifier"] = 2,  --multiplier for the blast radius
     ["blast_stun"] = false, --not implemented
     ["overall_scaling"] = 1,    --overall scaling for explosive power
-	["only_players_weapons"] = false, --track only weapons launched by players
+    ["only_players_weapons"] = false, --track only weapons launched by players
 	
     ---------------------------------------------------------------------- Units -----------------------------------------------------------------------------
     ["unit_disabled_health"] = 30, --if health is below this value after our explosions, disable its movement 
@@ -151,11 +140,11 @@ splash_damage_options = {
     ["cookoff_flares_enabled"] = true, --Enable/disable flare effects for cook-offs, this applies to allvehicles too.
     ["cookoff_flare_color"] = 2, 
     ["cookoff_flare_instant"] = true, --If true, spawns flares instantly using napalm phosphor style; if false, spawns over time
-    ["cookoff_flare_instant_min"] = 4, --Minimum number of instant flares when cookoff_flare_instant is true
-    ["cookoff_flare_instant_max"] = 4, --Maximum number of instant flares when cookoff_flare_instant is true
+    ["cookoff_flare_instant_min"] = 2, --Minimum number of instant flares when cookoff_flare_instant is true
+    ["cookoff_flare_instant_max"] = 5, --Maximum number of instant flares when cookoff_flare_instant is true
     ["cookoff_flare_count_modifier"] = 1, --Multiplier for non instant flare count (e.g., 1x, 2x cookOffCount from the vehicle table)
     ["cookoff_flare_offset"] = 0.5, --Max offset distance for flares in meters (horizontal)
-    ["cookoff_flare_chance"] = 1, --Chance - where 1 = 100% 0.4 = 40% chance of the flares firing out
+    ["cookoff_flare_chance"] = 0.5, --Chance - where 1 = 100% 0.4 = 40% chance of the flares firing out
 
     --All Vehicles Section
 		--If a Unit is called CookOffTarget it will trigger a cookoff with the below effects
@@ -166,21 +155,21 @@ splash_damage_options = {
     ["allunits_damage_threshold"] = 25, --Health % below which cargo/smoke attempts to trigger
     ["allunits_explode_power"] = 40, --Initial power of vehicle exploding
     ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
-    ["allunits_default_flame_duration"] = 120, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
+    ["allunits_default_flame_duration"] = 240, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
     ["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
     ["allunits_cookoff_powerrandom"] = 50, --percentage higher or lower of the cookoff power figure
-    ["allunits_cookoff_chance"] = 0.5, --Chance of cookoff effects occurring for all vehicles. 0.6 = 60%, 1 = 100%
+    ["allunits_cookoff_chance"] = 0.4, --Chance of cookoff effects occurring for all vehicles. 0.6 = 60%, 1 = 100%
     ["allunits_smokewithcookoff"] = true, --Automatically smoke along with cookoff, or leave it to chance
-    ["allunits_smoke_chance"] = 0.5, --Chance of smoke effect, 1 = 100%, 0.5 = 50%
+    ["allunits_smoke_chance"] = 0.7, --Chance of smoke effect, 1 = 100%, 0.5 = 50%
     ["allunits_explode_on_smoke_only"] = true, --If its a smoke only effect, add an explosion to finish the vehicle off (allunits_explode_power)
 	
     ["allunits_advanced_effect_sequence"] = true,  --When set to true, its possible for units to be trigger an advanced effect sequence.  This will take precedence over the standard allunits cookoff. it will ignore the previous settings for smoke/flame size and duration and instead it will let you program a specific sequence of smoke/flame effects
-    ["allunits_advanced_effect_sequence_chance"] = 0, --Chance of the script picking the advanced effect instead of the standard all unit effect. 1 = 100%, 0.5 = 50%
-    ["allunits_advanced_effect_force_on_name"] = true,  --Regardless of chance, if the unit has "SmokeEffects" in its name it will trigger the advanced sequence
+    ["allunits_advanced_effect_sequence_chance"] = 0.2, --Chance of the script picking the advanced effect instead of the standard all unit effect. 1 = 100%, 0.5 = 50%
+    ["allunits_advanced_effect_force_on_name"] = true,  --Regardless of chance, if the unit has "AdvSeq" in its name it will trigger the advanced sequence
     ["allunits_advanced_effect_order"] = {"2", "7", "6", "5"},  --List of flame and smoke : sizes, 1 = small smoke and fire, 2 = med, 3 = large, 4 = huge.  5 = small smoke only, 6 = medium, 7 = large,  8 = huge 
-    ["allunits_advanced_effect_timing"] = {"30", "90", "120", "99999999"}, --How many seconds per effect in the order config key above
+    ["allunits_advanced_effect_timing"] = {"30", "90", "120", "600"}, --How many seconds per effect in the order config key above
     ["allunits_advanced_effect_cookoff_chance"] = 1, --Chance of cookoff effects occurring for the advanced effect sequence
     ["allunits_advanced_effect_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_advanced_effect_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
@@ -255,7 +244,7 @@ splash_damage_options = {
     ["napalm_unitdamage_spreaddelay"] = 0, --If startdelay is greater than 0, explosions are ordered by distance with this gap between each unit
 	
     ---------------------------------------------------------------------- Kill Feed  ------------------------------------------------------------------------
-    ["killfeed_enable"] = false, --Enable killfeed logging and messaging
+    ["killfeed_enable"] = false, --Enable killfeed, required for lekas foothold
     ["killfeed_game_messages"] = false, --Show killfeed SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP for now)
     ["killfeed_game_message_duration"] = 15, --Duration in seconds for game messages (killfeed and SplashKillFeed) - note the message will be delayed to let DCS catch up as per next option
     ["killfeed_splashdelay"] = 8, --Duration in seconds delay to allow dcs to see that units are dead before saying the splash damage got them instead of the the players weapon
@@ -263,7 +252,8 @@ splash_damage_options = {
     ["killfeed_lekas_contribution_delay"] = 240, -- Delay in seconds before processing splash kills into Lekas contributions (default 240 seconds/4mins)
 	
     ---------------------------------------------------------------------- Vehicle IEDs  ---------------------------------------------------------------------	
-    ["vehicleied_enabled"] = false, --If a unit is called VehicleIEDTarget(*) it will trigger a large explosion
+    ["vehicleied_enabled"] = false, --If a unit is called VehicleIEDTarget(*) (or anything set in the config key below) it will trigger a vehicleied explosion
+    ["vehicleied_targetname"] = "VehicleIEDTarget,VBID",
     ["vehicleied_scaling"] = 1, --For easy changing - scaling of explosion powers, counts, radius
     ["vehicleied_central_power"] = 600, --Power of central explosion
     ["vehicleied_explosion_power"] = 400, --Base power for secondary explosions
@@ -273,14 +263,14 @@ splash_damage_options = {
     ["vehicleied_radius"] = 35, -- Max radius for secondary explosions (meters)
     ["vehicleied_explosion_delay_max"] = 0.4, -- Max delay multiplier for secondary explosions multiplier
     ["vehicleied_fueltankspawn"] = true, -- Spawn a fuel tank at the location of the explosion for explosion effect and fire/smoke
-    ["vehicleied_destroy_vehicle"] = true, -- Option to attempt to instantly destroy the vehicle (can sometimes leave a ghost smoke vortex or fire)
+    ["vehicleied_destroy_vehicle"] = false, -- Option to attempt to instantly destroy the vehicle (can sometimes leave a ghost smoke vortex or fire)
     ["vehicleied_explode_on_hit"] = true, --Will it explode instantly on hit event or only on death/kill/when vehice stops moving and no longer "alive"
 
     ---------------------------------------------------------------------- Murder Mode  ----------------------------------------------------------------------	
     ["A10MurderMode"] = false, --This tracks hit events, if the initiator is an A10 it will spawn and explosion on the target
     ["A10MurderMode_Power"] = 5,  --Power of the explosion
     ["A10MurderMode__Chance"] = 1, -- Percent chance a vehicle explodes on hit (0.05 = 5%, 0.5 = 50%)
-    ["NamedUnitMurderMode"] = false, --This tracks hit events, if the initiator has "MurderMode" in their name, every hit event from them will put an explosion of the below power at the target's coords
+    ["NamedUnitMurderMode"] = false, --This tracks hit events, if the initiator has "MurderMode" in the pilot name in the mission editor, every hit event from them will put an explosion of the below power at the target's coords
     ["NamedUnitMurderMode_Power"] = 5,  --Power of the explosion from the named unit
     ["NamedUnitMurderMode_Chance"] = 1, -- Percent chance a vehicle explodes on hit (0.05 = 5%, 0.5 = 50%)
 	
@@ -305,12 +295,12 @@ splash_damage_options = {
     ["CriticalComponent"] = false, -- Toggle to enable CriticalComponent Feature - % Chance a vehicle is destroyed from a single hit
     ["CriticalComponent_Chance"] = 0.01, -- Percent chance a vehicle explodes on hit (0.01 = 1%, 0.5 = 50%)
     ["CriticalComponent_Explosion_Power"] = 50, --Explosion power for CriticalComponent
-    ["CriticalComponent_Specific_Weapons_Only"] = {}, -- {} means all weapons.  List of specific weapons to trigger CriticalComponent, i.e {"GAU8_30_HE", "GAU8_30_AP", "GAU8_30_TP"}
+    ["CriticalComponent_Specific_Weapons_Only"] = {"GAU8_30_HE", "GAU8_30_AP", "GAU8_30_TP"}, -- {} means all weapons.  List of specific weapons to trigger CriticalComponent, i.e {"GAU8_30_HE", "GAU8_30_AP", "GAU8_30_TP"}
 
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
 		--You can also trigger this to happen if the unit has "GUED" in its name - so you can set the chance to 0 and still have them go off for specific units
     ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
-    ["GU_Explode_on_Death_Chance"] = 1, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
+    ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
     ["GU_Explode_on_Death_Explosion_Power"] = 30, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
     ["GU_Explode_Exclude_Infantry"] = true,  --Set to false to make infantry blow up too
@@ -333,7 +323,7 @@ splash_damage_options = {
     ---------------------------------------------------------------------- Strobe Marker / Beacon ------------------------------------------------------------
     	--Only enable one of the strobe methods at a time
     ["StrobeMarker_allstrobeunits"] = false, --Constantly fire off strobe for all living, active units and not invisible units with Strobe in the name
-    ["StrobeMarker_individuals"] = false, --Ability to enable or diable the strobing via radio commands for indiviudual "Strobe" units
+    ["StrobeMarker_individuals"] = false, --Ability to enable or disable the strobing via radio commands for individual "Strobe" units
     ["StrobeMarker_interval"] = 2, --Default interval in seconds for strobing explosions
 	
 	
@@ -749,7 +739,6 @@ explTable = {
     ["GB-6"] = { explosive = 0 },
     ["GB-6-HE"] = { explosive = 0 },
     ["GB-6-SFW"] = { explosive = 0 },
-    ["X_65"] = { explosive = 100 },
   
     --*** AIR GROUND MISSILE (AGM) ***
     ["AGM_62"] = { explosive = 400 },
@@ -1034,13 +1023,10 @@ local trophyWeapons = {
     ["S_8KOM"] = { range = 4000, name = "S-8KOM" }, --S-8KOM HEAT rocket
     ["S_5M"] = { range = 3000, name = "S-5M" }, --S-5M HE rocket
     ["S_24B"] = { range = 4000, name = "S-24B" }, --S-24B HE rocket
-    ["C_25"] = { range = 3000, name = "S-25-OFM" }, --S-25-OFM rocket
     ["3BK18M"] = { range = 4000, name = "125mm HEAT" }, --125mm HEAT round
     ["M456"] = { range = 3000, name = "105mm HEAT" }, --105mm HEAT round
     ["HYDRA_70M15"] = { range = 4000, name = "Hydra 70 M15" },
     ["HYDRA_70_MK1"] = { range = 4000, name = "Hydra 70 Mk1" },
-    ["HYDRA_70_MK5"] = { range = 4000, name = "Hydra 70 Mk5" },
-    ["HYDRA_70_M151"] = { range = 4000, name = "Hydra 70 M151" },
     ["HYDRA_70_M151_M433"] = { range = 4000, name = "Hydra 70 M151 M433" },
     ["HYDRA_70_M229"] = { range = 8000, name = "Hydra 70 M229" }, --Hydra 70 M229
     ["FFAR Mk1 HE"] = { range = 8000, name = "FFAR Mk1 HE" }, --FFAR Mk1 HE
@@ -2218,9 +2204,9 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
     local useAdvancedSequence = false
 
     if isAllUnitsVehicle and splash_damage_options.allunits_advanced_effect_sequence then
-        if splash_damage_options.allunits_advanced_effect_force_on_name and unitName:find("SmokeEffects") then
+        if splash_damage_options.allunits_advanced_effect_force_on_name and unitName:find("AdvSeq") then
             useAdvancedSequence = true
-            debugCargoCookOff("Forcing advanced effect sequence for unit ID " .. tostring(unitID) .. " due to SmokeEffects in name")
+            debugCargoCookOff("Forcing advanced effect sequence for unit ID " .. tostring(unitID) .. " due to AdvSeq in name")
         elseif math.random() <= splash_damage_options.allunits_advanced_effect_sequence_chance then
             useAdvancedSequence = true
             debugCargoCookOff("Selected advanced effect sequence for unit ID " .. tostring(unitID) .. " based on chance")
@@ -3896,6 +3882,56 @@ function track_wpns()
                                         --Sort post-explosion targets by distance
                                         table.sort(postExplosionTargets, function(a, b) return a.distance < b.distance end)
                                         local msg = "Post-explosion analysis for " .. weaponName .. ":\n"
+                                        --Check for VehicleIEDTarget units
+                                        if splash_damage_options.vehicleied_enabled then
+                                            local targetNames = {}
+                                            for name in splash_damage_options.vehicleied_targetname:gmatch("[^,]+") do
+                                                targetNames[#targetNames + 1] = name:gsub("^%s*(.-)%s*$", "%1") --Trim whitespace
+                                            end
+                                            for _, preTarget in ipairs(preExplosionTargets) do
+                                                for _, targetName in ipairs(targetNames) do
+                                                    if preTarget.unitName:find(targetName) then
+                                                        local found = false
+                                                        local postHealth = 0
+                                                        for _, postTarget in ipairs(postExplosionTargets) do
+                                                            if preTarget.id == postTarget.id and getDistance(preTarget.position, postTarget.position) < 1 then
+                                                                found = true
+                                                                postHealth = postTarget.health
+                                                                break
+                                                            end
+                                                        end
+                                                        local isDamaged = postHealth < preTarget.maxHealth and postHealth > 0
+                                                        local isDead = not found or (found and postHealth <= 0)
+                                                        local unitExists = preTarget.unit:isExist()
+                                                        if (splash_damage_options.vehicleied_explode_on_hit and isDamaged and unitExists) or (isDead and not unitExists) then
+                                                            if not processedUnitsGlobal then processedUnitsGlobal = {} end
+                                                            if not processedUnitsGlobal[preTarget.id] then
+                                                                processedUnitsGlobal[preTarget.id] = {
+                                                                    id = preTarget.id,
+                                                                    name = preTarget.unitName,
+                                                                    type = preTarget.name,
+                                                                    position = string.format("x=%.0f, y=%.0f, z=%.0f", preTarget.position.x, preTarget.position.y, preTarget.position.z),
+                                                                    life = postHealth,
+                                                                    event = "POST_EXPLOSION",
+                                                                    time = timer.getTime()
+                                                                }
+                                                                local coords = { x = preTarget.position.x, y = preTarget.position.y, z = preTarget.position.z }
+                                                                if splash_damage_options.vehicleied_destroy_vehicle and unitExists then
+                                                                    local status, err = pcall(function() preTarget.unit:destroy() end)
+                                                                    if not status and splash_damage_options.vehicleied_debug then
+                                                                        debugMsg("VehicleIEDTrigger: Failed to destroy unit " .. preTarget.unitName .. " (ID: " .. preTarget.id .. "): " .. tostring(err))
+                                                                    end
+                                                                end
+                                                                if splash_damage_options.vehicleied_debug then
+                                                                    debugMsg("VehicleIEDTrigger: Unit " .. preTarget.unitName .. " (ID: " .. preTarget.id .. ") triggered in post-explosion, damaged: " .. tostring(isDamaged) .. ", exists: " .. tostring(unitExists) .. ", dead: " .. tostring(isDead) .. ", triggering VehicleIED")
+                                                                end
+                                                                VehicleIEDTrigger(coords, nil)
+                                                            end
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
                                         --Match pre-detected units
                                         for _, preTarget in ipairs(preExplosionTargets) do
                                             local found = false
@@ -5025,12 +5061,13 @@ function VehicleIEDTrigger(coords, unit)
         return
     end
     local scaling = splash_damage_options.vehicleied_scaling or 1
-    if splash_damage_options.vehicleied_debug then
-        env.info("VehicleIEDTrigger: Processing at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with " .. splash_damage_options.vehicleied_explosion_count_max .. " max explosions, central power: " .. (splash_damage_options.vehicleied_central_power * scaling) .. ", fuel tank spawn: " .. tostring(splash_damage_options.vehicleied_fueltankspawn) .. ", scaling: " .. scaling)
-    end
-
-    --Get unit name for logging
+    --Get unit name and ID for logging and tracking
     local unitName = unit and unit:isExist() and safeGet(function() return unit:getName() end, "unknown") or "unknown"
+    local unitId = unit and unit:isExist() and safeGet(function() return unit:getID() end, "unknown") or "unknown"
+    local initialHealth = unit and unit:isExist() and safeGet(function() return unit:getLife() end, 0) or 0
+    if splash_damage_options.vehicleied_debug then
+        env.info("VehicleIEDTrigger: Processing at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with " .. splash_damage_options.vehicleied_explosion_count_max .. " max explosions, central power: " .. (splash_damage_options.vehicleied_central_power * scaling) .. ", fuel tank spawn: " .. tostring(splash_damage_options.vehicleied_fueltankspawn) .. ", scaling: " .. scaling .. ", unit: " .. unitName .. " (ID: " .. unitId .. "), initial health: " .. initialHealth)
+    end
 
     --Prepare fuel tank data if spawning is enabled
     local iedName = "IED_FuelTank_" .. tostring(timer.getTime())
@@ -5113,7 +5150,7 @@ function VehicleIEDTrigger(coords, unit)
     --Trigger explosions
     if #explosionPoints > 0 then
         if splash_damage_options.vehicleied_debug then
-            env.info("VehicleIEDTrigger: Scheduling " .. #explosionPoints .. " explosions for unit " .. unitName)
+            env.info("VehicleIEDTrigger: Scheduling " .. #explosionPoints .. " explosions for unit " .. unitName .. " (ID: " .. unitId .. ")")
         end
         for i, entry in ipairs(explosionPoints) do
             if splash_damage_options.vehicleied_debug then
@@ -5145,34 +5182,81 @@ function VehicleIEDTrigger(coords, unit)
         end
     else
         if splash_damage_options.vehicleied_debug then
-            env.info("VehicleIEDTrigger: No explosion points generated, triggering single fallback explosion")
+            env.info("VehicleIEDTrigger: No explosion points generated, triggering single fallback explosion for unit " .. unitName .. " (ID: " .. unitId .. ")")
         end
         local point = {x = coords.x, y = land.getHeight({x = coords.x, y = coords.z}), z = coords.z}
-        --trigger.action.explosion(point, splash_damage_options.vehicleied_central_power * scaling) --Apply scaling
+        trigger.action.explosion(point, splash_damage_options.vehicleied_central_power * scaling) --Apply scaling
     end
 
-    --Trigger blastWave for central explosion
-    if splash_damage_options.vehicleied_debug then
-        env.info("VehicleIEDTrigger: Preparing blastWave for central explosion at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with power " .. (splash_damage_options.vehicleied_central_power * scaling))
-    end
-    local centralPoint = {
-        x = coords.x,
-        y = land.getHeight({x = coords.x, y = coords.z}) + 0.5,
-        z = coords.z
-    }
-    local dynamicRadius = math.pow(splash_damage_options.vehicleied_central_power * scaling, 1/3) * 5 * splash_damage_options.dynamic_blast_radius_modifier
-    if splash_damage_options.vehicleied_debug then
-        env.info("VehicleIEDTrigger: Triggering blastWave for central explosion at X: " .. centralPoint.x .. ", Y: " .. centralPoint.y .. ", Z: " .. centralPoint.z .. " with power " .. (splash_damage_options.vehicleied_central_power * scaling) .. " and dynamic radius " .. dynamicRadius)
-    end
-    if not blastWave then
-        if splash_damage_options.vehicleied_debug then
-            env.info("VehicleIEDTrigger: Error: blastWave function is undefined")
+    --Check if unit still exists and schedule another explosion if it does
+    if unit and unitId ~= "unknown" then
+        local function checkUnitExistence(params)
+            local unit = params.unit
+            local coords = params.coords
+            local unitName = params.unitName
+            local unitId = params.unitId
+            local attempt = params.attempt
+            local maxAttempts = 5 --Limit to prevent infinite loops
+            local unitExists = unit and unit:isExist()
+            local currentHealth = unitExists and safeGet(function() return unit:getLife() end, 0) or 0
+            if unitExists then
+                if splash_damage_options.vehicleied_debug then
+                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitId .. ") still exists after attempt " .. attempt .. ", health: " .. currentHealth .. ", scheduling additional explosion")
+                end
+                if attempt >= maxAttempts then
+                    if splash_damage_options.vehicleied_debug then
+                        env.info("VehicleIEDTrigger: Max attempts (" .. maxAttempts .. ") reached for unit " .. unitName .. " (ID: " .. unitId .. "), stopping further explosions")
+                    end
+                    return
+                end
+                if not processedUnitsGlobal then processedUnitsGlobal = {} end
+                if not processedUnitsGlobal[unitId] then
+                    processedUnitsGlobal[unitId] = {
+                        id = unitId,
+                        name = unitName,
+                        type = unit and safeGet(function() return unit:getTypeName() end, "unknown") or "unknown",
+                        position = string.format("x=%.0f, y=%.0f, z=%.0f", coords.x, coords.y, coords.z),
+                        life = currentHealth,
+                        event = "REPEAT_EXPLOSION",
+                        time = timer.getTime()
+                    }
+                end
+                --Attempt to destroy the unit
+                if splash_damage_options.vehicleied_destroy_vehicle then
+                    local status, err = pcall(function() unit:destroy() end)
+                    if not status and splash_damage_options.vehicleied_debug then
+                        env.info("VehicleIEDTrigger: Failed to destroy unit " .. unitName .. " (ID: " .. unitId .. "): " .. tostring(err))
+                    end
+                end
+                --Trigger a single high-power explosion at the unit's location
+                local enhancedPower = splash_damage_options.vehicleied_central_power * scaling * (2 + attempt * 0.5) --Increase power significantly (2x + 50% per attempt)
+                if splash_damage_options.vehicleied_debug then
+                    env.info("VehicleIEDTrigger: Triggering additional explosion for unit " .. unitName .. " (ID: " .. unitId .. ") at X: " .. coords.x .. ", Y: " .. coords.y .. ", Z: " .. coords.z .. " with enhanced power " .. enhancedPower)
+                end
+                local point = {x = coords.x, y = land.getHeight({x = coords.x, y = coords.z}) + 0.1, z = coords.z}
+                trigger.action.explosion(point, enhancedPower)
+                --Schedule another check
+                timer.scheduleFunction(checkUnitExistence, {
+                    unit = unit,
+                    coords = coords,
+                    unitName = unitName,
+                    unitId = unitId,
+                    attempt = attempt + 1
+                }, timer.getTime() + 0.5)
+            else
+                if splash_damage_options.vehicleied_debug then
+                    env.info("VehicleIEDTrigger: Unit " .. unitName .. " (ID: " .. unitId .. ") no longer exists after attempt " .. attempt .. ", health: " .. currentHealth)
+                end
+            end
         end
-        return
+        timer.scheduleFunction(checkUnitExistence, {
+            unit = unit,
+            coords = coords,
+            unitName = unitName,
+            unitId = unitId,
+            attempt = 1
+        }, timer.getTime() + 0.5)
     end
-    timer.scheduleFunction(function(params)
-        blastWave(params[1], params[2], params[3], params[4], params[5])
-    end, {centralPoint, dynamicRadius, "VehicleIED", splash_damage_options.vehicleied_central_power * scaling, false}, timer.getTime() + 0.4)
 end
 
 --Function for CBU Bomblet Additional Explosion
@@ -5608,12 +5692,25 @@ function logEvent(eventName, eventData)
         end
     end
 
-    --Process VehicleIEDTarget units if enabled
+    --Process VehicleIED units if enabled
     if splash_damage_options.vehicleied_enabled then
-        --Early check for VehicleIEDTarget name
+        --Early check for target names
         local checkName = (eventName == "HIT" or eventName == "KILL") and eventData.target and safeGet(function() return eventData.target:getName() end, "unknown") or
                           (eventName == "DEAD") and eventData.initiator and safeGet(function() return eventData.initiator:getName() end, "unknown") or "unknown"
-        if type(checkName) == "string" and checkName:find("VehicleIEDTarget") then
+        local targetNames = {}
+        for name in splash_damage_options.vehicleied_targetname:gmatch("[^,]+") do
+            targetNames[#targetNames + 1] = name:gsub("^%s*(.-)%s*$", "%1") --Trim whitespace
+        end
+        local isTarget = false
+        if type(checkName) == "string" then
+            for _, targetName in ipairs(targetNames) do
+                if checkName:find(targetName) then
+                    isTarget = true
+                    break
+                end
+            end
+        end
+        if isTarget then
             --Extract unit data
             local unitID, unitName, unitType, unitPosition, unitLife, rawCoords
             local status, err = pcall(function()
@@ -5651,8 +5748,8 @@ function logEvent(eventName, eventData)
                     env.info("VehicleIEDTrigger: Error extracting unit data for event " .. eventName .. ": " .. tostring(err))
                 end
             else
-                --Process VehicleIEDTarget units
-                if type(unitName) == "string" and unitName:find("VehicleIEDTarget") and unitID ~= "unavailable" then
+                --Process target units
+                if type(unitName) == "string" and unitID ~= "unavailable" then
                     --Initialize processed table
                     if not processedUnitsGlobal then processedUnitsGlobal = {} end
 
@@ -5890,7 +5987,7 @@ function logEvent(eventName, eventData)
             end
         else
             if splash_damage_options.vehicleied_debug then
-                env.info("VehicleIEDTrigger: Skipping non-VehicleIEDTarget unit: " .. tostring(checkName))
+                env.info("VehicleIEDTrigger: Skipping non-target for vehicleied unit: " .. tostring(checkName))
             end
         end
     end
@@ -6293,14 +6390,20 @@ end
 				unitName = tostring(unitName)
 				--Exclude static objects and fortifications unless explicitly in cargoUnits or named CargoCookoffTarget
 				local objectCategory = safeGet(function() return Object.getCategory(unit) end, "unknown")
-				if (objectCategory == Object.Category.STATIC or objectCategory == Object.Category.FORTIFICATION) and not (cargoUnits[unitType] or unitName:find("CargoCookoffTarget")) then
-					debugCargoCookOff("Unit ID " .. unitID .. " is a static object or fortification (" .. unitType .. "), skipping unless in cargoUnits or CargoCookoffTarget")
-			            return false
-			        end
-			        if unitName:find("VehicleIEDTarget") then
-			            debugCargoCookOff("Unit ID " .. unitID .. " is a VehicleIEDTarget (" .. unitName .. "), skipping cargo cookoff")
-					return false
-				end
+					if (objectCategory == Object.Category.STATIC or objectCategory == Object.Category.FORTIFICATION) and not (cargoUnits[unitType] or unitName:find("CargoCookoffTarget")) then
+						debugCargoCookOff("Unit ID " .. unitID .. " is a static object or fortification (" .. unitType .. "), skipping unless in cargoUnits or CargoCookoffTarget")
+						return false
+					end
+					local targetNames = {}
+					for name in splash_damage_options.vehicleied_targetname:gmatch("[^,]+") do
+						targetNames[#targetNames + 1] = name:gsub("^%s*(.-)%s*$", "%1") --Trim whitespace
+					end
+					for _, targetName in ipairs(targetNames) do
+						if unitName:find(targetName) then
+							debugCargoCookOff("Unit ID " .. unitID .. " contains target name (" .. unitName .. "), skipping cargo cookoff")
+							return false
+						end
+					end
 				if cargoUnits[unitType] then
 					isCargoCandidate = true
 					isCargoUnit = true
