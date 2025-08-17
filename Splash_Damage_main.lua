@@ -57,6 +57,10 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 	  - Due to ED boosting damage values for MK82s and a few others, added the ability to skip larger_explosion and damage_model by having a specific entry in the explosive table
 			- Example below, you would need to add this to each weapon that you need this for (or I can do it in the base script if multiple people think its a good idea)
 			- ["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
+			
+	  --3.4.2 
+	  	- Adjusted Lekas Foothold Integration
+		- Added flak to ground ord tracking
 				
 	  
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
@@ -69,9 +73,6 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 splash_damage_options = {
     ---------------------------------------------------------------------- Debug and Messages ----------------------------------------------------------------
-    ["game_messages"] = false, --enable some messages on screen
-    ["debug"] = false,  --enable debugging messages 
-    ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
     ["napalm_unitdamage_debug"] = false, --Enable detailed debug messages for napalm unit damage tracking
@@ -149,13 +150,12 @@ splash_damage_options = {
     --All Vehicles Section
 		--If a Unit is called CookOffTarget it will trigger a cookoff with the below effects
 		
-    ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
+    ["smokeandcookoffeffectallvehicles"] = true, --Enable effects for all ground vehicles not in cargoUnits vehicle table
     ["allunits_enable_smoke"] = true, -- Enable /disable smoke effects if smokeandcookoffeffectallvehicles is true
     ["allunits_enable_cookoff"] = true, -- Enable /disable cookoffs if smokeandcookoffeffectallvehicles is true
     ["allunits_damage_threshold"] = 25, --Health % below which cargo/smoke attempts to trigger
     ["allunits_explode_power"] = 40, --Initial power of vehicle exploding
     ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
-    ["allunits_default_flame_duration"] = 240, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
     ["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
@@ -169,7 +169,6 @@ splash_damage_options = {
     ["allunits_advanced_effect_sequence_chance"] = 0.2, --Chance of the script picking the advanced effect instead of the standard all unit effect. 1 = 100%, 0.5 = 50%
     ["allunits_advanced_effect_force_on_name"] = true,  --Regardless of chance, if the unit has "AdvSeq" in its name it will trigger the advanced sequence
     ["allunits_advanced_effect_order"] = {"2", "7", "6", "5"},  --List of flame and smoke : sizes, 1 = small smoke and fire, 2 = med, 3 = large, 4 = huge.  5 = small smoke only, 6 = medium, 7 = large,  8 = huge 
-    ["allunits_advanced_effect_timing"] = {"30", "90", "120", "600"}, --How many seconds per effect in the order config key above
     ["allunits_advanced_effect_cookoff_chance"] = 1, --Chance of cookoff effects occurring for the advanced effect sequence
     ["allunits_advanced_effect_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_advanced_effect_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
@@ -212,7 +211,7 @@ splash_damage_options = {
     
 
     ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
-    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance for larger explosion function and blastwave cookoffs(shells)
+    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance for larger explosion function and blastwave cookoffs(shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
     ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
@@ -244,11 +243,8 @@ splash_damage_options = {
     ["napalm_unitdamage_spreaddelay"] = 0, --If startdelay is greater than 0, explosions are ordered by distance with this gap between each unit
 	
     ---------------------------------------------------------------------- Kill Feed  ------------------------------------------------------------------------
-    ["killfeed_enable"] = false, --Enable killfeed, required for lekas foothold
-    ["killfeed_game_messages"] = false, --Show killfeed SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP for now)
     ["killfeed_game_message_duration"] = 15, --Duration in seconds for game messages (killfeed and SplashKillFeed) - note the message will be delayed to let DCS catch up as per next option
     ["killfeed_splashdelay"] = 8, --Duration in seconds delay to allow dcs to see that units are dead before saying the splash damage got them instead of the the players weapon
-    ["killfeed_lekas_foothold_integration"] = false, --Enable Lekas Foothold integration
     ["killfeed_lekas_contribution_delay"] = 240, -- Delay in seconds before processing splash kills into Lekas contributions (default 240 seconds/4mins)
 	
     ---------------------------------------------------------------------- Vehicle IEDs  ---------------------------------------------------------------------	
@@ -299,14 +295,13 @@ splash_damage_options = {
 
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
 		--You can also trigger this to happen if the unit has "GUED" in its name - so you can set the chance to 0 and still have them go off for specific units
-    ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
+    ["GU_Explode_on_Death"] = true,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
     ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
     ["GU_Explode_on_Death_Explosion_Power"] = 30, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
     ["GU_Explode_Exclude_Infantry"] = true,  --Set to false to make infantry blow up too
 		
     ---------------------------------------------------------------------- CBU Bomblet Hit Explosion ---------------------------------------------------------
-    ["CBU_Bomblet_Hit_Explosion"] = false, --ONLY TESTED WITH JSOW-A - Enable/Disable - on a hit even by a bomblet it can do extra damage AND/OR scan around the unit to deal damage with additional explosions of the power set in the cluster table
     ["CBU_Bomblet_Hit_Explosion_Scaling"] = 35, --Overall Multiplier for the final bomblet damage result.  Default 35 to get the effects we want when the ground level is less than 1.6 - WHEN TESTED WITH JSOW-A
     ["CBU_Bomblet_Hit_Mimic_Spread"] = true, --Enable/Disable - Mimic spread of clusterbomb warheads by scanning an area around the target that was hit and triggering an explosion against any unit or structure (unitIds can only be hit once by this weaponid)
     ["CBU_Bomblet_Hit_Spread"] = 50, --Scan radius m to look for units to hit
@@ -902,6 +897,7 @@ explTable = {
 	["TOW2"] = { explosive = 6.5, shaped_charge = true, groundordnance = true },  --ATGM
 	
 	--*** Shells ***
+	["weapons.shells.KS19_100HE"] = { explosive = 0.0000001, groundordnance = true }, --AA
 	["weapons.shells.M_105mm_HE"] = { explosive = 12, groundordnance = true }, --105mm HE shell, M119/M102 (~10-15 kg TNT equiv)
 	["weapons.shells.M_155mm_HE"] = { explosive = 60, groundordnance = true }, --155mm HE shell, M777/M109 (~50-70 kg TNT equiv)
 	["weapons.shells.2A60_120"] = { explosive = 18, groundordnance = true }, --120mm HE shell, 2B11 mortar (~15-20 kg TNT equiv)
@@ -4417,7 +4413,7 @@ end
 
 
 local function processSplashKillfeed()
-  if not splash_damage_options.killfeed_enable or not splash_damage_options.killfeed_lekas_foothold_integration then
+    if not splash_damage_options.killfeed_enable or not splash_damage_options.killfeed_lekas_foothold_integration then
         if splash_damage_options.killfeed_debug then
             env.info("SplashDamage: processSplashKillfeed skipped")
         end
@@ -4455,61 +4451,77 @@ local function processSplashKillfeed()
             local unitType = entry.unitType
             local unitId = entry.unitId
 
-            --Log entry details
-            if splash_damage_options.killfeed_debug then
-                env.info(string.format("SplashDamage: Processing splash kill entry %d: unitId=%s, unitType=%s, player=%s, time=%.2f",
-                    i, unitId, unitType, playerName, entry.time))
+            --Check if unitId exists in killfeedTable
+            local inKillfeed = false
+            for _, killEntry in ipairs(killfeedTable) do
+                if killEntry.unitID == unitId then
+                    inKillfeed = true
+                end
             end
 
-            local status, result = pcall(function()
-                local statName = "Ground Units"
-                local points = 10
-                if unitType:find("Plane") then
-                    statName = "Air"
-                    points = 30
-                elseif unitType:find("Helicopter") then
-                    statName = "Helo"
-                    points = 30
-                elseif unitType:find("SAM") then
-                    statName = "SAM"
-                    points = 30
-                elseif unitType:find("Infantry") then
-                    statName = "Infantry"
-                    points = 10
-                elseif unitType:find("Ship") then
-                    statName = "Ship"
-                    points = 250
-                elseif unitType:find("Building") then
-                    statName = "Structure"
-                    points = 30
-                end
-                bc:addTempStat(playerName, statName, 1)
+            if inKillfeed then
+                table.insert(entriesToRemove, i)
                 if splash_damage_options.killfeed_debug then
-                    env.info(string.format("SplashDamage: Added temp stat for %s: stat=%s, count=1", playerName, statName))
+                    env.info(string.format("SplashDamage: Skipped processing and removed duplicate splash kill entry for unitId=%s, unitType=%s at %.2f",
+                        unitId, unitType, currentTime))
                 end
-                if bc.context and type(bc.context) == "table" and bc.context.playerContributions and type(bc.context.playerContributions) == "table" then
-                    bc.context.playerContributions[2] = bc.context.playerContributions[2] or {}
-                    local oldPoints = bc.context.playerContributions[2][playerName] or 0
-                    bc.context.playerContributions[2][playerName] = oldPoints + points
-                    if splash_damage_options.killfeed_debug then
-                        env.info(string.format("SplashDamage: Updated contributions for %s: old=%d, new=%d, added=%d",
-                            playerName, oldPoints, bc.context.playerContributions[2][playerName], points))
-                    end
-                else
-                    if splash_damage_options.killfeed_debug then
-                        env.info("SplashDamage: Skipped contribution update for " .. playerName .. ": bc.context or bc.context.playerContributions is nil")
-                    end
-                end
-                processedCount = processedCount + 1
+            else
+                --Log entry details
                 if splash_damage_options.killfeed_debug then
-                    env.info(string.format("SplashDamage: Processed splash kill for %s by %s: stat=%s, points=%d, unitId=%s",
-                        unitType, playerName, statName, points, unitId))
+                    env.info(string.format("SplashDamage: Processing splash kill entry %d: unitId=%s, unitType=%s, player=%s, time=%.2f",
+                        i, unitId, unitType, playerName, entry.time))
                 end
-            end)
-            if not status and splash_damage_options.killfeed_debug then
-                env.info("SplashDamage: Error processing splash kill for unitId=" .. tostring(unitId) .. ": " .. tostring(result))
+
+                local status, result = pcall(function()
+                    local statName = "Ground Units"
+                    local points = 10
+                    if unitType:find("Plane") then
+                        statName = "Air"
+                        points = 30
+                    elseif unitType:find("Helicopter") then
+                        statName = "Helo"
+                        points = 30
+                    elseif unitType:find("SAM") then
+                        statName = "SAM"
+                        points = 30
+                    elseif unitType:find("Infantry") then
+                        statName = "Infantry"
+                        points = 10
+                    elseif unitType:find("Ship") then
+                        statName = "Ship"
+                        points = 250
+                    elseif unitType:find("Building") then
+                        statName = "Structure"
+                        points = 30
+                    end
+                    bc:addTempStat(playerName, statName, 1)
+                    if splash_damage_options.killfeed_debug then
+                        env.info(string.format("SplashDamage: Added temp stat for %s: stat=%s, count=1", playerName, statName))
+                    end
+                    if bc.context and type(bc.context) == "table" and bc.context.playerContributions and type(bc.context.playerContributions) == "table" then
+                        bc.context.playerContributions[2] = bc.context.playerContributions[2] or {}
+                        local oldPoints = bc.context.playerContributions[2][playerName] or 0
+                        bc.context.playerContributions[2][playerName] = oldPoints + points
+                        if splash_damage_options.killfeed_debug then
+                            env.info(string.format("SplashDamage: Updated contributions for %s: old=%d, new=%d, added=%d",
+                                playerName, oldPoints, bc.context.playerContributions[2][playerName], points))
+                        end
+                    else
+                        if splash_damage_options.killfeed_debug then
+                            env.info("SplashDamage: Skipped contribution update for " .. playerName .. ": bc.context or bc.context.playerContributions is nil")
+                        end
+                    end
+                    processedCount = processedCount + 1
+                    if splash_damage_options.killfeed_debug then
+                        env.info(string.format("SplashDamage: Processed splash kill for %s by %s: stat=%s, points=%d, unitId=%s",
+                            unitType, playerName, statName, points, unitId))
+                    end
+                end)
+                if not status and splash_damage_options.killfeed_debug then
+                    env.info("SplashDamage: Error processing splash kill for unitId=" .. tostring(unitId) .. ": " .. tostring(result))
+                end
+                table.insert(entriesToRemove, i)
             end
-            table.insert(entriesToRemove, i)
         end
     end
 
@@ -6630,7 +6642,7 @@ function onKillEvent(event)
                 unitID, unitType, timer.getTime()))
         end
 
-        --Log bc table state for direct kill only if Lekas integration is enabled
+       --Log bc table state for direct kill only if Lekas integration is enabled
         if splash_damage_options.killfeed_debug and splash_damage_options.killfeed_lekas_foothold_integration then
             env.info("KillFeed: bc table state for direct kill: " .. (bc and "exists" or "nil"))
             env.info("KillFeed: bc.addTempStat: " .. (bc and bc.addTempStat and "exists" or "nil"))
@@ -6673,7 +6685,7 @@ function onKillEvent(event)
                     unitID, unitType, timer.getTime()))
             end
         else
-            --Process direct kill contribution
+--[[           --Process direct kill contribution
             if killerName ~= "Unknown" and splash_damage_options.killfeed_lekas_foothold_integration then
                 local status, result = pcall(function()
                     local statName = "Ground Units"
@@ -6718,9 +6730,8 @@ function onKillEvent(event)
                 if not status and splash_damage_options.killfeed_debug then
                     env.info("KillFeed: Error processing direct kill for unitId=" .. tostring(unitID) .. ": " .. tostring(result))
                 end
-            end
+]]--           end
         end
-
         if unitType ~= "Unknown" then
             table.insert(killfeedTable, {
                 unitName = unitName,
