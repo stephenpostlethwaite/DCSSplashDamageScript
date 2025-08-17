@@ -73,6 +73,9 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 splash_damage_options = {
     ---------------------------------------------------------------------- Debug and Messages ----------------------------------------------------------------
+    ["game_messages"] = false, --enable some messages on screen
+    ["debug"] = false,  --enable debugging messages 
+    ["weapon_missing_message"] = false, --false disables messages alerting you to weapons missing from the explTable
     ["track_pre_explosion_debug"] = false, --Toggle to enable/disable pre-explosion tracking debugging
     ["track_groundunitordnance_debug"] = false, --Enable detailed debug messages for ground unit ordnance tracking
     ["napalm_unitdamage_debug"] = false, --Enable detailed debug messages for napalm unit damage tracking
@@ -150,12 +153,13 @@ splash_damage_options = {
     --All Vehicles Section
 		--If a Unit is called CookOffTarget it will trigger a cookoff with the below effects
 		
-    ["smokeandcookoffeffectallvehicles"] = true, --Enable effects for all ground vehicles not in cargoUnits vehicle table
+    ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
     ["allunits_enable_smoke"] = true, -- Enable /disable smoke effects if smokeandcookoffeffectallvehicles is true
     ["allunits_enable_cookoff"] = true, -- Enable /disable cookoffs if smokeandcookoffeffectallvehicles is true
     ["allunits_damage_threshold"] = 25, --Health % below which cargo/smoke attempts to trigger
     ["allunits_explode_power"] = 40, --Initial power of vehicle exploding
     ["allunits_default_flame_size"] = 6, --Default smoke size (called flame here in the code, but it'll be smoke) 5 = small smoke, 6 = medium smoke, 7 = large smoke,  8 = huge smoke 
+    ["allunits_default_flame_duration"] = 240, --Default smoke (called flame here in the code, but it's smoke) duration in seconds for non-cargoUnits vehicles
     ["allunits_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
     ["allunits_cookoff_power"] = 10, --power of the cookoff explosions
@@ -169,6 +173,7 @@ splash_damage_options = {
     ["allunits_advanced_effect_sequence_chance"] = 0.2, --Chance of the script picking the advanced effect instead of the standard all unit effect. 1 = 100%, 0.5 = 50%
     ["allunits_advanced_effect_force_on_name"] = true,  --Regardless of chance, if the unit has "AdvSeq" in its name it will trigger the advanced sequence
     ["allunits_advanced_effect_order"] = {"2", "7", "6", "5"},  --List of flame and smoke : sizes, 1 = small smoke and fire, 2 = med, 3 = large, 4 = huge.  5 = small smoke only, 6 = medium, 7 = large,  8 = huge 
+    ["allunits_advanced_effect_timing"] = {"30", "90", "120", "600"}, --How many seconds per effect in the order config key above
     ["allunits_advanced_effect_cookoff_chance"] = 1, --Chance of cookoff effects occurring for the advanced effect sequence
     ["allunits_advanced_effect_cookoff_count"] = 4, --number of cookoff explosions to schedule
     ["allunits_advanced_effect_cookoff_duration"] = 30, --max time window of cookoffs (will be scheduled randomly between 0 seconds and this figure)
@@ -211,7 +216,7 @@ splash_damage_options = {
     
 
     ---------------------------------------------------------------------- Ground/Ship Ordnance  -------------------------------------------------------------
-    ["track_groundunitordnance"] = true, --Enable tracking of ground unit ordnance for larger explosion function and blastwave cookoffs(shells)
+    ["track_groundunitordnance"] = false, --Enable tracking of ground unit ordnance for larger explosion function and blastwave cookoffs(shells)
     ["groundunitordnance_damage_modifier"] = 1.0, --Multiplier for ground unit ordnance explosive power
     ["groundunitordnance_blastwave_modifier"] = 4.0, --Additional multiplier for blast wave intensity of ground unit ordnance
     ["groundunitordnance_maxtrackedcount"] = 100, --Maximum number of ground ordnance shells tracked at once to prevent overload
@@ -243,8 +248,11 @@ splash_damage_options = {
     ["napalm_unitdamage_spreaddelay"] = 0, --If startdelay is greater than 0, explosions are ordered by distance with this gap between each unit
 	
     ---------------------------------------------------------------------- Kill Feed  ------------------------------------------------------------------------
+    ["killfeed_enable"] = false, --Enable killfeed, required for lekas foothold
+    ["killfeed_game_messages"] = false, --Show killfeed SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP for now)
     ["killfeed_game_message_duration"] = 15, --Duration in seconds for game messages (killfeed and SplashKillFeed) - note the message will be delayed to let DCS catch up as per next option
     ["killfeed_splashdelay"] = 8, --Duration in seconds delay to allow dcs to see that units are dead before saying the splash damage got them instead of the the players weapon
+    ["killfeed_lekas_foothold_integration"] = false, --Enable Lekas Foothold integration
     ["killfeed_lekas_contribution_delay"] = 240, -- Delay in seconds before processing splash kills into Lekas contributions (default 240 seconds/4mins)
 	
     ---------------------------------------------------------------------- Vehicle IEDs  ---------------------------------------------------------------------	
@@ -295,13 +303,14 @@ splash_damage_options = {
 
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
 		--You can also trigger this to happen if the unit has "GUED" in its name - so you can set the chance to 0 and still have them go off for specific units
-    ["GU_Explode_on_Death"] = true,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
+    ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
     ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
     ["GU_Explode_on_Death_Explosion_Power"] = 30, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
     ["GU_Explode_Exclude_Infantry"] = true,  --Set to false to make infantry blow up too
 		
     ---------------------------------------------------------------------- CBU Bomblet Hit Explosion ---------------------------------------------------------
+    ["CBU_Bomblet_Hit_Explosion"] = false, --ONLY TESTED WITH JSOW-A - Enable/Disable - on a hit even by a bomblet it can do extra damage AND/OR scan around the unit to deal damage with additional explosions of the power set in the cluster table
     ["CBU_Bomblet_Hit_Explosion_Scaling"] = 35, --Overall Multiplier for the final bomblet damage result.  Default 35 to get the effects we want when the ground level is less than 1.6 - WHEN TESTED WITH JSOW-A
     ["CBU_Bomblet_Hit_Mimic_Spread"] = true, --Enable/Disable - Mimic spread of clusterbomb warheads by scanning an area around the target that was hit and triggering an explosion against any unit or structure (unitIds can only be hit once by this weaponid)
     ["CBU_Bomblet_Hit_Spread"] = 50, --Scan radius m to look for units to hit
