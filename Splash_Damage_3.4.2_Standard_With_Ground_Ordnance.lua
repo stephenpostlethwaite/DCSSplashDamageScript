@@ -912,7 +912,6 @@ explTable = {
 	["weapons.shells.Flak18_Sprgr_39"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 18
 	["weapons.shells.Flak41_Sprgr_39"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 41
 	["weapons.shells.KS19_100HE"] = { explosive = 0.0000001, groundordnance = true }, --Modern Soviet 100mm AAA
-	["weapons.shells.Oerlikon_20mm_HE"] = { explosive = 0.0000001, groundordnance = true }, --WWII Oerlikon 20mm AAA
 	["weapons.shells.QF94_AA_HE"] = { explosive = 0.0000001, groundordnance = true }, --WWII British 94mm AAA
 	["weapons.shells.ship_Bofors_40mm_HE"] = { explosive = 0.0000001, groundordnance = true }, --WWII Naval Bofors 40mm AAA
 	["weapons.shells.Sprgr_34_L70"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 36/37
@@ -7730,3 +7729,4 @@ end
                             		##### END of Changelog #####
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
+
