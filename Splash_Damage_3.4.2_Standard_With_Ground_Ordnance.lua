@@ -60,7 +60,7 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 			
 	  --3.4.2 
 	  	- Adjusted Lekas Foothold Integration
-		- Added flak to ground ord tracking
+		- Added flak units to ground ord tracking with 0 extra damage for night time light bursts
 				
 	  
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
@@ -906,7 +906,21 @@ explTable = {
 	["TOW2"] = { explosive = 6.5, shaped_charge = true, groundordnance = true },  --ATGM
 	
 	--*** Shells ***
-	["weapons.shells.KS19_100HE"] = { explosive = 0.0000001, groundordnance = true }, --AA
+	
+	---***AAA set to 0.0000001 so there is no extra damage but there is light and sound - added for night time use***
+	["weapons.shells.Bofors_40mm_HE"] = { explosive = 0.0000001, groundordnance = true }, --WWII Bofors 40mm AAA
+	["weapons.shells.Flak18_Sprgr_39"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 18
+	["weapons.shells.Flak41_Sprgr_39"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 41
+	["weapons.shells.KS19_100HE"] = { explosive = 0.0000001, groundordnance = true }, --Modern Soviet 100mm AAA
+	["weapons.shells.Oerlikon_20mm_HE"] = { explosive = 0.0000001, groundordnance = true }, --WWII Oerlikon 20mm AAA
+	["weapons.shells.QF94_AA_HE"] = { explosive = 0.0000001, groundordnance = true }, --WWII British 94mm AAA
+	["weapons.shells.ship_Bofors_40mm_HE"] = { explosive = 0.0000001, groundordnance = true }, --WWII Naval Bofors 40mm AAA
+	["weapons.shells.Sprgr_34_L70"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 36/37
+	["weapons.shells.Sprgr_38"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 38
+	["weapons.shells.Sprgr_39"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 18/36/37
+	["weapons.shells.Sprgr_43_L71"] = { explosive = 0.0000001, groundordnance = true }, --WWII German 88mm Flak 43
+	
+	--***Tank etc***	
 	["weapons.shells.M_105mm_HE"] = { explosive = 12, groundordnance = true }, --105mm HE shell, M119/M102 (~10-15 kg TNT equiv)
 	["weapons.shells.M_155mm_HE"] = { explosive = 60, groundordnance = true }, --155mm HE shell, M777/M109 (~50-70 kg TNT equiv)
 	["weapons.shells.2A60_120"] = { explosive = 18, groundordnance = true }, --120mm HE shell, 2B11 mortar (~15-20 kg TNT equiv)
@@ -7714,4 +7728,5 @@ end
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=
                             		##### END of Changelog #####
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
