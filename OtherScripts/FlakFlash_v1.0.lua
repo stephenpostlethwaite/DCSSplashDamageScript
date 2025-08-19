@@ -4,7 +4,7 @@
 --Based on https://github.com/stephenpostlethwaite/DCSSplashDamageScript/blob/master/Splash_Damage_3.4.2_Standard_With_Ground_Ordnance.lua
 
 local script_enable = 1 --enable(1)/disable(0) script 
-local logging_enabled = true --Toggle logging on/off
+local logging_enabled = false --Toggle logging on/off
 local refreshRate = 0.1 --the lower the more accurate the tracking, but the higher the performance cost
 
 local explosive_power = 0.0000001 --Set explosive value for all flak shells. 0.0000001 for flashes only, 20 for a good sized explosion
@@ -102,4 +102,5 @@ if script_enable == 1 then
     world.addEventHandler(WpnHandler)
     timer.scheduleFunction(track_wpns, nil, timer.getTime() + refreshRate)
     logMsg("Flak Flash Script v 1.0 Enabled")
+
 end
