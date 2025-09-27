@@ -599,7 +599,7 @@ flamesize:
                                                                 Weapon Explosive Table             
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 
---If you want to the specific weapon to skip the damage_model (blastwave damage) or the larger_explosion you can modify the entry like so:
+--If you want the specific weapon to skip the damage_model (blastwave damage) or the larger_explosion you can modify the entry like so:
     --["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
 explTable = {
     --*** WWII BOMBS ***
@@ -629,7 +629,8 @@ explTable = {
     ["SC_500_L2"] = { explosive = 213 },
     ["SD_250_Stg"] = { explosive = 100 },
     ["SD_500_A"] = { explosive = 213 },
-  
+	["SC_500_J"] = { explosive = 213 }, 
+	
     --*** WWII CBU ***
     ["AB_250_2_SD_2"] = { explosive = 100 },
     ["AB_250_2_SD_10A"] = { explosive = 100 },
@@ -7728,3 +7729,4 @@ end
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=
                             		##### END of Changelog #####
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
+
