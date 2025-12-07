@@ -23,6 +23,7 @@ local FlakShells = {
     ["weapons.shells.Sprgr_38"] = { explosive = explosive_power}, --WWII German 88mm Flak 38, timed fuzes
     ["weapons.shells.Sprgr_39"] = { explosive = explosive_power}, --WWII German 88mm Flak 18/36/37, timed fuzes
     ["weapons.shells.Sprgr_43_L71"] = { explosive = explosive_power}, --WWII German 88mm Flak 43, timed fuzes
+    ["weapons.shells.53-UOR-281U"] = { explosive = explosive_power}, --HE shell from S-60 57mm AAA
 }
 
 ----[ [ ##### HELPER/UTILITY FUNCTIONS ##### ] ]----
@@ -104,3 +105,4 @@ if script_enable == 1 then
     logMsg("Flak Flash Script v 1.0 Enabled")
 
 end
+
