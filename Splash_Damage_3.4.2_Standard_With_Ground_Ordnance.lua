@@ -6952,6 +6952,11 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
     }
   
     local ifFound = function(foundObject, val)
+        local category = foundObject:getCategory()
+        -- Calling getDesc() on a damaged static or scenery object crashes DCS via
+        -- regLuaStaticObject -> luaD_growstack overflow -> memmove ACCESS_VIOLATION.
+        -- Skip these categories entirely before any further API calls.
+        if category == Object.Category.STATIC or category == Object.Category.SCENERY then return true end
         if foundObject:getDesc().category == Unit.Category.GROUND_UNIT and foundObject:getCategory() == Object.Category.UNIT then
             foundUnits[#foundUnits + 1] = foundObject
         end
@@ -7094,8 +7099,8 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
         debugMsg("Scanning for objects within " .. _radius .. "m radius")
     end
     world.searchObjects(Object.Category.UNIT, volS, ifFound)
-    world.searchObjects(Object.Category.STATIC, volS, ifFound)
-    world.searchObjects(Object.Category.SCENERY, volS, ifFound)
+    --world.searchObjects(Object.Category.STATIC, volS, ifFound)   -- disabled: getDesc() on damaged statics crashes DCS (ACCESS_VIOLATION via regLuaStaticObject)
+    --world.searchObjects(Object.Category.SCENERY, volS, ifFound)  -- disabled: same crash risk as STATIC
     world.searchObjects(Object.Category.CARGO, volS, ifFound)
     if splash_damage_options.debug then
         debugMsg("Found " .. #foundUnits .. " ground units for damage modeling")
