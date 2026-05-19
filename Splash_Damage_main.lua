@@ -11,6 +11,15 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 
 	
 --noting this from gashpl - for easy script release/config testing, add this as the do script trigger: assert(loadfile("C:\\Users\\[USER]\\Saved Games\\DCS\\Missions\\Splash_Damage_3.4.lua"))()
+    
+    17th May 2026 3.4.4
+		(Stevey666)
+        Brought in RedactedCallSign's changes for Wave Explosions - Thank you RedactedCallSign
+        Added Continous Napalm Damage - Damage will hit every x seconds until the napalm timer runs out
+        Fixed Napalm damage not applying if phosphor was disabled
+        Added in a number of new weapons - Thank you to Retnek, Sniex
+        Adjusted a number of explosive values - Thank you to Sniex
+        Added BIN 200 to weapons list and default napalm - Thank you to Stackup
 
     4th July 2025 - 3.4
 
@@ -224,7 +233,7 @@ splash_damage_options = {
 	
 
     ---------------------------------------------------------------------- Napalm  ---------------------------------------------------------------------------
-    ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN
+    ["napalm_mk77_enabled"] = true, --Enable napalm effects for MK77mod0-WPN and MK77mod1-WPN and Bin200
     ["napalmoverride_enabled"] = false, --If true, enables napalm effects for weapons in napalm_override_weapons
     ["napalm_override_weapons"] = "Mk_82,SAMP125LD", --Comma-separated list of weapons to override as napalm when overrides enabled, i.e Mk_82,SAMP125LD.  Do not pick CBUs
  
@@ -243,10 +252,17 @@ splash_damage_options = {
     ["napalm_doublewide_spread"] = 15, --Meters either side of bomb vector either side to spawn a fuel tank
 	
     ["napalm_unitdamage_enable"] = true, --Enable/disable napalm unit damage
-    ["napalm_unitdamage_scandistance"] = 70, --Scan radius in meters
+    ["napalm_unitdamage_scandistance"] = 60, --Scan radius in meters - set to 60 as the defualt max range of a unit is in napalm_unitcat_tabl and is 60 for structures
     ["napalm_unitdamage_startdelay"] = 0.1, --Seconds between Napalm exploding and explosion occurring (can be 0 for no delay)
     ["napalm_unitdamage_spreaddelay"] = 0, --If startdelay is greater than 0, explosions are ordered by distance with this gap between each unit
-	
+
+    ["napalm_continuousdamage_enable"] = true, --Enable/disable continous napalm unit damage - it will rescan the same area over and over again and apply the damage to any living units found or going into the area
+    ["napalm_continuousdamage_excludelist"] = "Bunker 1,Bunker 2", --Excludes units/structures types from taking continuous damage, comma-separated list of unit types,
+    ["napalm_continuousdamage_scan_and_damage_rate"] = 1, --How often in seconds the area will be scanned and the damage applied again
+    ["napalm_continuousdamage_cooldown_enable"] = true, --If true, the same unit/static can only take continuous napalm damage once every X seconds
+    ["napalm_continuousdamage_cooldown_seconds"] = 5, --Cooldown per unit/static for continuous napalm damage - how often it will damange the unit if its within range
+    ["napalm_continuousdamage_max_damage_instances_per_unit"] = 5, --Max times a unit can be damamged continuously
+
     ---------------------------------------------------------------------- Kill Feed  ------------------------------------------------------------------------
     ["killfeed_enable"] = false, --Enable killfeed, required for lekas foothold
     ["killfeed_game_messages"] = false, --Show killfeed SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP for now)
@@ -351,10 +367,14 @@ local script_enable = 1
 refreshRate = 0.1
 ----[[ ##### End of SCRIPT CONFIGURATION ##### ]]----
 
---Helper function: Trim whitespace.
+-- Helper function to count table entries
+function countTable(t)
+    local count = 0
+    for _ in pairs(t) do count = count + 1 end
+    return count
+end
 
-
-
+-- Helper function: Trim whitespace
 local function trim(s)
     return s:match("^%s*(.-)%s*$")
 end
@@ -603,42 +623,39 @@ flamesize:
     --["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
 explTable = {
     --*** WWII BOMBS ***
-    ["British_GP_250LB_Bomb_Mk1"] = { explosive = 100 },
-    ["British_GP_250LB_Bomb_Mk4"] = { explosive = 100 },
-    ["British_GP_250LB_Bomb_Mk5"] = { explosive = 100 },
-    ["British_GP_500LB_Bomb_Mk1"] = { explosive = 213 },
-    ["British_GP_500LB_Bomb_Mk4"] = { explosive = 213 },
-    ["British_GP_500LB_Bomb_Mk4_Short"] = { explosive = 213 },
-    ["British_GP_500LB_Bomb_Mk5"] = { explosive = 213 },
-    ["British_MC_250LB_Bomb_Mk1"] = { explosive = 100 },
-    ["British_MC_250LB_Bomb_Mk2"] = { explosive = 100 },
-    ["British_MC_500LB_Bomb_Mk1_Short"] = { explosive = 213 },
-    ["British_MC_500LB_Bomb_Mk2"] = { explosive = 213 },
-    ["British_SAP_250LB_Bomb_Mk5"] = { explosive = 100 },
-    ["British_SAP_500LB_Bomb_Mk5"] = { explosive = 213 },
-    ["British_AP_25LBNo1_3INCHNo1"] = { explosive = 4 },
-    ["British_HE_60LBSAPNo2_3INCHNo1"] = { explosive = 4 },
-    ["British_HE_60LBFNo1_3INCHNo1"] = { explosive = 4 },
+    ["British_GP_250LB_Bomb_Mk1"] = { explosive = 31 }, --UK, general purpose, blast and fragmentation
+    ["British_GP_250LB_Bomb_Mk4"] = { explosive = 31 }, --UK, general purpose, blast and fragmentation
+    ["British_GP_250LB_Bomb_Mk5"] = { explosive = 31 }, --UK, general purpose, blast and fragmentation
+    ["British_GP_500LB_Bomb_Mk1"] = { explosive = 65 }, --UK, general purpose, blast and fragmentation
+    ["British_GP_500LB_Bomb_Mk4"] = { explosive = 65 }, --UK, general purpose, blast and fragmentation
+    ["British_GP_500LB_Bomb_Mk4_Short"] = { explosive = 65 }, --UK, general purpose, blast and fragmentation
+    ["British_GP_500LB_Bomb_Mk5"] = { explosive = 65 }, --UK, general purpose, blast and fragmentation
+    ["British_MC_250LB_Bomb_Mk1"] = { explosive = 51 }, --UK, medium capacity, blast over fragmentation
+    ["British_MC_250LB_Bomb_Mk2"] = { explosive = 51 }, --UK, medium capacity, blast over fragmentation
+    ["British_MC_500LB_Bomb_Mk1_Short"] = { explosive = 102 }, --UK, medium capacity, blast over fragmentation
+    ["British_MC_500LB_Bomb_Mk2"] = { explosive = 102 }, --UK, medium capacity, blast over fragmentation
+    ["British_SAP_250LB_Bomb_Mk5"] = { explosive = 19 }, --UK, semi armour piercing, penetration, fragmentation over blast
+    ["British_SAP_500LB_Bomb_Mk5"] = { explosive = 41 }, --UK, semi armour piercing, penetration, fragmentation over blast
   
-    ["SC_50"] = { explosive = 20 },
-    ["ER_4_SC50"] = { explosive = 20 },
-    ["SC_250_T1_L2"] = { explosive = 100 },
-    ["SC_501_SC250"] = { explosive = 100 },
-    ["Schloss500XIIC1_SC_250_T3_J"] = { explosive = 100 },
-    ["SC_501_SC500"] = { explosive = 213 },
-    ["SC_500_L2"] = { explosive = 213 },
-    ["SD_250_Stg"] = { explosive = 100 },
-    ["SD_500_A"] = { explosive = 213 },
-	["SC_500_J"] = { explosive = 213 }, 
-	
-    --*** WWII CBU ***
-    ["AB_250_2_SD_2"] = { explosive = 100 },
-    ["AB_250_2_SD_10A"] = { explosive = 100 },
-    ["AB_500_1_SD_10A"] = { explosive = 213 },
+    ["SC_50"] = { explosive = 25 }, --SC Minenbombe, thin-walled, blast damage, general purpose
+    ["ER_4_SC50"] = { explosive = 25 }, --SC Minenbombe, thin-walled, blast damage, general purpose, 4 bombs in ER-4-bomb-rack
+    ["SC_250_T1_L2"] = { explosive = 127 }, --SC Minenbombe, thin-walled, blast damage, general purpose
+    ["SC_250_T3_J"] = { explosive = 127 }, --SC Minenbombe, thin-walled, blast damage, general purpose
+    ["SC_501_SC250"] = { explosive = 127 }, --SC Minenbombe, thin-walled, blast damage, general purpose, fits to SC-500-bomb-rack
+    ["Schloss500XIIC1_SC_250_T3_J"] = { explosive = 127 }, --SC Minenbombe, thin-walled, blast damage, general purpose, fits to SC-500-bomb-rack
+    ["SC_501_SC500"] = { explosive = 255 }, --SC Minenbombe, thin-walled, blast damage, general purpose, fits to SC-500-bomb-rack
+    ["SC_500_L2"] = { explosive = 255 }, --SC Minenbombe, thin-walled, blast damage, general purpose,
+    ["SC_500_J"] = { explosive = 255 }, --SC Minenbombe, thin-walled, blast damage, general purpose,
+    ["SD_250_Stg"] = { explosive = 80 }, --SD Splitterbombe, thick-walled, Stg Stahlguss cast steel; penetration capable, fragmentation over blast
+    ["SD_500_A"] = { explosive = 180 }, --SD Splitterbombe, thick-walled; penetration capable, fragmentation over blast
   
     --*** WWII ROCKETS ***
-    ["3xM8_ROCKETS_IN_TUBES"] = { explosive = 4 },
-    ["WGr21"] = { explosive = 4 },
+    ["3xM8_ROCKETS_IN_TUBES"] = { explosive = 2 }, --USA, 18 kg 4.5-inch-rocket, ca. 13 kg warhead, 2 kg explosives, fragmentation
+    ["WGr21"] = { explosive = 10 }, --Germany, WGr21 WerferGranate 21 cm, 110 kg rocket, 39 kg warhead, 10 kg explosives, fragmentation and blast
+    ["R4M"] = { explosive = 0.5 }, --Germany, R4M Rakete 4kg Minenkopf, 4 kg rocket, ca. 1kg thin-walled warhead, 0.5 kg explosives, blast
+    ["British_AP_25LBNo1_3INCHNo1"] = { explosive = 1 }, --UK, RP-3, 29 kg rocket, AP-1 11 kg steel penetration warhead, no explosives, kinetic, original no explosive
+    ["British_HE_60LBSAPNo2_3INCHNo1"] = { explosive = 6 }, --UK, RP-3, 45 kg rocket, 27 kg SAP HE warhead, 6 kg explosives, blast and fragmentation
+    ["British_HE_60LBFNo1_3INCHNo1"] = { explosive = 2 }, --UK, RP-3, 44 kg rocket, 21 kg fragmentation warhead, 1.5 kg explosives, fragmentation
   
     --*** UNGUIDED BOMBS (UGB) ***
     ["M_117"] = { explosive = 201 },
@@ -650,14 +667,18 @@ explTable = {
     ["AN-M66A2"] = { explosive = 536 },
     ["AN-M81"] = { explosive = 100 },
     ["AN-M88"] = { explosive = 100 },
+    ["M71BOMB"] = { explosive = 60 }, -- Lo-drag
+    ["M71BOMBD"] = { explosive = 60 }, -- Hi-drag
   
     ["Mk_81"] = { explosive = 60 },
     ["MK-81SE"] = { explosive = 60 },
-	["Mk_82"] = { explosive = 100},
-    ["MK_82AIR"] = { explosive = 100 },
-    ["MK_82SNAKEYE"] = { explosive = 100 },
+	["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = false },
+    ["MK_82AIR"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = false },
+    ["MK_82SNAKEYE"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = false },
     ["Mk_83"] = { explosive = 274 },
-    ["Mk_84"] = { explosive = 582 },
+    ["Mk_83AIR"] = { explosive = 274 },
+    ["Mk_84"] = { explosive = 400, Skip_larger_explosions = true, Skip_damage_model = false }, -- orig 582 was a little hot
+    ["Mk_84AIR"] = { explosive = 400, Skip_larger_explosions = true, Skip_damage_model = false },
   
     ["HEBOMB"] = { explosive = 40 },
     ["HEBOMBD"] = { explosive = 40 },
@@ -675,8 +696,11 @@ explTable = {
     ["FAB_250"] = { explosive = 118 },
     ["FAB_250M54TU"] = { explosive = 118 },
     ["FAB-250-M62"] = { explosive = 118 },
-    ["FAB_500"] = { explosive = 213 },
+    ["FAB_500"] = { explosive = 274 },
     ["FAB_1500"] = { explosive = 675 },
+	["FAB_1500L"] = { explosive = 675 },
+	
+	["OFAB_100"] = { explosive = 45 },
   
     --*** UNGUIDED BOMBS WITH PENETRATOR / ANTI-RUNWAY ***
     ["Durandal"] = { explosive = 64 },
@@ -685,17 +709,23 @@ explTable = {
     ["BAP-100"] = { explosive = 32 },
     ["BAT-120"] = { explosive = 32 },
     ["TYPE-200A"] = { explosive = 107 },
-    ["BetAB_500"] = { explosive = 98 },
-    ["BetAB_500ShP"] = { explosive = 107 },
-    
+    ["BetAB_500"] = { explosive = 274, Skip_larger_explosions = false, Skip_damage_model = true }, -- Smaller blast radius, but higher damage for "penetration"
+    ["BetAB_500ShP"] =  { explosive = 274, Skip_larger_explosions = false, Skip_damage_model = true }, -- Smaller blast radius, but higher damage for "penetration"
+    ["Tiny Tim"] = { explosive = 68 }, --US, 36 inch 569 kg rocket, 227 kg warhead, 68 kg explosives, penetration, fragmentation over blast
+ 
     --*** GUIDED BOMBS (GBU) ***
-    ["GBU_10"] = { explosive = 582 },
-    ["GBU_12"] = { explosive = 100 }, 
+    ["GBU_10"] = { explosive = 400, Skip_larger_explosions = true, Skip_damage_model = false },
+    ["GBU_12"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = false }, 
     ["GBU_16"] = { explosive = 274 },
-    ["GBU_24"] = { explosive = 582 },
+    ["GBU_24"] = { explosive = 582, Skip_larger_explosions = false, Skip_damage_model = true }, -- Smaller blast radius, but higher damage for "penetration"
     ["KAB_1500Kr"] = { explosive = 675 },
-    ["KAB_500Kr"] = { explosive = 213 },
-    ["KAB_500"] = { explosive = 213 },
+	["KAB_1500LG"] = { explosive = 675 },
+	["KAB_1500LG_Pr"] = { explosive = 675, shaped_charge = true },
+    ["KAB_500Kr"] = { explosive = 274 },
+    ["KAB_500"] = { explosive = 274 },
+	["KAB_500L"] = { explosive = 274 },
+	["KAB_500LG"] = { explosive = 274 },
+	["KAB_500S"] = { explosive = 274 },
   
     --*** CLUSTER BOMBS (CBU) ***
 	--I don't have most of these so can't test them with debug on
@@ -719,8 +749,13 @@ explTable = {
     ["RBK_500AO"] = { explosive = 0, cluster = true, submunition_count = 108, submunition_explosive = 0.5, submunition_name = "AO_25RT" }, --Confirmed 108 AO-2.5RT fragmentation bomblets
     ["RBK_500U_OAB_2_5RT"] = { explosive = 0, cluster = true, submunition_count = 352, submunition_explosive = 0.2, submunition_name = "OAB_25RT" }, --Confirmed 352 OAB-2.5RT fragmentation bomblets
     ["RBK_500_255_PTO_1M"] = { explosive = 0, cluster = true, submunition_count = 126, submunition_explosive = 0.5, submunition_name = "PTO_1M" },
-    ["RBK_500_255_ShO"] = { explosive = 0, cluster = true, submunition_count = 565, submunition_explosive = 0.1, submunition_name = "ShO" },  
-
+    ["RBK_500_255_ShO"] = { explosive = 0, cluster = true, submunition_count = 565, submunition_explosive = 0.1, submunition_name = "ShO" },      
+    ["AB_250_2_SD_2"] = { explosive = 0, cluster = true, submunition_count = 144, submunition_explosive = 1, submunition_name = "SD-2" }, --WW2 Germany 144 SD-2 fragmentation bomblets, original explosive 0.2 kg    ["AB_250_2_SD_2"] = { explosive = 0, cluster = true, submunition_count = 144, submunition_explosive = 1, submunition_name = "SD-2" }, --WW2 Germany 144 SD-2 fragmentation bomblets, original explosive 0.2 kg
+    ["AB_250_2_SD_10A"] = { explosive = 0, cluster = true, submunition_count = 17, submunition_explosive = 5, submunition_name = "SD-10A" }, --WW2 Germany 17 SD-10A fragmentation bomblets, original explosive 1 kg
+    ["AB_500_1_SD_10A"] = { explosive = 0, cluster = true, submunition_count = 37, submunition_explosive = 5, submunition_name = "SD-10A" }, --WW2 Germany 37 SD-10A fragmentation bomblets, original explosive 1 kg
+    ["SD-2"] = { explosive = 1 }, --WW2 German cluster bomblet 0.225 kg explosives; AB_250_2_SD_2=144 bomblets; fragmentation, original explosive 0.2 kg
+    ["SD-10A"] = { explosive = 5 }, --WW2 German cluster bomblet 0.9 kg explosives; AB_500_1_SD_10A=37 bomblets, AB_250_1_SD_10A=17 bomblets; fragmentation, original explosive 1 kg
+ 
     --*** INS/GPS BOMBS (JDAM) ***
     ["GBU_31"] = { explosive = 582 },
     ["GBU_31_V_3B"] = { explosive = 582 },
@@ -742,11 +777,15 @@ explTable = {
     ["LS-6-250"] = { explosive = 100 },
     ["LS-6-500"] = { explosive = 274 },
     ["GB-6"] = { explosive = 0 },
-    ["GB-6-HE"] = { explosive = 0 },
+    ["GB-6-HE"] = { explosive = 305 },
     ["GB-6-SFW"] = { explosive = 0 },
   
     --*** AIR GROUND MISSILE (AGM) ***
     ["AGM_62"] = { explosive = 400 },
+	["AGM_62_I"]  = 274, --1000lb warhead. AGM-62 Walleye I. F-4E
+	["AGM_62_II"]  = 400, --2000lb warhead. AGM-62 Walleye II ER. F-4E
+	["AGM_65A"] = { explosive = 38, shaped_charge = true },
+	["AGM_65B"] = { explosive = 38, shaped_charge = true },
     ["AGM_65D"] = { explosive = 38, shaped_charge = true },
     ["AGM_65E"] = { explosive = 80, shaped_charge = true },
     ["AGM_65F"] = { explosive = 80, shaped_charge = true },
@@ -755,7 +794,7 @@ explTable = {
     ["AGM_65K"] = { explosive = 80, shaped_charge = true },
     ["AGM_65L"] = { explosive = 80, shaped_charge = true },
     ["AGM_123"] = { explosive = 274 },
-    ["AGM_130"] = { explosive = 582 },
+    ["AGM_130"] = { explosive = 400, Skip_larger_explosions = true, Skip_damage_model = false },
     ["AGM_119"] = { explosive = 176 },
     ["AGM_114"] = { explosive = 10, shaped_charge = true },
     ["AGM_114K"] = { explosive = 10, shaped_charge = true },
@@ -806,15 +845,22 @@ explTable = {
     ["X_31A"]    = { explosive = 89,  shaped_charge = false }, --KH-31A ASh
     ["X_22"]    = { explosive = 1200,  shaped_charge = false }, --Ash 1ton RDX = 1600KG TNT
     ["X_35"]    = { explosive = 145,  shaped_charge = true }, --ASh 145KG
-	
+    ["ASM_N_2"] = { explosive = 240 }, --WW2, US, radar-guided 850 kg ASW-glide-bomb, build around a 1000-lb-gp-bomb-warhead,
+
     --*** CRUISE MISSILE ***
     ["CM-802AKG"] = { explosive = 240 },
     ["AGM_84E"] = { explosive = 360 },
     ["AGM_84H"] = { explosive = 380 },
+	["AGM_86D"] = { explosive = 305 }, --B-52H Cruise Missile
     ["X_59M"] = { explosive = 340 },
     ["X_65"] = { explosive = 545 },
+	["KD_20"] = { explosive = 274 }, --H-6J Cruise Missile
+	["CH_Kh101"] = { explosive = 305 }, --Tu-95 Cruise Missile
+	["CH_Kh555"] = { explosive = 274 }, --Tu-95 Cruise Missile
   
     --*** ROCKETS ***
+    ["M8rocket"] = { explosive = 2 }, --US, 18 kg 4.5-inch-rocket, ca. 13 kg warhead, 2 kg explosives, fragmentation
+    ["HVAR USN Mk28 Mod4"] = { explosive = 3.5 }, --US, 5 inch 61 kg high velocity aircraft rocket, 21 kg warhead, 3.5 kg explosives, penetration, fragmentation
     ["HYDRA_70M15"] = { explosive = 5 },
     ["HYDRA_70_MK1"] = { explosive = 5 },
     ["HYDRA_70_MK5"] = { explosive = 8 },
@@ -852,8 +898,11 @@ explTable = {
     ["TELSON8_SNEBT256"] = { explosive = 4 },
     ["TELSON8_SNEBT257"] = { explosive = 6 },
     ["ARF8M3API"] = { explosive = 8 },
+	["UB-16-57UMP"] = { explosive = 6 },
+	["UB-16_S5M"] = { explosive = 6 },
     ["UG_90MM"] = { explosive = 8 },
     ["S-24A"] = { explosive = 24 },
+    ["S_24B"] = { explosive = 24 },
     ["S-25OF"] = { explosive = 194 },
     ["S-25OFM"] = { explosive = 150 },
     ["S-25O"] = { explosive = 150 },
@@ -1148,6 +1197,15 @@ local recentExplosions = {}
 local cbuProcessed  = {} --Table to track processed unitID-weaponID pairs for cbus
 local cbuParentUnits = {}
 
+--Add napalm continuous damage tracking table
+local napalmContinuousTracking = {} -- { impactIndex = { coords = {}, startTime = time, playerName = "", scanCount = 0 } }
+local napalmImpactCounter = 0
+local napalmContinuousDamageCooldowns = {}
+local napalmContinuousDamageHitCounts = {}
+
+local canDamageThisScan = true
+local continuousSkipReason = nil
+
 -- Helper function to dump table contents (for undocumented event fields)
 local function dumpTable(t, indent)
     indent = indent or ""
@@ -1247,6 +1305,96 @@ function napalm_phosphor(vec3)
     end
 end
 
+-- Continuous napalm damage function - rescans area and applies damage repeatedly
+function napalmContinuousDamage(impactData)
+    if not splash_damage_options.napalm_continuousdamage_enable then
+        return
+    end
+
+    if not impactData then
+        if splash_damage_options.napalm_unitdamage_debug then
+            env.info("napalmContinuousDamage: No impactData provided, stopping")
+        end
+        return
+    end
+    
+    local impactIndex = impactData.impactIndex
+    local coords = impactData.coords
+    local startTime = impactData.startTime
+    local playerName = impactData.playerName
+    local scanCount = impactData.scanCount or 0
+    local napalmDuration = splash_damage_options.napalm_addflame_duration or 0
+
+    if not impactIndex or not coords or not startTime then
+        if splash_damage_options.napalm_unitdamage_debug then
+            env.info("napalmContinuousDamage: Missing impactIndex, coords, or startTime, stopping")
+        end
+        return
+    end
+    
+    -- Check if napalm duration has expired
+    if timer.getTime() - startTime > napalmDuration then
+        napalmContinuousTracking[impactIndex] = nil
+
+        if splash_damage_options.napalm_unitdamage_debug then
+            env.info("napalmContinuousDamage: Stopped rescanning impact " .. tostring(impactIndex) .. " after " .. tostring(scanCount) .. " total scans because duration expired")
+        end
+
+        return
+    end
+    
+    if splash_damage_options.napalm_unitdamage_debug then
+        env.info("napalmContinuousDamage: Starting rescan #" .. tostring(scanCount + 1) .. " for impact " .. tostring(impactIndex) .. " at (X: " .. tostring(coords.x) .. ", Y: " .. tostring(coords.y) .. ", Z: " .. tostring(coords.z) .. ")")
+    end
+    
+    -- Perform the scan.
+    -- true = allow repeat damage against the same unit ID.
+    scanUnitsForNapalm(coords.x, coords.y, coords.z, playerName, true)
+    
+    -- Schedule next scan
+    impactData.scanCount = scanCount + 1
+
+    timer.scheduleFunction(
+        napalmContinuousDamage,
+        impactData,
+        timer.getTime() + splash_damage_options.napalm_continuousdamage_scan_and_damage_rate
+    )
+end
+
+-- Check whether a unit/static can take continuous napalm damage based on cooldown
+function canApplyContinuousNapalmDamage(unitId)
+    if splash_damage_options.napalm_continuousdamage_max_damage_instances_per_unit_enable then
+        local maxHits = splash_damage_options.napalm_continuousdamage_max_damage_instances_per_unit or 0
+
+        if maxHits > 0 then
+            local currentHits = napalmContinuousDamageHitCounts[unitId] or 0
+
+            if currentHits >= maxHits then
+                return false, "max damage instances reached"
+            end
+        end
+    end
+
+    if splash_damage_options.napalm_continuousdamage_cooldown_enable then
+        local cooldownSeconds = splash_damage_options.napalm_continuousdamage_cooldown_seconds or 0
+
+        if cooldownSeconds > 0 then
+            local now = timer.getTime()
+            local lastDamageTime = napalmContinuousDamageCooldowns[unitId]
+
+            if lastDamageTime and now - lastDamageTime < cooldownSeconds then
+                return false, "cooldown"
+            end
+
+            napalmContinuousDamageCooldowns[unitId] = now
+        end
+    end
+
+    napalmContinuousDamageHitCounts[unitId] = (napalmContinuousDamageHitCounts[unitId] or 0) + 1
+
+    return true, "allowed"
+end
+
 --getSpreadPoints function
 local function getSpreadPoints(impactPoint, velocity, numPoints, spacing)
     local points = {}
@@ -1313,7 +1461,8 @@ local function getDistance(point1, point2)
 end
 
 --Scan for units around the napalm explosions and apply damage if required
-function scanUnitsForNapalm(posX, posY, posZ, playerName)
+function scanUnitsForNapalm(posX, posY, posZ, playerName, allowRepeatDamage)
+    allowRepeatDamage = allowRepeatDamage or false
     if not splash_damage_options.napalm_unitdamage_enable then 
         if splash_damage_options.napalm_unitdamage_debug then
             env.info("scanUnitsForNapalm: Napalm unit damage disabled, skipping scan")
@@ -1322,7 +1471,19 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
     end
     
     if splash_damage_options.napalm_unitdamage_debug then
-        env.info("scanUnitsForNapalm: Starting scan at (X: " .. posX .. ", Y: " .. posY .. ", Z: " .. posZ .. ") with radius " .. splash_damage_options.napalm_unitdamage_scandistance)
+        env.info("scanUnitsForNapalm: Starting scan at (X: " .. posX .. ", Y: " .. posY .. ", Z: " .. posZ .. ") with radius " .. splash_damage_options.napalm_unitdamage_scandistance .. ", allowRepeatDamage: " .. tostring(allowRepeatDamage))
+    end
+    -- Parse continuous damage exclusion list
+    local excludeList = {}
+
+    if splash_damage_options.napalm_continuousdamage_excludelist and splash_damage_options.napalm_continuousdamage_excludelist ~= "" then
+        for unitType in splash_damage_options.napalm_continuousdamage_excludelist:gmatch("[^,]+") do
+            excludeList[trim(unitType)] = true
+        end
+
+        if splash_damage_options.napalm_unitdamage_debug then
+            env.info("scanUnitsForNapalm: Exclusion list loaded with " .. countTable(excludeList) .. " entries")
+        end
     end
     
     local volS = {
@@ -1340,8 +1501,8 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
             local success, result = pcall(function()
                 if foundObject:isExist() and foundObject:getCategory() == Object.Category.UNIT then
                     local unitType = foundObject:getTypeName() or "Unknown"
-                    --Exclude Fuel tank
-                    if unitType ~= "Fuel tank" then
+                    --Exclude Fuel tank and configured continuous damage exclusions
+                    if unitType ~= "Fuel tank" and not excludeList[unitType] then
                         local unitPos = foundObject:getPoint()
                         local distance = getDistance({x = posX, y = posY, z = posZ}, unitPos)
                         if distance <= splash_damage_options.napalm_unitdamage_scandistance then
@@ -1371,6 +1532,8 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
                                 position = unitPos
                             })
                         end
+                    elseif splash_damage_options.napalm_unitdamage_debug then
+                        env.info("scanUnitsForNapalm: Excluded unit " .. (foundObject:getName() or "unknown") .. " of type " .. unitType)
                     end
                 end
             end)
@@ -1385,7 +1548,7 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
                 if foundObject:isExist() and foundObject:getCategory() == Object.Category.STATIC then
                     local unitType = foundObject:getTypeName() or "Unknown"
                     --Exclude Fuel tank
-                    if unitType ~= "Fuel tank" then
+                    if unitType ~= "Fuel tank" and not excludeList[unitType] then
                         local unitPos = foundObject:getPoint()
                         local distance = getDistance({x = posX, y = posY, z = posZ}, unitPos)
                         if distance <= splash_damage_options.napalm_unitdamage_scandistance then
@@ -1398,6 +1561,8 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
                                 position = unitPos
                             })
                         end
+                    elseif splash_damage_options.napalm_unitdamage_debug then
+                        env.info("scanUnitsForNapalm: Excluded static " .. (foundObject:getName() or "unknown") .. " of type " .. unitType)
                     end
                 end
             end)
@@ -1408,8 +1573,10 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
         end)
     end)
     
-    if not status and splash_damage_options.napalm_unitdamage_debug then
-        env.info("scanUnitsForNapalm: Error during scan: " .. tostring(err))
+    if not status then
+        if splash_damage_options.napalm_unitdamage_debug then
+            env.info("scanUnitsForNapalm: Error during scan: " .. tostring(err))
+        end
         return
     end
     
@@ -1427,17 +1594,30 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
         local processedPositions = {} --Track processed coordinates for this scan
         local explosionIndex = 0
         for _, unitData in ipairs(foundUnits) do
-            if napalm_unitcat_tabl[unitData.category] and unitData.distance <= napalm_unitcat_tabl[unitData.category].maxDamageDistance then
-                --Check if unit ID has already been processed
-                if not processedUnitIds[unitData.id] then
-                    --Check for duplicate position (within 1 meter)
+                if napalm_unitcat_tabl[unitData.category] and unitData.distance <= napalm_unitcat_tabl[unitData.category].maxDamageDistance then
+                                
+                    -- Normal scans respect processedUnitIds.
+                    -- Continuous scans use optional per-unit cooldown.
+                    local canDamageThisScan = true
+
+                    if allowRepeatDamage then
+                        canDamageThisScan, continuousSkipReason = canApplyContinuousNapalmDamage(unitData.id)
+                    else
+                        canDamageThisScan = not processedUnitIds[unitData.id]
+                    end
+
+                    if canDamageThisScan then
+                    
+                    --Check for duplicate position within this scan
                     local posKey = string.format("%.0f_%.0f_%.0f", unitData.position.x, unitData.position.y, unitData.position.z)
-                    if not processedPositions[posKey] then
+                    if not processedPositions[posKey] then                 
                         --Check if unit is still alive (for units) or exists (for statics)
                         local isAlive = unitData.unit:isExist() and (unitData.category == "Structure" or unitData.unit:getLife() > 0)
                         if isAlive then
                             processedPositions[posKey] = true
-                            processedUnitIds[unitData.id] = true
+                            if not allowRepeatDamage then
+                                processedUnitIds[unitData.id] = true
+                            end
                             local power = napalm_unitcat_tabl[unitData.category].explosionPower
                             --Calculate delay
                             local delay = splash_damage_options.napalm_unitdamage_startdelay
@@ -1455,7 +1635,7 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
                                 }
                             end
                             if splash_damage_options.napalm_unitdamage_debug then
-                                env.info("scanUnitsForNapalm: Scheduling explosion on unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", explosionPos.x) .. ", Z: " .. string.format("%.2f", explosionPos.z) .. ") with power " .. power .. " after " .. string.format("%.2f", delay) .. "s")
+                                env.info("scanUnitsForNapalm: Scheduling explosion on unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", explosionPos.x) .. ", Z: " .. string.format("%.2f", explosionPos.z) .. ") with power " .. power .. " after " .. string.format("%.2f", delay) .. "s, allowRepeatDamage: " .. tostring(allowRepeatDamage))
                             end
                             --Record potential kills for kill feed
                             if splash_damage_options.killfeed_enable then
@@ -1507,44 +1687,51 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
                                                 if splash_damage_options.killfeed_game_messages then
                                                     local msg = string.format("%s destroyed by %s's %s", params.unitType, playerName, weaponName)
                                                     local status, err = pcall(function()
-				                            trigger.action.outTextForCoalition(2, msg, splash_damage_options.killfeed_game_message_duration)
-				                        end)
-				                        if splash_damage_options.napalm_unitdamage_debug then
-				                            env.info("scanUnitsForNapalm: Attempted to display killfeed message for unit ID " .. tostring(params.unitId) .. ": status=" .. tostring(status) .. ", error=" .. tostring(err or "none"))
-				                        end
-				                    end
-				                end
-				            end
-				        else
-				            if splash_damage_options.napalm_unitdamage_debug then
-				                env.info("scanUnitsForNapalm: Skipped killfeed for unit ID " .. tostring(params.unitId) .. " (" .. params.unitType .. "), exists: " .. tostring(unit:isExist()) .. ", life: " .. (unit:isExist() and unit:getLife() or "N/A"))
-				            end
-				        end
-				        if splash_damage_options.napalm_unitdamage_debug then
-				            env.info("scanUnitsForNapalm: Scheduling splashKillFeed for unit ID " .. tostring(params.unitId) .. " at time " .. timer.getTime())
-				        end
-				        timer.scheduleFunction(splashKillFeed, {}, timer.getTime() + splash_damage_options.killfeed_splashdelay)
-				    end, {
-				        unit = unitData.unit,
-				        playerName = playerName,
+                                                        trigger.action.outTextForCoalition(2, msg, splash_damage_options.killfeed_game_message_duration)
+                                                    end)
+                                                    if splash_damage_options.napalm_unitdamage_debug then
+                                                        env.info("scanUnitsForNapalm: Attempted to display killfeed message for unit ID " .. tostring(params.unitId) .. ": status=" .. tostring(status) .. ", error=" .. tostring(err or "none"))
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    else
+                                        if splash_damage_options.napalm_unitdamage_debug then
+                                            env.info("scanUnitsForNapalm: Skipped killfeed for unit ID " .. tostring(params.unitId) .. " (" .. params.unitType .. "), exists: " .. tostring(unit:isExist()) .. ", life: " .. (unit:isExist() and unit:getLife() or "N/A"))
+                                        end
+                                    end
+                                    if splash_damage_options.napalm_unitdamage_debug then
+                                        env.info("scanUnitsForNapalm: Scheduling splashKillFeed for unit ID " .. tostring(params.unitId) .. " at time " .. timer.getTime())
+                                    end
+                                    timer.scheduleFunction(splashKillFeed, {}, timer.getTime() + splash_damage_options.killfeed_splashdelay)
+                                end, {
+                                    unit = unitData.unit,
+                                    playerName = playerName,
                                     weaponName = "Napalm",
                                     unitName = unitData.unit:getName() or "unknown",
                                     unitType = unitData.type,
                                     unitId = unitData.id,
                                     position = explosionPos
-                                }, timer.getTime() + delay + 1) -- Increased to 2 seconds
+                                }, timer.getTime() + delay + 1)
                             end
                             timer.scheduleFunction(function(params)
                                 trigger.action.explosion(params.position, params.power)
                             end, {position = explosionPos, power = power}, timer.getTime() + delay)
-                            --Schedule cleanup for this unit ID 20 seconds after its explosion
-                            timer.scheduleFunction(clearProcessedUnitIds, unitData.id, timer.getTime() + delay + 20)
+                            --Schedule cleanup for this unit ID 20 seconds after its explosion.
+                            --Only needed for normal non-repeat scans.
+                            if not allowRepeatDamage then
+                                timer.scheduleFunction(clearProcessedUnitIds, unitData.id, timer.getTime() + delay + 20)
+                            end
                         elseif splash_damage_options.napalm_unitdamage_debug then
                             env.info("scanUnitsForNapalm: Skipped explosion for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") because unit is not alive (isExist: " .. tostring(unitData.unit:isExist()) .. ", life: " .. (unitData.category == "Structure" and "N/A" or tostring(unitData.unit:getLife())) .. ")")
                         end
-                    elseif splash_damage_options.napalm_unitdamage_debug then
-                        env.info("scanUnitsForNapalm: Skipped explosion for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") due to duplicate position")
-                    end
+                        elseif splash_damage_options.napalm_unitdamage_debug then
+                            if allowRepeatDamage and splash_damage_options.napalm_continuousdamage_cooldown_enable then
+                                env.info("scanUnitsForNapalm: Skipped continuous napalm damage for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") due to cooldown")
+                            else
+                                env.info("scanUnitsForNapalm: Skipped explosion for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") due to already processed unit ID")
+                            end
+                        end
                 elseif splash_damage_options.napalm_unitdamage_debug then
                     env.info("scanUnitsForNapalm: Skipped explosion for unit ID " .. tostring(unitData.id) .. " (" .. unitData.type .. ") at (X: " .. string.format("%.2f", unitData.position.x) .. ", Z: " .. string.format("%.2f", unitData.position.z) .. ") due to already processed unit ID")
                 end
@@ -1556,7 +1743,6 @@ function scanUnitsForNapalm(posX, posY, posZ, playerName)
         end
     end
 end
-
 
 function removeNapalm(staticName) 
     StaticObject.getByName(staticName):destroy()
@@ -1611,10 +1797,10 @@ local function lookahead(speedVec)
 end
 
 function napalmOnImpact(impactPoint, velocity, weaponName, playerName)
-    if not (splash_damage_options.napalmoverride_enabled or (splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN"))) then return end
+    if not (splash_damage_options.napalmoverride_enabled or (splash_damage_options.napalm_mk77_enabled and (weaponName == "BIN_200" or weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN"))) then return end
     --For MK77 cluster munitions, snap impact point to ground
     local finalImpactPoint = impactPoint
-    if splash_damage_options.napalm_mk77_enabled and (weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN") then
+    if splash_damage_options.napalm_mk77_enabled and (weaponName == "BIN_200" or weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN") then
         local groundHeight = land.getHeight({x = impactPoint.x, y = impactPoint.z})
                     finalImpactPoint = {
             x = impactPoint.x,
@@ -1638,7 +1824,7 @@ function napalmOnImpact(impactPoint, velocity, weaponName, playerName)
 
     --Use horizontal velocity for MK77, full velocity for others
     local spreadVelocity = velocity
-    if weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN" then
+    if weaponName == "BIN_200" or weaponName == "MK77mod0-WPN" or weaponName == "MK77mod1-WPN" then
         spreadVelocity = {x = velocity.x, z = velocity.z}
     end
     local spreadPoints = getSpreadPoints(finalImpactPoint, spreadVelocity, spreadPointsCount, splash_damage_options.napalm_spread_spacing)
@@ -1716,15 +1902,55 @@ function napalmOnImpact(impactPoint, velocity, weaponName, playerName)
             removeNapalm(name)
         end, napalmName, timer.getTime() + splash_damage_options.napalm_destroy_delay)
             end
-            if splash_damage_options.napalm_phosphor_enabled then
-            timer.scheduleFunction(napalm_phosphor, point, timer.getTime() + splash_damage_options.napalm_explode_delay)
-            local status, err = pcall(function()
-                    scanUnitsForNapalm(point.x, point.y, point.z, playerName) -- New: Pass playerName
-            end)
+                if splash_damage_options.napalm_phosphor_enabled then
+                    timer.scheduleFunction(napalm_phosphor,point,timer.getTime() + splash_damage_options.napalm_explode_delay)
+                end
+
+                --Initial napalm unit damage scan
+                if splash_damage_options.napalm_unitdamage_enable then
+                    local status, err = pcall(function()
+                        scanUnitsForNapalm(point.x, point.y, point.z, playerName)
+                    end)
+
             if not status then
                 --env.info("napalmOnImpact: Error during unit scan for point (X: " .. point.x .. ", Y: " .. point.y .. ", Z: " .. point.z .. "): " .. tostring(err))
             end
-        end
+                end
+
+                --Continuous napalm unit damage tracking
+                if splash_damage_options.napalm_continuousdamage_enable then
+                napalmImpactCounter = napalmImpactCounter + 1
+
+                local impactData = {
+                    impactIndex = napalmImpactCounter,
+                    coords = {
+                        x = point.x,
+                        y = point.y,
+                        z = point.z
+                    },
+                    startTime = timer.getTime(),
+                    playerName = playerName,
+                    scanCount = 0
+                }
+
+                napalmContinuousTracking[napalmImpactCounter] = impactData
+
+                timer.scheduleFunction(
+                    napalmContinuousDamage,
+                    impactData,
+                    timer.getTime() + splash_damage_options.napalm_continuousdamage_scan_and_damage_rate
+                )
+
+                if splash_damage_options.napalm_unitdamage_debug then
+                    env.info(
+                        "napalmOnImpact: Started continuous napalm damage tracking for impact " ..
+                        napalmImpactCounter ..
+                        " at X: " .. string.format("%.2f", point.x) ..
+                        ", Z: " .. string.format("%.2f", point.z)
+                    )
+                end
+            end
+        
         --Add flame effect if enabled
         if splash_damage_options.napalm_addflame then
             local flameSize = splash_damage_options.napalm_addflame_size
@@ -3677,12 +3903,176 @@ function track_wpns()
                                 if splash_damage_options.debug then
                                     debugMsg("Triggering initial explosion for '" .. wpnData.name .. "' at power " .. explosionPower)
                                 end
-                                trigger.action.explosion(explosionPoint, explosionPower)
+                                
+                                -- Search for the closest unit/structure at impact point for direct hits
+                                local closestObject = nil
+                                local closestDistance = math.huge
+                                local volS_hit = {
+                                    id = world.VolumeType.SPHERE,
+                                    params = { point = explosionPoint, radius = 3 }
+                                }
+                                world.searchObjects(Object.Category.UNIT, volS_hit, function(obj)
+                                    if (obj:getDesc().category == Unit.Category.SHIP or obj:getDesc().category == Unit.Category.GROUND_UNIT or obj:getDesc().category == Unit.Category.AIRPLANE or obj:getDesc().category == Unit.Category.HELICOPTER) and obj:isExist() then
+                                        local dist = getDistance(explosionPoint, obj:getPoint())
+                                        if dist < closestDistance then
+                                            closestDistance = dist
+                                            closestObject = obj
+                                        end
+                                    end
+                                end)
+                                world.searchObjects(Object.Category.STATIC, volS_hit, function(obj)
+                                    if obj:isExist() then
+                                        local dist = getDistance(explosionPoint, obj:getPoint())
+                                        if dist < closestDistance then
+                                            closestDistance = dist
+                                            closestObject = obj
+                                        end
+                                    end
+                                end)
+                                
+                                -- Use direct hit object if found, with hull offset for ships
+                                local explosionOrigin = explosionPoint
+                                if closestObject and closestDistance < 3 then
+                                    explosionOrigin = closestObject:getPoint()
+                                    if closestObject:getDesc().category == Unit.Category.SHIP and closestObject:getDesc().box then
+                                        -- Offset downward deep into hull
+                                        local height = (closestObject:getDesc().box.max.y + math.abs(closestObject:getDesc().box.min.y))
+                                        explosionOrigin.y = explosionOrigin.y - (height * 0.8)
+                                    end
+                                end
+                                
+                                trigger.action.explosion(explosionOrigin, explosionPower)
                                 table.insert(recentExplosions, { pos = explosionPoint, time = timer.getTime(), radius = blastRadius })
                                 if splash_damage_options.debug then
                                     debugMsg("Added to recentExplosions for '" .. wpnData.name .. "': X: " .. explosionPoint.x .. ", Y: " .. explosionPoint.y .. ", Z: " .. explosionPoint.z .. ", Time: " .. timer.getTime())
                                 end
+                            end
+                            -- Trigger wave explosions at actual impact point for moving targets (ships, ground units, air units, static objects)
+                            if splash_damage_options.wave_explosions and not (weaponData.Skip_damage_model or false) then
+                                local waveRadius = blastRadius
+                                local waveSpeed = 340  -- Approximate speed of blast wave propagation (m/s)
+                                
+                                -- Search for the closest unit/structure at impact point to use as explosion origin
+                                local closestObject = nil
+                                local closestDistance = math.huge
+                                local volS_search = {
+                                    id = world.VolumeType.SPHERE,
+                                    params = { point = explosionPoint, radius = 3 }  -- Search 3m radius for hit object
+                                }
+                                world.searchObjects(Object.Category.UNIT, volS_search, function(obj)
+                                    if (obj:getDesc().category == Unit.Category.SHIP or obj:getDesc().category == Unit.Category.GROUND_UNIT or obj:getDesc().category == Unit.Category.AIRPLANE or obj:getDesc().category == Unit.Category.HELICOPTER) and obj:isExist() then
+                                        local dist = getDistance(explosionPoint, obj:getPoint())
+                                        if dist < closestDistance then
+                                            closestDistance = dist
+                                            closestObject = obj
+                                        end
+                                    end
+                                end)
+                                world.searchObjects(Object.Category.STATIC, volS_search, function(obj)
+                                    if obj:isExist() then
+                                        local dist = getDistance(explosionPoint, obj:getPoint())
+                                        if dist < closestDistance then
+                                            closestDistance = dist
+                                            closestObject = obj
+                                        end
+                                    end
+                                end)
+                                
+                                -- Use closest object's position if found AND it's a direct hit (< 1m)
+                                -- Otherwise use impact point (for near misses in water)
+                                local waveOrigin = explosionPoint
+                                if closestObject and closestDistance < 3 then
+                                    waveOrigin = closestObject:getPoint()
+                                    if closestObject:getDesc().category == Unit.Category.SHIP and closestObject:getDesc().box then
+                                        -- Offset downward deep into hull
+                                        local height = (closestObject:getDesc().box.max.y + math.abs(closestObject:getDesc().box.min.y))
+                                        waveOrigin.y = waveOrigin.y - (height * 0.5)
+                                    end
+                                end
+                                
+                                local volS = {
+                                    id = world.VolumeType.SPHERE,
+                                    params = { point = waveOrigin, radius = waveRadius }
+                                }
+                                
+                                -- Search for UNIT objects (ships, ground units, air units)
+                                world.searchObjects(Object.Category.UNIT, volS, function(obj)
+                                    if (obj:getDesc().category == Unit.Category.SHIP or obj:getDesc().category == Unit.Category.GROUND_UNIT or obj:getDesc().category == Unit.Category.AIRPLANE or obj:getDesc().category == Unit.Category.HELICOPTER) and obj:isExist() then
+                                        local objPoint = obj:getPoint()
+                                        local dist = getDistance(waveOrigin, objPoint)
+                                        if dist > 1 and obj:getDesc().box then
+                                            local length = (obj:getDesc().box.max.x + math.abs(obj:getDesc().box.min.x))
+                                            local height = (obj:getDesc().box.max.y + math.abs(obj:getDesc().box.min.y))
+                                            local depth = (obj:getDesc().box.max.z + math.abs(obj:getDesc().box.min.z))
+                                            local _length = length
+                                            local _depth = depth
+                                            if depth > length then 
+                                                _length = depth 
+                                                _depth = length
+                                            end
+                                            local surface_distance = dist - _depth / 2
+                                            local scaled_power_factor = 0.006 * explosionPower + 1
+                                            local intensity = (explosionPower * scaled_power_factor) / (4 * math.pi * surface_distance^2)
+                                            local surface_area = _length * height
+                                            local damage_for_surface = intensity * surface_area
+                                            if damage_for_surface > splash_damage_options.cascade_damage_threshold then
+                                                local explosion_size = damage_for_surface
+                                                if explosion_size > explosionPower then explosion_size = explosionPower end
+                                                -- Calculate delay based on distance from wave origin (blast wave propagation)
+                                                local waveDelay = dist / waveSpeed
+                                                timer.scheduleFunction(function(args)
+                                                    if args[1]:isExist() then
+                                                        trigger.action.explosion(args[2], args[3])
+                                                        if splash_damage_options.debug then
+                                                            debugMsg("Impact wave explosion at " .. args[1]:getTypeName() .. " (after " .. string.format("%.3f", waveDelay) .. "s delay): damage=" .. string.format("%.2f", args[3]))
+                                                        end
+                                                    end
+                                                end, {obj, objPoint, explosion_size}, timer.getTime() + waveDelay)
+                                            end
+                                        end
+                                    end
+                                end)
+                                
+                                -- Search for STATIC objects (buildings, bunkers, etc.)
+                                world.searchObjects(Object.Category.STATIC, volS, function(obj)
+                                    if obj:isExist() and obj:getDesc().box then
+                                        local objPoint = obj:getPoint()
+                                        local dist = getDistance(waveOrigin, objPoint)
+                                        if dist > 1 then
+                                            local length = (obj:getDesc().box.max.x + math.abs(obj:getDesc().box.min.x))
+                                            local height = (obj:getDesc().box.max.y + math.abs(obj:getDesc().box.min.y))
+                                            local depth = (obj:getDesc().box.max.z + math.abs(obj:getDesc().box.min.z))
+                                            local _length = length
+                                            local _depth = depth
+                                            if depth > length then 
+                                                _length = depth 
+                                                _depth = length
+                                            end
+                                            local surface_distance = dist - _depth / 2
+                                            local scaled_power_factor = 0.006 * explosionPower + 1
+                                            local intensity = (explosionPower * scaled_power_factor) / (4 * math.pi * surface_distance^2)
+                                            local surface_area = _length * height
+                                            local damage_for_surface = intensity * surface_area
+                                            if damage_for_surface > splash_damage_options.cascade_damage_threshold then
+                                                local explosion_size = damage_for_surface
+                                                if explosion_size > explosionPower then explosion_size = explosionPower end
+                                                -- Calculate delay based on distance from impact point (blast wave propagation)
+                                                local waveDelay = dist / waveSpeed
+                                                timer.scheduleFunction(function(args)
+                                                    if args[1]:isExist() then
+                                                        trigger.action.explosion(args[2], args[3])
+                                                        if splash_damage_options.debug then
+                                                            debugMsg("Impact wave explosion at " .. args[1]:getTypeName() .. " (after " .. string.format("%.3f", waveDelay) .. "s delay): damage=" .. string.format("%.2f", args[3]))
+                                                        end
+                                                    end
+                                                end, {obj, objPoint, explosion_size}, timer.getTime() + waveDelay)
+                                            end
+                                        end
+                                    end
+                                end)
+                                end
                                 --Check for units destroyed by initial explosion
+                            if splash_damage_options.larger_explosions and not (weaponData.Skip_larger_explosions or false) then
                                 local playerName = wpnData.init or "unknown"
                                 for _, target in ipairs(chosenTargets) do
                                     if target.unit:isExist() and target.health > 0 and target.unit:getLife() <= 0 then
@@ -3695,7 +4085,9 @@ function track_wpns()
                                 debugMsg("Skipped larger explosion for '" .. wpnData.name .. "' due to Skip_larger_explosions = true")
                             end
                             if not (weaponData.Skip_damage_model or false) then
-                                blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                                -- blastWave() now replaced by impact wave explosions for better moving target tracking
+                                -- Old system commented out - impact waves handle all damage modeling
+                                --blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
                             elseif splash_damage_options.debug then
                                 debugMsg("Skipped damage model for '" .. wpnData.name .. "' due to Skip_damage_model = true")
                             end
@@ -3852,7 +4244,8 @@ function track_wpns()
                                     end
                                 end
                                 if not (weaponData.Skip_damage_model or false) then
-                                    blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
+                                    -- blastWave() replaced by impact wave explosions - old system commented out
+                                    --blastWave(explosionPoint, splash_damage_options.blast_search_radius, wpnData.name, explosionPower, isShapedCharge)
                                 elseif splash_damage_options.debug then
                                     debugMsg("Skipped damage model for '" .. wpnData.name .. "' due to Skip_damage_model = true in scheduled explosion handling")
                                 end
@@ -6708,7 +7101,7 @@ function onKillEvent(event)
                     unitID, unitType, timer.getTime()))
             end
         else
---[[           --Process direct kill contribution
+          --Process direct kill contribution
             if killerName ~= "Unknown" and splash_damage_options.killfeed_lekas_foothold_integration then
                 local status, result = pcall(function()
                     local statName = "Ground Units"
@@ -6753,8 +7146,9 @@ function onKillEvent(event)
                 if not status and splash_damage_options.killfeed_debug then
                     env.info("KillFeed: Error processing direct kill for unitId=" .. tostring(unitID) .. ": " .. tostring(result))
                 end
-]]--           end
+           end
         end
+
         if unitType ~= "Unknown" then
             table.insert(killfeedTable, {
                 unitName = unitName,
@@ -6953,140 +7347,14 @@ function blastWave(_point, _radius, weapon, power, isShapedCharge)
     }
   
     local ifFound = function(foundObject, val)
-        if foundObject:getDesc().category == Unit.Category.GROUND_UNIT and foundObject:getCategory() == Object.Category.UNIT then
+        if (foundObject:getDesc().category == Unit.Category.GROUND_UNIT or foundObject:getDesc().category == Unit.Category.SHIP) and foundObject:getCategory() == Object.Category.UNIT then
             foundUnits[#foundUnits + 1] = foundObject
         end
         if foundObject:getDesc().category == Unit.Category.GROUND_UNIT and splash_damage_options.blast_stun then
             --suppressUnit(foundObject, 2, weapon) --Not implemented, commented out
         end
-        if splash_damage_options.wave_explosions then
-            local obj = foundObject
-            local obj_location = obj:getPoint()
-            local dist = getDistance(_point, obj_location)
-            if dist > 1 then --Avoid re-exploding at exact impact point
-            local timing = dist / 500
-            if obj:isExist() and tableHasKey(obj:getDesc(), "box") then
-                local length = (obj:getDesc().box.max.x + math.abs(obj:getDesc().box.min.x))
-                local height = (obj:getDesc().box.max.y + math.abs(obj:getDesc().box.min.y))
-                local depth = (obj:getDesc().box.max.z + math.abs(obj:getDesc().box.min.z))
-                local _length = length
-                local _depth = depth
-                if depth > length then 
-                    _length = depth 
-                    _depth = length
-                end
-                local surface_distance = dist - _depth / 2
-                local scaled_power_factor = 0.006 * power + 1
-                local intensity = (power * scaled_power_factor) / (4 * math.pi * surface_distance^2)
-                --Apply ground ordnance blastwave modifier
-                local weaponData = explTable[weapon] or {}
-                if splash_damage_options.track_groundunitordnance and weaponData.groundordnance then
-                    intensity = intensity * splash_damage_options.groundunitordnance_blastwave_modifier
-                    if splash_damage_options.track_groundunitordnance_debug then
-                        debugMsg("Applied groundunitordnance_blastwave_modifier " .. splash_damage_options.groundunitordnance_blastwave_modifier .. " to " .. weapon .. ", intensity now: " .. intensity)
-                    end
-                end
-                local surface_area = _length * height
-                local damage_for_surface = intensity * surface_area
-                    if splash_damage_options.debug then
-                        debugMsg("Processing unit '" .. obj:getTypeName() .. "' at dist=" .. string.format("%.1f", dist) .. "m: intensity=" .. string.format("%.4f", intensity) .. ", surface_area=" .. string.format("%.2f", surface_area) .. ", damage_for_surface=" .. string.format("%.4f", damage_for_surface))
-                    end
-                if damage_for_surface > splash_damage_options.cascade_damage_threshold then
-                    local explosion_size = damage_for_surface
-                    if obj:getDesc().category == Unit.Category.STRUCTURE then
-                        explosion_size = intensity * splash_damage_options.static_damage_boost
-                    end
-                    if explosion_size > power then explosion_size = power end
-                    local triggerExplosion = false
-                    if splash_damage_options.always_cascade_explode then
-                            triggerExplosion = true
-                            if splash_damage_options.debug then
-                                debugMsg("Triggering secondary explosion for '" .. obj:getTypeName() .. "' due to always_cascade_explode")
-                            end
-                        else
-                            if obj:getDesc().life then
-                                local health = obj:getLife() or 0
-                                local maxHealth = obj:getDesc().life or 1
-                                local healthPercent = (health / maxHealth) * 100
-                                if splash_damage_options.debug then
-                                    debugMsg("Health check for '" .. obj:getTypeName() .. "': " .. health .. "/" .. maxHealth .. " (" .. string.format("%.2f", healthPercent) .. "%) vs threshold " .. splash_damage_options.cascade_explode_threshold)
-                                end
-                                if healthPercent <= splash_damage_options.cascade_explode_threshold then
-                                    triggerExplosion = true
-                                end
-                            else
-                                triggerExplosion = true
-                                if splash_damage_options.debug then
-                                    debugMsg("Triggering secondary explosion for '" .. obj:getTypeName() .. "' (no life data)")
-                                end
-                            end
-                            if not triggerExplosion and obj:getDesc().category == Unit.Category.GROUND_UNIT then
-                                local health = obj:getLife() or 0
-                                if health <= 0 then
-                                    triggerExplosion = true
-                                    if splash_damage_options.debug then
-                                        debugMsg("Triggering secondary explosion for '" .. obj:getTypeName() .. "' (health <= 0)")
-                                    end
-                                end
-                            end
-                        end
-                            --Queue cargo effects for units below
-                        if obj:getDesc().life then
-                            local healthPercent = (obj:getLife() / obj:getDesc().life) * 100
-                            local cargoData = cargoUnits[obj:getTypeName()]
-                            if cargoData and healthPercent <= splash_damage_options.cargo_damage_threshold and splash_damage_options.enable_cargo_effects then
-                                local cargoPower = power
-                                table.insert(cargoEffectsQueue, {
-                                    name = obj:getTypeName(),
-                                    distance = dist,
-                                    coords = obj_location,
-                                    power = cargoPower,
-                                    explosion = cargoData.cargoExplosion,
-                                    cookOff = cargoData.cargoCookOff,
-                                    cookOffCount = cargoData.cookOffCount,
-                                    cookOffPower = cargoData.cookOffPower,
-                                    cookOffDuration = cargoData.cookOffDuration,
-                                    cookOffRandomTiming = cargoData.cookOffRandomTiming,
-                                    cookOffPowerRandom = cargoData.cookOffPowerRandom,
-                                    isTanker = cargoData.isTanker,
-                                    flameSize = cargoData.flameSize,
-                                    flameDuration = cargoData.flameDuration
-                                })
-                                if splash_damage_options.debug then
-                                    debugMsg("Queued cargo effect for '" .. obj:getTypeName() .. "' with power " .. cargoPower)
-                                end
-                            end
-                    end
-                    if triggerExplosion then
-                            local final_power = explosion_size * splash_damage_options.cascade_scaling
-                            if splash_damage_options.debug then
-                                debugMsg("Scheduling secondary explosion for '" .. obj:getTypeName() .. "' at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. ", dist=" .. string.format("%.1f", dist) .. "m, power=" .. string.format("%.2f", final_power))
-                            end
-                            if splash_damage_options.track_groundunitordnance_debug and weaponData.groundordnance then
-                                debugMsg("Calculated power for '" .. obj:getTypeName() .. "' at X: " .. obj_location.x .. ", Y: " .. obj_location.y .. ", Z: " .. obj_location.z .. ", distance " .. dist .. "m: " .. final_power)
-                            end
-                            local playerName = tracked_weapons[weapon] and tracked_weapons[weapon].init or "unknown"
-                            timer.scheduleFunction(function(args)
-                                local obj = args[1]
-                                local playerName = args[2]
-                                if obj:isExist() and obj:getLife() <= 0 then
-                                    debugMsg("Unit '" .. obj:getTypeName() .. "' destroyed by secondary explosion, credited to player: " .. playerName)
-                                end
-                            end, {obj, playerName}, timer.getTime() + timing + 0.1)
-                            timer.scheduleFunction(explodeObject, {obj_location, dist, final_power}, timer.getTime() + timing)
-                        else
-                            if splash_damage_options.debug then
-                                debugMsg("No secondary explosion for '" .. obj:getTypeName() .. "': health above threshold (" .. string.format("%.2f", (obj:getLife() / obj:getDesc().life) * 100) .. "% > " .. splash_damage_options.cascade_explode_threshold .. "%)")
-                            end
-                        end
-                    else
-                        if splash_damage_options.debug then
-                            debugMsg("No secondary explosion for '" .. obj:getTypeName() .. "': damage_for_surface=" .. string.format("%.4f", damage_for_surface) .. " below threshold " .. splash_damage_options.cascade_damage_threshold)
-                        end
-                    end
-                end
-            end
-        end
+        -- Wave explosions now handled at impact point level with proper moving target tracking
+        -- Old wave_explosions code disabled to avoid double-triggering (see impact wave explosions around line 3698)
         return true
     end
   
@@ -7729,4 +7997,3 @@ end
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=
                             		##### END of Changelog #####
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
-
