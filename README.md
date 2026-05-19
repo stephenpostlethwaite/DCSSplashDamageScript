@@ -10,6 +10,64 @@ Please see the wiki for some notes on features
 
 --[[
 
+    17th May 2026 3.4.4
+		(Stevey666)
+        Brought in RedactedCallSign's changes for Wave Explosions - Thank you RedactedCallSign
+        Added Continous Napalm Damage - Damage will hit every x seconds until the napalm timer runs out
+        Fixed Napalm damage not applying if phosphor was disabled
+        Added in a number of new weapons - Thank you to Retnek, Sniex
+        Adjusted a number of explosive values - Thank you to Sniex
+        Added BIN 200 to weapons list and default napalm - Thank you to Stackup
+
+    4th July 2025 - 3.4
+
+		(Stevey666) 
+		
+	  - Added in optional kill feed feature, this will try to display kills from DCS engine and kills from the additional explosions by checking pre/post scans of the explosion area
+			    --SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP if you want to see it)
+	  - Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required to be enabled for this
+	  - Added AGM_45B to expl table
+	  - Added instant phosphor/signal flares option to cook off events
+	  - Added in missing JF17/JAS39 weapons as per Kurdes
+	  - Added killfeed to napalm and cluster features.  Note, it may not support all features in this script i.e ied explosions but should work with splashdamage by dropping bombs, the new CBU cluster feature and napalm.
+	  - New Feature: A-10 Murder Mode, Named Unit Murder Mode (disabled by default) 
+			- adds a configurable sized explosion to every hit event with the a10 or the named unit with the name MurderMode in it as an initiator
+	  - New Feature: Trophy APS System (disabled by default)
+			-The script tracks weapons heading towards a TrophyAPS vehicle, triggers a small explosion by the unit to mimic the Trophy system and triggers a larger explosion at the co-ords of the incoming weapon.   The script mimics there being a Trophy system on the front right and back left of the vehicle, with each launcher having 4 rounds.
+			-It contains 2 methods of enabling, either the vehicle has TrophyAPS in its name or you put the unit type into the AllUnitType table. By default, only the name method is enabled, both can be enabled at the same time as below:
+	  - New Feature: Vehicle IEDs. (disabled by default)  If a unit is contains VehicleIEDTarget (or other names as set in the config) it will trigger a large configurable explosion
+	  - New Feature: Tactical Explosion, similar to the IED effect but a little bigger and has the ability to be assigned to a weapon in a table or as an override
+	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
+	  - New Feature: Ground Unit Explosion On Death. 
+			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
+			- There's a % chance settable
+			- You can also trigger this to happen if the unit has "GUED" in its name even if chance is set to 0
+	  - New Feature: CBU Bomblet Hit Spread - On a Hit event from a cluster bomb, it will scan the local area for nearby vehicles and trigger an additional explosion
+			- This features aims to help wipe out areas, but it works by scanning 20 meters radius (adjustable) for any vehicles nearby the hit vehicle and then 20m (adjustable) from those vehicles
+			- Max of 1 additional explosion will spawn on the vehicles. Not enabled for CBU_97/CBU_105 due to them already being effective.
+			- The spread mechanic could miss vehicles in the area still if one doesnt get hit, or theyre at opposite sides of the visible area and not within 20m (adjustable)
+			- There is % chance to hit per unit found in the area, % chance for that hit to be indirect, and armour damage modifiers
+	  - New Feature: Strobe Marker - generates a tiny explosion above a unit, no smoke but sound + light appears - can be used as a marker for planes
+			- Generates on an active and living unit with "Strobe" in the name
+			- Good: Visible to eye/FLIR(TV mode)
+			- Not good: Not visible in IR, audible explosions if you're close to the unit
+	  - New Feature: All Unit Cook/off smoke chances and advanced sequences
+			- It's possible to assign a % chance to allunits having smoke/cookoffs
+			- Advanced sequences allow for having multiple smoke/fire sizes of multiple lengths of time - and have smoke for example indefinitely burn
+	  - New trigger for cookoff - Cookoff with the allunits settings can be enabled for specific units by the having "CargoCookoffTarget" in the name
+	  - Reworked how cookoff works, cookoffs will now follow a moving vehicle as it travels instead of just going off where it was.  Flames/smoke will trigger when the vehicle stops.
+			- You can have a chance of cookoff, smoke with a cookoff and also a chance of smoke only
+			- Added chance options to the flares for cookoffs also
+	  - Effects (i.e cookoff) no longer only bound by damage from tracked weapons.  Gun cannon kills will now count!  May time until the unit pops before it triggers a cookoff
+	  - Giant explosion effects now tracked on events instead of checking the unit every second
+	  - Jogaredi's suggestion added - ["only_players_weapons"] = true, --track only weapons launch by players, this will be defaulted to false
+	  - Due to ED boosting damage values for MK82s and a few others, added the ability to skip larger_explosion and damage_model by having a specific entry in the explosive table
+			- Example below, you would need to add this to each weapon that you need this for (or I can do it in the base script if multiple people think its a good idea)
+			- ["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
+			
+	  --3.4.2 
+	  	- Adjusted Lekas Foothold Integration
+		- Added flak units to ground ord tracking with 0 extra damage for night time light bursts]
     24th May 2025 - 3.3
 
 		(Stevey666) 
