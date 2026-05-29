@@ -11,6 +11,17 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 
 	
 --noting this from gashpl - for easy script release/config testing, add this as the do script trigger: assert(loadfile("C:\\Users\\[USER]\\Saved Games\\DCS\\Missions\\Splash_Damage_3.4.lua"))()
+    27th May 2026 3.4.5
+        (Stevey666)
+        Fixed faulty CBU_Bomblet_Hit_Explosion and severely reduced damage from it as a default config value
+        Added small performance improvement to continuous  napalm damage  
+        Default continuous  napalm damage config to false as it can cause performance issues on larger maps with a lot of napalm explosions, but it can be enabled in the config for those who want it.
+        Added some performance improvements - Thanks to RedactedCallSign
+            -AGL - Above ground level height limit before pre-scanning, set to 1000m by default - will help reduce tracking all the way down from a 20k bomb drop for example
+                -This is for pre-scanning which is used for cargo cookoff effects
+            -Log event setting debugging variable moved as to not occur every time
+            -Adding pruning to recent explosion table
+            -Reworking closest unit/static searches
     
     17th May 2026 3.4.4
 		(Stevey666)
@@ -99,6 +110,7 @@ splash_damage_options = {
     ["GU_Explode_debug"] = false, --Toggle debug logging
     ["CBU_Bomblet_Hit_debug"] = false, --Toggle debug logging
     ["StrobeMarker_debug"] = false, --Logging for StrobeMarker
+    ["track_pre_explosion_agl_debug"] = false, --Optional debug logging for above ground level gate skips
 	
     ---------------------------------------------------------------------- Radio -----------------------------------------------------------------------------
     ["enable_radio_menu"] = false, --enables the in-game radio menu for modifying settings
@@ -141,6 +153,9 @@ splash_damage_options = {
     --track_pre_explosion/enable_cargo_effects should both be the same value--
     
     ["track_pre_explosion"] = true, --Toggle to enable/disable pre-explosion tracking
+    ["track_pre_explosion_agl_gate"] = true, --Only run pre-explosion scans once weapon is below configured ground height
+    ["track_pre_explosion_agl_limit"] = 1000, --Meters above ground before pre-explosion scans start
+    ["track_pre_explosion_agl_debug_interval"] = 1, --Seconds between high-altitude skip debug messages    
     ["enable_cargo_effects"] = true, --Toggle for enabling/disabling cargo explosions and cook-offs  
     ["cargo_effects_chance"] = 1, -- Chance of cargo effects occurring. 0.1 = 10%, 1 = 100%
     ["cargo_damage_threshold"] = 25, --Health % below which cargo explodes (0 = destroyed only)
@@ -256,11 +271,12 @@ splash_damage_options = {
     ["napalm_unitdamage_startdelay"] = 0.1, --Seconds between Napalm exploding and explosion occurring (can be 0 for no delay)
     ["napalm_unitdamage_spreaddelay"] = 0, --If startdelay is greater than 0, explosions are ordered by distance with this gap between each unit
 
-    ["napalm_continuousdamage_enable"] = true, --Enable/disable continous napalm unit damage - it will rescan the same area over and over again and apply the damage to any living units found or going into the area
+    ["napalm_continuousdamage_enable"] = false, --Enable/disable continous napalm unit damage - it will rescan the same area over and over again and apply the damage to any living units found or going into the area
     ["napalm_continuousdamage_excludelist"] = "Bunker 1,Bunker 2", --Excludes units/structures types from taking continuous damage, comma-separated list of unit types,
     ["napalm_continuousdamage_scan_and_damage_rate"] = 1, --How often in seconds the area will be scanned and the damage applied again
     ["napalm_continuousdamage_cooldown_enable"] = true, --If true, the same unit/static can only take continuous napalm damage once every X seconds
     ["napalm_continuousdamage_cooldown_seconds"] = 5, --Cooldown per unit/static for continuous napalm damage - how often it will damange the unit if its within range
+    ["napalm_continuousdamage_max_damage_instances_per_unit_enable"] = true, --Requires cooldown to be enabled too
     ["napalm_continuousdamage_max_damage_instances_per_unit"] = 5, --Max times a unit can be damamged continuously
 
     ---------------------------------------------------------------------- Kill Feed  ------------------------------------------------------------------------
@@ -1205,6 +1221,8 @@ local napalmContinuousDamageHitCounts = {}
 
 local canDamageThisScan = true
 local continuousSkipReason = nil
+local allowGroundPreScan = true
+
 
 -- Helper function to dump table contents (for undocumented event fields)
 local function dumpTable(t, indent)
@@ -1335,6 +1353,7 @@ function napalmContinuousDamage(impactData)
     -- Check if napalm duration has expired
     if timer.getTime() - startTime > napalmDuration then
         napalmContinuousTracking[impactIndex] = nil
+        cleanupNapalmContinuousDamageTables()
 
         if splash_damage_options.napalm_unitdamage_debug then
             env.info("napalmContinuousDamage: Stopped rescanning impact " .. tostring(impactIndex) .. " after " .. tostring(scanCount) .. " total scans because duration expired")
@@ -1359,6 +1378,18 @@ function napalmContinuousDamage(impactData)
         impactData,
         timer.getTime() + splash_damage_options.napalm_continuousdamage_scan_and_damage_rate
     )
+end
+
+function cleanupNapalmContinuousDamageTables()
+    local now = timer.getTime()
+    local maxAge = splash_damage_options.napalm_addflame_duration + splash_damage_options.napalm_continuousdamage_cooldown_seconds + 10
+
+    for unitId, lastDamageTime in pairs(napalmContinuousDamageCooldowns) do
+        if now - lastDamageTime > maxAge then
+            napalmContinuousDamageCooldowns[unitId] = nil
+            napalmContinuousDamageHitCounts[unitId] = nil
+        end
+    end
 end
 
 -- Check whether a unit/static can take continuous napalm damage based on cooldown
@@ -3614,6 +3645,16 @@ end
 
 
 function track_wpns()
+    --Prune stale recentExplosions entries
+    local now = timer.getTime()
+    local maxAge = splash_damage_options.recent_large_explosion_time + 1
+
+    for i = #recentExplosions, 1, -1 do
+        if now - recentExplosions[i].time > maxAge then
+            table.remove(recentExplosions, i)
+        end
+    end
+    
     local weaponsToRemove = {} --Delay removal to ensure all weapons are checked
     for wpn_id_, wpnData in pairs(tracked_weapons) do   
         local status, err = pcall(function()
@@ -3628,6 +3669,22 @@ function track_wpns()
                 wpnData.pos = wpnData.wpn:getPosition().p
                 wpnData.dir = wpnData.wpn:getPosition().x
                 wpnData.speed = wpnData.wpn:getVelocity()
+                --Skip expensive pre-explosion scans while weapon is still high above ground
+                local groundHeight = land.getHeight({x = wpnData.pos.x, y = wpnData.pos.z})
+                local weaponAGL = wpnData.pos.y - groundHeight
+                wpnData.agl = weaponAGL
+
+                if splash_damage_options.track_pre_explosion_agl_gate and weaponAGL > splash_damage_options.track_pre_explosion_agl_limit then
+                    if splash_damage_options.track_pre_explosion_debug then
+                        local now = timer.getTime()
+                        if not wpnData.lastAGLGateDebug or now - wpnData.lastAGLGateDebug >= splash_damage_options.track_pre_explosion_agl_debug_interval then
+                            debugMsg("Skipping pre-explosion scan for " .. wpnData.name .. " - AGL " .. string.format("%.0f", weaponAGL) .. "m is above limit " .. splash_damage_options.track_pre_explosion_agl_limit .. "m")
+                            wpnData.lastAGLGateDebug = now
+                        end
+                    end
+                    return
+                end
+
                 --Scan potential blast zone in the last frame before impact
                 if splash_damage_options.track_pre_explosion then
                     local ip = land.getIP(wpnData.pos, wpnData.dir, lookahead(wpnData.speed))
@@ -3898,6 +3955,8 @@ function track_wpns()
                             --Extended scan with general bomblet detection
                             timer.scheduleFunction(track_wpns_cluster_scan, {explosionPoint, wpnData.dir, wpnData.name, submunitionName, submunitionCount, submunitionPower, wpnData.speed}, timer.getTime() + 0.3)
                         else
+                                local closestObject = nil
+                                local closestDistance = math.huge
                             --Standard explosion handling
                             if splash_damage_options.larger_explosions and not (weaponData.Skip_larger_explosions or false) then
                                 if splash_damage_options.debug then
@@ -3905,29 +3964,36 @@ function track_wpns()
                                 end
                                 
                                 -- Search for the closest unit/structure at impact point for direct hits
-                                local closestObject = nil
-                                local closestDistance = math.huge
                                 local volS_hit = {
                                     id = world.VolumeType.SPHERE,
                                     params = { point = explosionPoint, radius = 3 }
                                 }
-                                world.searchObjects(Object.Category.UNIT, volS_hit, function(obj)
-                                    if (obj:getDesc().category == Unit.Category.SHIP or obj:getDesc().category == Unit.Category.GROUND_UNIT or obj:getDesc().category == Unit.Category.AIRPLANE or obj:getDesc().category == Unit.Category.HELICOPTER) and obj:isExist() then
-                                        local dist = getDistance(explosionPoint, obj:getPoint())
-                                        if dist < closestDistance then
-                                            closestDistance = dist
-                                            closestObject = obj
+                                world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS_hit, function(obj)
+                                    if not obj:isExist() then return true end
+
+                                    local cat = obj:getCategory()
+
+                                    if cat == Object.Category.UNIT then
+                                        local desc = obj:getDesc()
+                                        if not desc then return true end
+
+                                        local sub = desc.category
+                                        if sub ~= Unit.Category.SHIP and
+                                        sub ~= Unit.Category.GROUND_UNIT and
+                                        sub ~= Unit.Category.AIRPLANE and
+                                        sub ~= Unit.Category.HELICOPTER then
+                                            return true
                                         end
                                     end
-                                end)
-                                world.searchObjects(Object.Category.STATIC, volS_hit, function(obj)
-                                    if obj:isExist() then
-                                        local dist = getDistance(explosionPoint, obj:getPoint())
-                                        if dist < closestDistance then
-                                            closestDistance = dist
-                                            closestObject = obj
-                                        end
+
+                                    local dist = getDistance(explosionPoint, obj:getPoint())
+
+                                    if dist < closestDistance then
+                                        closestDistance = dist
+                                        closestObject = obj
                                     end
+
+                                    return true
                                 end)
                                 
                                 -- Use direct hit object if found, with hull offset for ships
@@ -3952,40 +4018,41 @@ function track_wpns()
                                 local waveRadius = blastRadius
                                 local waveSpeed = 340  -- Approximate speed of blast wave propagation (m/s)
                                 
-                                -- Search for the closest unit/structure at impact point to use as explosion origin
-                                local closestObject = nil
-                                local closestDistance = math.huge
+                                -- Re-use closest object found by larger_explosions scan if available;
+                                -- otherwise do the 3m scan here (handles wave_explosions-only case).
+                                local waveClosestObject = closestObject
+                                local waveClosestDistance = closestDistance
+                                if not waveClosestObject then
+                                    waveClosestDistance = math.huge
                                 local volS_search = {
                                     id = world.VolumeType.SPHERE,
-                                    params = { point = explosionPoint, radius = 3 }  -- Search 3m radius for hit object
+                                        params = { point = explosionPoint, radius = 3 }
                                 }
                                 world.searchObjects(Object.Category.UNIT, volS_search, function(obj)
                                     if (obj:getDesc().category == Unit.Category.SHIP or obj:getDesc().category == Unit.Category.GROUND_UNIT or obj:getDesc().category == Unit.Category.AIRPLANE or obj:getDesc().category == Unit.Category.HELICOPTER) and obj:isExist() then
                                         local dist = getDistance(explosionPoint, obj:getPoint())
-                                        if dist < closestDistance then
-                                            closestDistance = dist
-                                            closestObject = obj
+                                            if dist < waveClosestDistance then
+                                                waveClosestDistance = dist
+                                                waveClosestObject = obj
                                         end
                                     end
                                 end)
                                 world.searchObjects(Object.Category.STATIC, volS_search, function(obj)
                                     if obj:isExist() then
                                         local dist = getDistance(explosionPoint, obj:getPoint())
-                                        if dist < closestDistance then
-                                            closestDistance = dist
-                                            closestObject = obj
+                                            if dist < waveClosestDistance then
+                                                waveClosestDistance = dist
+                                                waveClosestObject = obj
                                         end
                                     end
                                 end)
+                                end
                                 
-                                -- Use closest object's position if found AND it's a direct hit (< 1m)
-                                -- Otherwise use impact point (for near misses in water)
                                 local waveOrigin = explosionPoint
-                                if closestObject and closestDistance < 3 then
-                                    waveOrigin = closestObject:getPoint()
-                                    if closestObject:getDesc().category == Unit.Category.SHIP and closestObject:getDesc().box then
-                                        -- Offset downward deep into hull
-                                        local height = (closestObject:getDesc().box.max.y + math.abs(closestObject:getDesc().box.min.y))
+                                if waveClosestObject and waveClosestDistance < 3 then
+                                    waveOrigin = waveClosestObject:getPoint()
+                                    if waveClosestObject:getDesc().category == Unit.Category.SHIP and waveClosestObject:getDesc().box then
+                                        local height = (waveClosestObject:getDesc().box.max.y + math.abs(waveClosestObject:getDesc().box.min.y))
                                         waveOrigin.y = waveOrigin.y - (height * 0.5)
                                     end
                                 end
@@ -3995,12 +4062,18 @@ function track_wpns()
                                     params = { point = waveOrigin, radius = waveRadius }
                                 }
                                 
-                                -- Search for UNIT objects (ships, ground units, air units)
-                                world.searchObjects(Object.Category.UNIT, volS, function(obj)
-                                    if (obj:getDesc().category == Unit.Category.SHIP or obj:getDesc().category == Unit.Category.GROUND_UNIT or obj:getDesc().category == Unit.Category.AIRPLANE or obj:getDesc().category == Unit.Category.HELICOPTER) and obj:isExist() then
+                                -- Single pass over UNIT + STATIC; units use live position at detonation, statics use scan-time position
+                                world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, volS, function(obj)
+                                    if not obj:isExist() or not obj:getDesc().box then return true end
+                                    local cat = obj:getCategory()
+                                    local isUnit = cat == Object.Category.UNIT
+                                    if isUnit then
+                                        local sub = obj:getDesc().category
+                                        if sub ~= Unit.Category.SHIP and sub ~= Unit.Category.GROUND_UNIT and sub ~= Unit.Category.AIRPLANE and sub ~= Unit.Category.HELICOPTER then return true end
+                                    end
                                         local objPoint = obj:getPoint()
                                         local dist = getDistance(waveOrigin, objPoint)
-                                        if dist > 1 and obj:getDesc().box then
+                                    if dist > 1 then
                                             local length = (obj:getDesc().box.max.x + math.abs(obj:getDesc().box.min.x))
                                             local height = (obj:getDesc().box.max.y + math.abs(obj:getDesc().box.min.y))
                                             local depth = (obj:getDesc().box.max.z + math.abs(obj:getDesc().box.min.z))
@@ -4018,8 +4091,17 @@ function track_wpns()
                                             if damage_for_surface > splash_damage_options.cascade_damage_threshold then
                                                 local explosion_size = damage_for_surface
                                                 if explosion_size > explosionPower then explosion_size = explosionPower end
-                                                -- Calculate delay based on distance from wave origin (blast wave propagation)
                                                 local waveDelay = dist / waveSpeed
+                                            if isUnit then
+                                                timer.scheduleFunction(function(args)
+                                                    if args[1]:isExist() then
+                                                        trigger.action.explosion(args[1]:getPoint(), args[2])
+                                                        if splash_damage_options.debug then
+                                                            debugMsg("Impact wave explosion at " .. args[1]:getTypeName() .. " (after " .. string.format("%.3f", waveDelay) .. "s delay): damage=" .. string.format("%.2f", args[2]))
+                                                        end
+                                                    end
+                                                end, {obj, explosion_size}, timer.getTime() + waveDelay)
+                                            else
                                                 timer.scheduleFunction(function(args)
                                                     if args[1]:isExist() then
                                                         trigger.action.explosion(args[2], args[3])
@@ -4031,44 +4113,7 @@ function track_wpns()
                                             end
                                         end
                                     end
-                                end)
-                                
-                                -- Search for STATIC objects (buildings, bunkers, etc.)
-                                world.searchObjects(Object.Category.STATIC, volS, function(obj)
-                                    if obj:isExist() and obj:getDesc().box then
-                                        local objPoint = obj:getPoint()
-                                        local dist = getDistance(waveOrigin, objPoint)
-                                        if dist > 1 then
-                                            local length = (obj:getDesc().box.max.x + math.abs(obj:getDesc().box.min.x))
-                                            local height = (obj:getDesc().box.max.y + math.abs(obj:getDesc().box.min.y))
-                                            local depth = (obj:getDesc().box.max.z + math.abs(obj:getDesc().box.min.z))
-                                            local _length = length
-                                            local _depth = depth
-                                            if depth > length then 
-                                                _length = depth 
-                                                _depth = length
-                                            end
-                                            local surface_distance = dist - _depth / 2
-                                            local scaled_power_factor = 0.006 * explosionPower + 1
-                                            local intensity = (explosionPower * scaled_power_factor) / (4 * math.pi * surface_distance^2)
-                                            local surface_area = _length * height
-                                            local damage_for_surface = intensity * surface_area
-                                            if damage_for_surface > splash_damage_options.cascade_damage_threshold then
-                                                local explosion_size = damage_for_surface
-                                                if explosion_size > explosionPower then explosion_size = explosionPower end
-                                                -- Calculate delay based on distance from impact point (blast wave propagation)
-                                                local waveDelay = dist / waveSpeed
-                                                timer.scheduleFunction(function(args)
-                                                    if args[1]:isExist() then
-                                                        trigger.action.explosion(args[2], args[3])
-                                                        if splash_damage_options.debug then
-                                                            debugMsg("Impact wave explosion at " .. args[1]:getTypeName() .. " (after " .. string.format("%.3f", waveDelay) .. "s delay): damage=" .. string.format("%.2f", args[3]))
-                                                        end
-                                                    end
-                                                end, {obj, objPoint, explosion_size}, timer.getTime() + waveDelay)
-                                            end
-                                        end
-                                    end
+                                    return true
                                 end)
                                 end
                                 --Check for units destroyed by initial explosion
@@ -5700,7 +5745,11 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
     local explosionPower = (submunitionPower or 1) * splash_damage_options.CBU_Bomblet_Hit_Explosion_Scaling * splash_damage_options.overall_scaling
     local key = unitID .. "-" .. weaponID
     local explosionHeight = splash_damage_options.CBU_Bomblet_Explosion_Height or 1.6 --Default to 1.6m
-    local adjustedCoords = { x = coords.x, y = land.getHeight({x = coords.x, z = coords.z}) + explosionHeight, z = coords.z }
+    local adjustedCoords = {
+        x = coords.x,
+        y = land.getHeight({x = coords.x, y = coords.z}) + explosionHeight,
+        z = coords.z
+    }
 
     --Mimic spread if enabled
     if splash_damage_options.CBU_Bomblet_Hit_Mimic_Spread then
@@ -5721,12 +5770,21 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
             local targetUnitName = safeGet(function() return obj:getName() end, "unknown")
             local targetUnitType = safeGet(function() return obj:getTypeName() end, "unknown")
             local targetCoords = safeGet(function() return obj:getPosition().p end, nil)
+            local targetExplosionCoords = nil
+
+            if targetCoords then
+                targetExplosionCoords = {
+                    x = targetCoords.x,
+                    y = land.getHeight({x = targetCoords.x, y = targetCoords.z}) + splash_damage_options.CBU_Bomblet_Explosion_Height,
+                    z = targetCoords.z
+                }
+            end
             local targetHealth = safeGet(function() return obj:getLife() end, 0)
             local targetAttrs = safeGet(function() return obj:getDesc().attributes end, {})
             if targetUnitID ~= "unavailable" and targetCoords and not seenUnitIDs[targetUnitID] then
                 seenUnitIDs[targetUnitID] = true
                 local distance = math.sqrt((coords.x - targetCoords.x)^2 + (coords.z - targetCoords.z)^2)
-                table.insert(foundUnits, {id = targetUnitID, name = targetUnitName, type = targetUnitType, coords = targetCoords, health = targetHealth, distance = distance, attributes = targetAttrs})
+                table.insert(foundUnits, {id = targetUnitID, name = targetUnitName, type = targetUnitType, coords = targetExplosionCoords, health = targetHealth, distance = distance, attributes = targetAttrs})
             end
         end
         debugCBUBombletHit("Primary scan for objects within " .. scanRadius .. "m radius")
@@ -5787,7 +5845,7 @@ function CBUBombletHitExplosion(coords, unitName, unitID, weaponName, weaponID, 
 					explosionHeight = 2
 					end
                     cbuProcessed[key] = true
-                local adjustedUnitCoords = { x = unit.coords.x, y = land.getHeight({x = unit.coords.x, z = unit.coords.z}) + explosionHeight, z = unit.coords.z }
+                local adjustedUnitCoords = { x = unit.coords.x, y = land.getHeight({x = unit.coords.x, y = unit.coords.z}) + explosionHeight, z = unit.coords.z }
 				
 				
                     local delay = (i - 1) * (spreadDuration / math.max(1, #foundUnits)) --Evenly spread over duration
@@ -5951,10 +6009,11 @@ end
 --A10 MurderMode action block
 --VehicleIED action block
 function logEvent(eventName, eventData)
-    local logStr = "\n---EVENT: " .. eventName .. " ---\n"
+    
 
     --Debug logging if enabled
     if splash_damage_options.events_debug then
+        local logStr = "\n---EVENT: " .. eventName .. " ---\n"
         --Core event details
         logStr = logStr .. "  Event Name: " .. eventName .. "\n"
         logStr = logStr .. "  Event ID: " .. tostring(eventData.id or "unknown") .. "\n"
@@ -6189,6 +6248,7 @@ function logEvent(eventName, eventData)
                     else
                         --Log initial HIT event details for diagnostics
                         if eventName == "HIT" and splash_damage_options.vehicleied_debug then
+                            local logStr = "\n---EVENT: " .. eventName .. " ---\n"
                             logStr = logStr .. "Stored Unit Data: ID=" .. unitID .. ", Name=" .. unitName .. ", Type=" .. unitType .. ", Position=" .. unitPosition .. ", Life=" .. unitLife .. "\n"
                             logStr = logStr .. "Processing initial HIT event for unit " .. unitName .. " (ID: " .. unitID .. ")\n"
                             env.info(logStr)
