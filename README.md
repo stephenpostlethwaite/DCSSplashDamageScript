@@ -9,7 +9,18 @@ Please see the wiki for some notes on features
 # Release Notes
 
 --[[
-
+    27th May 2026 3.4.5
+        (Stevey666)
+        Fixed faulty CBU_Bomblet_Hit_Explosion and severely reduced damage from it as a default config value
+        Added small performance improvement to continuous  napalm damage  
+        Default continuous  napalm damage config to false as it can cause performance issues on larger maps with a lot of napalm explosions, but it can be enabled in the config for those who want it.
+        Added some performance improvements - Thanks to RedactedCallSign
+            -AGL - Above ground level height limit before pre-scanning, set to 1000m by default - will help reduce tracking all the way down from a 20k bomb drop for example
+                -This is for pre-scanning which is used for cargo cookoff effects
+            -Log event setting debugging variable moved as to not occur every time
+            -Adding pruning to recent explosion table
+            -Reworking closest unit/static searches
+			
     17th May 2026 3.4.4
 		(Stevey666)
         Brought in RedactedCallSign's changes for Wave Explosions - Thank you RedactedCallSign
