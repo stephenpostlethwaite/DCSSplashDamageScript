@@ -9,6 +9,22 @@ Please see the wiki for some notes on features
 # Release Notes
 
 --[[
+
+	29th July 2026 3.4.7
+        (Stevey666)
+        Adjusted text "CookoffTarget" is the correct casing in the unit name for ensuring cargo cookoffs if you're using that method
+        Weapon list changed:
+            Adjusted incorrect Walleye entry causing crashes (thanks Joker Shadow/Cursemex)
+            Added GBU_24E (F14 BU), Bolt-117 (F100D), AO_25SL (LA7), AM39 (Excocet - Mirage)
+        Cookoff Final Explosion (Requested Feature)
+            Defaulted to off, when enabled adds a configurable final explosion once a cook off has completed.  Can be set to vehicles with FinEx in the name or all vehicles, with % changes of occuring.
+        Mega Smoke (Request Feature)
+            Defaulted to off, when enabled if a unit/static with MegaSmoke in its name has a death event it triggers a big smoke effect
+
+    25th June 2026 3.4.6
+        (Stevey666)
+        Fixed missing BIN_200 napalm entry
+        
     27th May 2026 3.4.5
         (Stevey666)
         Fixed faulty CBU_Bomblet_Hit_Explosion and severely reduced damage from it as a default config value
@@ -20,7 +36,7 @@ Please see the wiki for some notes on features
             -Log event setting debugging variable moved as to not occur every time
             -Adding pruning to recent explosion table
             -Reworking closest unit/static searches
-			
+
     17th May 2026 3.4.4
 		(Stevey666)
         Brought in RedactedCallSign's changes for Wave Explosions - Thank you RedactedCallSign
