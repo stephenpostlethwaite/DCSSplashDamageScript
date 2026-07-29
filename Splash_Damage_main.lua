@@ -11,6 +11,22 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
 
 	
 --noting this from gashpl - for easy script release/config testing, add this as the do script trigger: assert(loadfile("C:\\Users\\[USER]\\Saved Games\\DCS\\Missions\\Splash_Damage_3.4.lua"))()
+
+29th July 2026 3.4.7
+        (Stevey666)
+        Adjusted text "CookoffTarget" is the correct casing in the unit name for ensuring cargo cookoffs if you're using that method
+        Weapon list changed:
+            Adjusted incorrect Walleye entry causing crashes (thanks Joker Shadow/Cursemex)
+            Added GBU_24E (F14 BU), Bolt-117 (F100D), AO_25SL (LA7), AM39 (Excocet - Mirage)
+        Cookoff Final Explosion (Requested Feature)
+            Defaulted to off, when enabled adds a configurable final explosion once a cook off has completed.  Can be set to vehicles with FinEx in the name or all vehicles, with % changes of occuring.
+        Mega Smoke (Request Feature)
+            Defaulted to off, when enabled if a unit/static with MegaSmoke in its name has a death event it triggers a big smoke effect
+
+    25th June 2026 3.4.6
+        (Stevey666)
+        Fixed missing BIN_200 napalm entry
+        
     27th May 2026 3.4.5
         (Stevey666)
         Fixed faulty CBU_Bomblet_Hit_Explosion and severely reduced damage from it as a default config value
@@ -22,7 +38,7 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
             -Log event setting debugging variable moved as to not occur every time
             -Adding pruning to recent explosion table
             -Reworking closest unit/static searches
-    
+
     17th May 2026 3.4.4
 		(Stevey666)
         Brought in RedactedCallSign's changes for Wave Explosions - Thank you RedactedCallSign
@@ -32,57 +48,7 @@ Any issues/suggestions etc feel free to post on the forum or DM me in Discord - 
         Adjusted a number of explosive values - Thank you to Sniex
         Added BIN 200 to weapons list and default napalm - Thank you to Stackup
 
-    4th July 2025 - 3.4
 
-		(Stevey666) 
-		
-	  - Added in optional kill feed feature, this will try to display kills from DCS engine and kills from the additional explosions by checking pre/post scans of the explosion area
-			    --SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP if you want to see it)
-	  - Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required to be enabled for this
-	  - Added AGM_45B to expl table
-	  - Added instant phosphor/signal flares option to cook off events
-	  - Added in missing JF17/JAS39 weapons as per Kurdes
-	  - Added killfeed to napalm and cluster features.  Note, it may not support all features in this script i.e ied explosions but should work with splashdamage by dropping bombs, the new CBU cluster feature and napalm.
-	  - New Feature: A-10 Murder Mode, Named Unit Murder Mode (disabled by default) 
-			- adds a configurable sized explosion to every hit event with the a10 or the named unit with the name MurderMode in it as an initiator
-	  - New Feature: Trophy APS System (disabled by default)
-			-The script tracks weapons heading towards a TrophyAPS vehicle, triggers a small explosion by the unit to mimic the Trophy system and triggers a larger explosion at the co-ords of the incoming weapon.   The script mimics there being a Trophy system on the front right and back left of the vehicle, with each launcher having 4 rounds.
-			-It contains 2 methods of enabling, either the vehicle has TrophyAPS in its name or you put the unit type into the AllUnitType table. By default, only the name method is enabled, both can be enabled at the same time as below:
-	  - New Feature: Vehicle IEDs. (disabled by default)  If a unit is contains VehicleIEDTarget (or other names as set in the config) it will trigger a large configurable explosion
-	  - New Feature: Tactical Explosion, similar to the IED effect but a little bigger and has the ability to be assigned to a weapon in a table or as an override
-	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
-	  - New Feature: Ground Unit Explosion On Death. 
-			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
-			- There's a % chance settable
-			- You can also trigger this to happen if the unit has "GUED" in its name even if chance is set to 0
-	  - New Feature: CBU Bomblet Hit Spread - On a Hit event from a cluster bomb, it will scan the local area for nearby vehicles and trigger an additional explosion
-			- This features aims to help wipe out areas, but it works by scanning 20 meters radius (adjustable) for any vehicles nearby the hit vehicle and then 20m (adjustable) from those vehicles
-			- Max of 1 additional explosion will spawn on the vehicles. Not enabled for CBU_97/CBU_105 due to them already being effective.
-			- The spread mechanic could miss vehicles in the area still if one doesnt get hit, or theyre at opposite sides of the visible area and not within 20m (adjustable)
-			- There is % chance to hit per unit found in the area, % chance for that hit to be indirect, and armour damage modifiers
-	  - New Feature: Strobe Marker - generates a tiny explosion above a unit, no smoke but sound + light appears - can be used as a marker for planes
-			- Generates on an active and living unit with "Strobe" in the name
-			- Good: Visible to eye/FLIR(TV mode)
-			- Not good: Not visible in IR, audible explosions if you're close to the unit
-	  - New Feature: All Unit Cook/off smoke chances and advanced sequences
-			- It's possible to assign a % chance to allunits having smoke/cookoffs
-			- Advanced sequences allow for having multiple smoke/fire sizes of multiple lengths of time - and have smoke for example indefinitely burn
-	  - New trigger for cookoff - Cookoff with the allunits settings can be enabled for specific units by the having "CargoCookoffTarget" in the name
-	  - Reworked how cookoff works, cookoffs will now follow a moving vehicle as it travels instead of just going off where it was.  Flames/smoke will trigger when the vehicle stops.
-			- You can have a chance of cookoff, smoke with a cookoff and also a chance of smoke only
-			- Added chance options to the flares for cookoffs also
-	  - Effects (i.e cookoff) no longer only bound by damage from tracked weapons.  Gun cannon kills will now count!  May time until the unit pops before it triggers a cookoff
-	  - Giant explosion effects now tracked on events instead of checking the unit every second
-	  - Jogaredi's suggestion added - ["only_players_weapons"] = true, --track only weapons launch by players, this will be defaulted to false
-	  - Due to ED boosting damage values for MK82s and a few others, added the ability to skip larger_explosion and damage_model by having a specific entry in the explosive table
-			- Example below, you would need to add this to each weapon that you need this for (or I can do it in the base script if multiple people think its a good idea)
-			- ["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
-			
-	  --3.4.2 
-	  	- Adjusted Lekas Foothold Integration
-		- Added flak units to ground ord tracking with 0 extra damage for night time light bursts
-				
-	  
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  
                                                                 Full Changelog at the bottom of the script
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-	  	  
@@ -175,7 +141,7 @@ splash_damage_options = {
     ["cookoff_flare_chance"] = 0.5, --Chance - where 1 = 100% 0.4 = 40% chance of the flares firing out
 
     --All Vehicles Section
-		--If a Unit is called CookOffTarget it will trigger a cookoff with the below effects
+		--If a Unit is called CookoffTarget it will trigger a cookoff with the below effects
 		
     ["smokeandcookoffeffectallvehicles"] = false, --Enable effects for all ground vehicles not in cargoUnits vehicle table
     ["allunits_enable_smoke"] = true, -- Enable /disable smoke effects if smokeandcookoffeffectallvehicles is true
@@ -192,6 +158,22 @@ splash_damage_options = {
     ["allunits_smokewithcookoff"] = true, --Automatically smoke along with cookoff, or leave it to chance
     ["allunits_smoke_chance"] = 0.7, --Chance of smoke effect, 1 = 100%, 0.5 = 50%
     ["allunits_explode_on_smoke_only"] = true, --If its a smoke only effect, add an explosion to finish the vehicle off (allunits_explode_power)
+
+    --Cookoff Final Explosion
+    ["cookoff_final_explosion_enabled"] = false, --After a cookoff completes, optionally trigger one final explosion
+    ["cookoff_final_explosion_allunits_chance"] = 0, --Chance for any unit that has had a cookoff. 0 = disabled, 0.25 = 25%, 1 = 100%
+    ["cookoff_final_explosion_finex_chance"] = 1, --Chance for units with FinEx in the name. 1 = 100%
+
+    ["cookoff_final_explosion_name"] = "FinEx", --Name marker for units that should use the FinEx chance
+    ["cookoff_final_explosion_delay_min"] = 7, --Minimum seconds after cookoff completes
+    ["cookoff_final_explosion_delay_max"] = 15, --Maximum seconds after cookoff completes
+    ["cookoff_final_explosion_power"] = 40, --Direct final explosion power
+    ["cookoff_final_explosion_height"] = 1.6, --Height above ground for final explosion
+    ["cookoff_final_explosion_use_fueltank"] = true, --If true, spawn a hidden Fuel tank, explode it, then destroy it
+    ["cookoff_final_explosion_fueltank_chance"] = 1, --Chance that the final explosion uses spawned fuel tank effect. 0 = never, 1 = always
+    ["cookoff_final_explosion_fueltank_explode_delay"] = 0.01, --Delay before exploding the spawned fuel tank
+    ["cookoff_final_explosion_fueltank_destroy_delay"] = 0.5, --Delay before removing the spawned fuel tank
+    ["cookoff_final_explosion_fueltank_fallback"] = true, --If fuel tank spawn fails, use the direct explosion instead
 	
     ["allunits_advanced_effect_sequence"] = true,  --When set to true, its possible for units to be trigger an advanced effect sequence.  This will take precedence over the standard allunits cookoff. it will ignore the previous settings for smoke/flame size and duration and instead it will let you program a specific sequence of smoke/flame effects
     ["allunits_advanced_effect_sequence_chance"] = 0.2, --Chance of the script picking the advanced effect instead of the standard all unit effect. 1 = 100%, 0.5 = 50%
@@ -335,18 +317,18 @@ splash_damage_options = {
 
     ---------------------------------------------------------------------- Ground Unit Explosion On Death ----------------------------------------------------
 		--You can also trigger this to happen if the unit has "GUED" in its name - so you can set the chance to 0 and still have them go off for specific units
-    ["GU_Explode_on_Death"] = false,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
+    ["GU_Explode_on_Death"] = true,  --If a vehicle is dead and has had no other effects on it, trigger an explosion - This is at the start of its on fire for a bit before popping stage if you've hit it or on pop if its a dead event
     ["GU_Explode_on_Death_Chance"] = 0.5, --Percent chance a vehicle explodes on death (0.05 = 5%, 0.5 = 50%)
     ["GU_Explode_on_Death_Explosion_Power"] = 30, --Explosion power for explode on death	
     ["GU_Explode_on_Death_Height"] = 1, --Height above coords of the vehicle.  Close to ground throws up more dirt, higher up more of a puff of smoke
     ["GU_Explode_Exclude_Infantry"] = true,  --Set to false to make infantry blow up too
 		
     ---------------------------------------------------------------------- CBU Bomblet Hit Explosion ---------------------------------------------------------
-    ["CBU_Bomblet_Hit_Explosion"] = false, --ONLY TESTED WITH JSOW-A - Enable/Disable - on a hit even by a bomblet it can do extra damage AND/OR scan around the unit to deal damage with additional explosions of the power set in the cluster table
+    ["CBU_Bomblet_Hit_Explosion"] = false, --ONLY TESTED WITH JSOW-A and an A10 CBU- Enable/Disable - on a hit even by a bomblet it can do extra damage AND/OR scan around the unit to deal damage with additional explosions of the power set in the cluster table
     ["CBU_Bomblet_Hit_Explosion_Scaling"] = 35, --Overall Multiplier for the final bomblet damage result.  Default 35 to get the effects we want when the ground level is less than 1.6 - WHEN TESTED WITH JSOW-A
     ["CBU_Bomblet_Hit_Mimic_Spread"] = true, --Enable/Disable - Mimic spread of clusterbomb warheads by scanning an area around the target that was hit and triggering an explosion against any unit or structure (unitIds can only be hit once by this weaponid)
     ["CBU_Bomblet_Hit_Spread"] = 50, --Scan radius m to look for units to hit
-    ["CBU_Bomblet_Hit_Spread_SecondaryScan"] = 50, --Scan radius m to look for units to hit
+    ["CBU_Bomblet_Hit_Spread_SecondaryScan"] = 10, --Scan radius m to look for units to hit
     ["CBU_Bomblet_Hit_Spread_Duration"] = 2, --Schedule additional unit explosions over this many seconds
     ["CBU_Bomblet_NonArmored_Dmg_Modifier"] = 1.0, --Multiplier damage for NonArmored units (e.g., Infantry, trucks), vulnerable to bomblets
     ["CBU_Bomblet_LightlyArmored_Dmg_Modifier"] = 0.8, --Multiplier damage for LightlyArmored units. 0.3 = 30% of damage (e.g., BTR-80, ZSU-23-4, moderately vulnerable (e.g., BLU-97B, PTAB-10-5)
@@ -377,6 +359,18 @@ splash_damage_options = {
     ["tactical_explosion_radius"] = 100, --Max radius for secondary explosions (meters)
     ["tactical_explosion_explosion_delay_max"] = 0.4, --Max delay multiplier for secondary explosions
     ["tactical_explosion_fueltankspawn"] = false, --Spawn a fuel tank at the explosion location for effect/smoke
+
+    ---------------------------------------------------------------------- Mega Smoke ----------------------------------------------------
+	-- If a unit/static object has MegaSmoke in the name then it will trigger the below if enabled
+
+    ["megasmoke_enabled"] = false, --Enable Mega Smoke effect
+    ["megasmoke_explosion"] = "single", --Set to "single", "tactical", or "none". "none" adds no script-generated explosion
+    ["megasmoke_singleExplPower"] = 800, --Explosion power when megasmoke_explosion is set to "single"
+    ["megasmoke_radius"] = 20, --Distance in metres around central point
+    ["megasmoke_layer_count"] = 4, --Number of smoke-only layers above base
+    ["megasmoke_layer_spacing"] = 50, --Vertical distance in metres between layers
+    ["megasmoke_base_layer_smoke_only"] = false, --true = smoke only, false = fire and smoke
+    ["megasmoke_smoke_time"] = 3600, --Smoke duration in seconds.  3600 = 1hr. Set to 0 or less to leave effects running indefinitely
 }
 
 local script_enable = 1
@@ -639,6 +633,7 @@ flamesize:
     --["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
 explTable = {
     --*** WWII BOMBS ***
+    ["AO_25SL"] = { explosive = 12 }, --LA7 Bomb
     ["British_GP_250LB_Bomb_Mk1"] = { explosive = 31 }, --UK, general purpose, blast and fragmentation
     ["British_GP_250LB_Bomb_Mk4"] = { explosive = 31 }, --UK, general purpose, blast and fragmentation
     ["British_GP_250LB_Bomb_Mk5"] = { explosive = 31 }, --UK, general purpose, blast and fragmentation
@@ -734,6 +729,7 @@ explTable = {
     ["GBU_12"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = false }, 
     ["GBU_16"] = { explosive = 274 },
     ["GBU_24"] = { explosive = 582, Skip_larger_explosions = false, Skip_damage_model = true }, -- Smaller blast radius, but higher damage for "penetration"
+    ["GBU_24E"] = { explosive = 582, Skip_larger_explosions = false, Skip_damage_model = true }, -- Smaller blast radius, but higher damage for "penetration"    
     ["KAB_1500Kr"] = { explosive = 675 },
 	["KAB_1500LG"] = { explosive = 675 },
 	["KAB_1500LG_Pr"] = { explosive = 675, shaped_charge = true },
@@ -742,17 +738,20 @@ explTable = {
 	["KAB_500L"] = { explosive = 274 },
 	["KAB_500LG"] = { explosive = 274 },
 	["KAB_500S"] = { explosive = 274 },
-  
+    ["BOLT-117"] = { explosive = 201 },  
+
+    ["BIN_200"] = { explosive = 0 }, -- C-101 napalm
     --*** CLUSTER BOMBS (CBU) ***
 	--I don't have most of these so can't test them with debug on
 	--For the CBU_Bomblet_Hit_Explosion feature, see a different table called "clusterSubMunTable"
+
     ["MK77mod0-WPN"] = { explosive = 0, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
     ["MK77mod1-WPN"] = { explosive = 0, cluster = false, submunition_count = 132, submunition_explosive = 0.1, submunition_name = "BLU_1B" }, --napalm skyhawk, have set to cluster (false) for napalm purposes
     ["CBU_99"] = { explosive = 0, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye variant, confirmed 247 Mk 118 bomblets
     ["ROCKEYE"] = { explosive = 0, cluster = true, submunition_count = 247, submunition_explosive = 2, submunition_name = "Mk 118" }, --Mk 20 Rockeye, confirmed 247 Mk 118 bomblets
     ["BLU_3B_GROUP"] = { explosive = 0, cluster = true, submunition_count = 19, submunition_explosive = 0.2, submunition_name = "BLU_3B" }, --Not in datamine, possibly custom or outdated; submunition name guessed
-    ["CBU_87"] = { explosive = 0, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --Confirmed 202 BLU-97/B bomblets
-    ["CBU_103"] = { explosive = 0, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU_97B" }, --WCMD variant of CBU-87, confirmed 202 BLU-97/B bomblets
+    ["CBU_87"] = { explosive = 0, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU-97B" }, --Confirmed 202 BLU-97/B bomblets
+    ["CBU_103"] = { explosive = 0, cluster = true, submunition_count = 202, submunition_explosive = 0.5, submunition_name = "BLU-97B" }, --WCMD variant of CBU-87, confirmed 202 BLU-97/B bomblets
     ["CBU_97"] = { explosive = 0, cluster = true, submunition_count = 10, submunition_explosive = 15, submunition_name = "BLU_108" }, --Confirmed 10 BLU-108 submunitions, each with 4 skeets
     ["CBU_105"] = { explosive = 0, cluster = true, submunition_count = 10, submunition_explosive = 15, submunition_name = "BLU_108" }, --WCMD variant of CBU-97, confirmed 10 BLU-108 submunitions
     ["BELOUGA"] = { explosive = 0, cluster = true, submunition_count = 151, submunition_explosive = 0.3, submunition_name = "grenade_AC" }, --Confirmed 151 grenade_AC bomblets (French BLG-66)
@@ -798,8 +797,8 @@ explTable = {
   
     --*** AIR GROUND MISSILE (AGM) ***
     ["AGM_62"] = { explosive = 400 },
-	["AGM_62_I"]  = 274, --1000lb warhead. AGM-62 Walleye I. F-4E
-	["AGM_62_II"]  = 400, --2000lb warhead. AGM-62 Walleye II ER. F-4E
+    ["AGM_62_I"] = { explosive = 274 }, --1000lb warhead. AGM-62 Walleye I. F-4E
+    ["AGM_62_II"] = { explosive = 400 }, --2000lb warhead. AGM-62 Walleye II ER. F-4E
 	["AGM_65A"] = { explosive = 38, shaped_charge = true },
 	["AGM_65B"] = { explosive = 38, shaped_charge = true },
     ["AGM_65D"] = { explosive = 38, shaped_charge = true },
@@ -856,6 +855,7 @@ explTable = {
   
     --*** ANTI-SHIP MISSILE (ASh) ***
     ["AGM_84D"] = { explosive = 488 },
+    ["AM39"] = { explosive = 200 }, --Exocet (Mirage)
     ["Rb 15F"] = { explosive = 500 },
     ["C-802AK"] = { explosive = 500 },
     ["X_31A"]    = { explosive = 89,  shaped_charge = false }, --KH-31A ASh
@@ -1040,7 +1040,7 @@ clusterSubMunTable = {
     ["Mk 118"] = { explosive = 2 }, --Rockeye/CBU99, 247 bomblets, 0.18 kg TNT, expected to damage: infantry, light vehicles, light armor (up to ~190 mm penetration)
     ["BLU-97B"] = { explosive = 3 }, --CBU_87/CBU_103, 202 bomblets, 0.45 kg TNT, expected to damage: infantry, light vehicles, light to medium armor, soft structures
     ["BLU-97/B"] = { explosive = 3 }, --AGM 154s, variable bomblets, 0.45 kg TNT, expected to damage: infantry, light vehicles, light to medium armor, soft structures
-    --["BLU-108"] = { explosive = 9.0 }, --CBU_97/CBU_105, 40 bomblets, 3.4 kg TNT, expected to damage: medium to heavy armor, vehicles, fortifications **DISABLED DUE TO BEING AFFECTIVE ALREADY**
+    --["BLU-108"] = { explosive = 9.0 }, --CBU_97/CBU_105, 40 bomblets, 3.4 kg TNT, expected to damage: medium to heavy armor, vehicles, fortifications **DISABLED DUE TO BEING EFFECTIVE ALREADY**
     ["AO-2-5"] = { explosive = 2.5 }, --RBK_500AO, 96 bomblets, 0.37 kg TNT, expected to damage: infantry, light vehicles, light armor
     ["BLU-3"] = { explosive = 1 }, --Heatblur F4 BLU-3_GROUP, 426 bomblets, 0.08 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
     ["BLU-3B"] = { explosive = 1 }, --Heatblur F4, 426 bomblets, 0.08 kg TNT, expected to damage: infantry, unarmored vehicles, soft targets
@@ -1208,6 +1208,7 @@ tracked_target_position = nil --Store the last known position of TargetUnit for 
 tracked_weapons = {}
 local processedUnitsGlobal = {}
 napalmCounter = 1
+cookoffFinalExplosionCounter = 1
 local recentExplosions = {}
 
 local cbuProcessed  = {} --Table to track processed unitID-weaponID pairs for cbus
@@ -2065,8 +2066,8 @@ end
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-]]
 
 --Function to trigger tactical explosion (like VehicleIEDTrigger)
-function TacticalExplosionTrigger(coords)
-    if not splash_damage_options.tactical_explosion then
+function TacticalExplosionTrigger(coords, forceEnabled)
+    if not splash_damage_options.tactical_explosion and not forceEnabled then
         if splash_damage_options.debug then
             env.info("TacticalExplosionTrigger: Disabled, skipping explosion at X: " .. (coords.x or "nil") .. ", Y: " .. (coords.y or "nil") .. ", Z: " .. (coords.z or "nil"))
         end
@@ -2163,6 +2164,160 @@ function TacticalExplosionTrigger(coords)
     timer.scheduleFunction(function(params)
         blastWave(params[1], params[2], params[3], params[4], params[5])
     end, {centralPoint, dynamicRadius, "TacticalExplosion", splash_damage_options.tactical_explosion_central_power * scaling, false}, timer.getTime() + 0.4)
+end
+
+
+--Mega Smoke effect state
+local megaSmokeProcessedObjects = {}
+local megaSmokeEffectId = 920000
+
+local function getNextMegaSmokeEffectId()
+    megaSmokeEffectId = megaSmokeEffectId + 1
+    return megaSmokeEffectId
+end
+
+local function spawnMegaSmokeEffect(point, effectType, density)
+    local effectId = getNextMegaSmokeEffectId()
+
+    trigger.action.effectSmokeBig(
+        point,
+        effectType,
+        density,
+        effectId
+    )
+
+    local smokeTime = tonumber(splash_damage_options.megasmoke_smoke_time) or 600
+    if smokeTime > 0 then
+        timer.scheduleFunction(function(id)
+            trigger.action.effectSmokeStop(id)
+        end, effectId, timer.getTime() + smokeTime)
+    end
+end
+
+local function spawnMegaSmokeEffects(coords)
+    if not coords or not coords.x or not coords.y or not coords.z then
+        return
+    end
+
+    local radius = tonumber(splash_damage_options.megasmoke_radius) or 20
+    local layerCount = math.max(0, math.floor(tonumber(splash_damage_options.megasmoke_layer_count) or 4))
+    local layerSpacing = tonumber(splash_damage_options.megasmoke_layer_spacing) or 50
+    local baseEffectType = splash_damage_options.megasmoke_base_layer_smoke_only and 8 or 4
+    local smokeOnlyEffectType = 8
+    local density = 1
+    local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
+
+    for i = 1, 3 do
+        local angle = math.rad((i - 1) * 120)
+        local basePoint = {
+            x = coords.x + math.cos(angle) * radius,
+            y = terrainHeight + 2,
+            z = coords.z + math.sin(angle) * radius
+        }
+
+        spawnMegaSmokeEffect(
+            basePoint,
+            baseEffectType,
+            density
+        )
+
+        for layer = 1, layerCount do
+            local smokePoint = {
+                x = basePoint.x,
+                y = basePoint.y + (layer * layerSpacing),
+                z = basePoint.z
+            }
+
+            spawnMegaSmokeEffect(
+                smokePoint,
+                smokeOnlyEffectType,
+                density
+            )
+        end
+    end
+end
+
+local function processMegaSmokeDeath(eventData)
+    if not splash_damage_options.megasmoke_enabled then
+        return false
+    end
+
+    if not eventData or not eventData.initiator then
+        return false
+    end
+
+    local object = eventData.initiator
+    local objectName = safeGet(function() return object:getName() end, nil)
+
+    if type(objectName) ~= "string" or not objectName:find("MegaSmoke", 1, true) then
+        return false
+    end
+
+    local objectID = safeGet(function() return object:getID() end, objectName)
+    local processKey = tostring(objectID) .. ":" .. objectName
+
+    if megaSmokeProcessedObjects[processKey] then
+        return true
+    end
+
+    local coords = safeGet(function()
+        local point = object:getPoint()
+        return {x = point.x, y = point.y, z = point.z}
+    end, nil)
+
+    if not coords then
+        coords = safeGet(function()
+            local point = object:getPosition().p
+            return {x = point.x, y = point.y, z = point.z}
+        end, nil)
+    end
+
+    if not coords or not coords.x or not coords.y or not coords.z then
+        return false
+    end
+
+    megaSmokeProcessedObjects[processKey] = true
+
+    --Prevent the existing GU_Explode_on_Death feature from adding another
+    --script-generated explosion to a MegaSmoke ground unit.
+    if objectID ~= nil then
+        if not GUProcessedUnits then GUProcessedUnits = {} end
+        GUProcessedUnits[objectID] = {
+            id = objectID,
+            name = objectName,
+            life = 0,
+            event = "MEGASMOKE_DEAD",
+            time = timer.getTime()
+        }
+    end
+
+    local explosionMode = tostring(splash_damage_options.megasmoke_explosion or "none"):lower()
+    local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
+    local explosionPoint = {
+        x = coords.x,
+        y = terrainHeight + 2,
+        z = coords.z
+    }
+
+    if explosionMode == "single" then
+        trigger.action.explosion(
+            explosionPoint,
+            tonumber(splash_damage_options.megasmoke_singleExplPower) or 1000
+        )
+    elseif explosionMode == "tactical" then
+        --forceEnabled bypasses tactical_explosion=false for MegaSmoke deaths only.
+        TacticalExplosionTrigger(explosionPoint, true)
+    elseif explosionMode ~= "none" and splash_damage_options.debug then
+        env.info("MegaSmoke: Unknown megasmoke_explosion mode '" .. explosionMode .. "'; using none")
+    end
+
+    spawnMegaSmokeEffects(coords)
+
+    if splash_damage_options.debug then
+        env.info("MegaSmoke: Triggered for " .. objectName .. " using explosion mode " .. explosionMode)
+    end
+
+    return true
 end
 
 --Function to process the spawn queue for tactical explosion fuel tanks (like vehicleIEDprocessSpawnQueue)
@@ -2278,6 +2433,118 @@ function tacticalExplosionProcessSpawnQueue()
     end
 end
 
+--Function to run an optional final explosion after a cookoff has completed
+local function scheduleCookoffFinalExplosion(unitID, unitName, effectData, afterCookoffDelay)
+    if not splash_damage_options.cookoff_final_explosion_enabled then return end
+    if not effectData or not effectData.cookOff or not effectData.cookOffCount or effectData.cookOffCount <= 0 then return end
+
+    unitName = unitName or ""
+    local markerName = splash_damage_options.cookoff_final_explosion_name or "FinEx"
+    local allUnitsChance = splash_damage_options.cookoff_final_explosion_allunits_chance or 0
+    local finExChance = splash_damage_options.cookoff_final_explosion_finex_chance or 0
+    local chance = allUnitsChance
+
+    if markerName ~= "" and string.find(unitName, markerName) then
+        chance = math.max(chance, finExChance)
+        debugCargoCookOff("Cookoff final explosion: unit " .. tostring(unitName) .. " matched marker " .. tostring(markerName) .. ", using chance " .. tostring(chance))
+    else
+        debugCargoCookOff("Cookoff final explosion: unit " .. tostring(unitName) .. " did not match marker, using all-units chance " .. tostring(chance))
+    end
+
+    if chance <= 0 then return end
+    if math.random() > chance then
+        debugCargoCookOff("Cookoff final explosion: chance failed for unit " .. tostring(unitName) .. " (chance " .. tostring(chance) .. ")")
+        return
+    end
+
+    local minDelay = splash_damage_options.cookoff_final_explosion_delay_min or 7
+    local maxDelay = splash_damage_options.cookoff_final_explosion_delay_max or minDelay
+    if maxDelay < minDelay then maxDelay = minDelay end
+
+    local delayHundredths = math.random(math.floor(minDelay * 100), math.floor(maxDelay * 100)) / 100
+    local totalDelay = (afterCookoffDelay or 0) + delayHundredths
+    local fallbackCoords = effectData.coords or {x = 0, y = 0, z = 0}
+    local finalId = cookoffFinalExplosionCounter or 1
+    cookoffFinalExplosionCounter = finalId + 1
+
+    debugCargoCookOff("Cookoff final explosion: scheduled for unit " .. tostring(unitName) .. " in " .. tostring(totalDelay) .. " seconds")
+
+    timer.scheduleFunction(function(params)
+        local id = params.unitID
+        local coords = params.coords
+        local entry = id and CargoCookoffPendingTable and CargoCookoffPendingTable[id] or nil
+
+        if entry and entry.unit then
+            local success, pos = pcall(function() return entry.unit:getPosition().p end)
+            if success and pos then
+                coords = pos
+                entry.coords = pos
+            elseif entry.coords then
+                coords = entry.coords
+            end
+        elseif entry and entry.coords then
+            coords = entry.coords
+        end
+
+        coords = coords or {x = 0, y = 0, z = 0}
+        local height = splash_damage_options.cookoff_final_explosion_height or 1.6
+        local finalCoords = {
+            x = coords.x,
+            y = land.getHeight({x = coords.x, y = coords.z}) + height,
+            z = coords.z
+        }
+
+        local fuelTankChance = splash_damage_options.cookoff_final_explosion_fueltank_chance or 0
+        local useFuelTank = math.random() < fuelTankChance
+
+        if useFuelTank then
+            local tankName = "CookoffFinalFuelTank_" .. tostring(params.finalId)
+            local dataFuel = {
+                ["groupId"] = math.random(9999, 99999),
+                ["category"] = "Fortifications",
+                ["shape_name"] = "toplivo-bak",
+                ["type"] = "Fuel tank",
+                ["unitId"] = math.random(9999, 99999),
+                ["rate"] = 100,
+                ["y"] = finalCoords.z,
+                ["x"] = finalCoords.x,
+                ["name"] = tankName,
+                ["heading"] = 0,
+                ["dead"] = false,
+                ["hidden"] = true,
+                ["position"] = finalCoords,
+            }
+
+            local status, result = pcall(function()
+                return coalition.addStaticObject(coalition.side.BLUE, dataFuel)
+            end)
+            local spawned = status and result and StaticObject.getByName(tankName) and StaticObject.getByName(tankName):isExist()
+
+            if spawned then
+                debugCargoCookOff("Cookoff final explosion: spawned fuel tank " .. tankName .. " for unit " .. tostring(params.unitName))
+                timer.scheduleFunction(function(explosionCoords)
+                    trigger.action.explosion(explosionCoords, splash_damage_options.cookoff_final_explosion_power or 80)
+                end, finalCoords, timer.getTime() + (splash_damage_options.cookoff_final_explosion_fueltank_explode_delay or 0.01))
+
+                timer.scheduleFunction(function(name)
+                    local staticObj = StaticObject.getByName(name)
+                    if staticObj then
+                        pcall(function() staticObj:destroy() end)
+                    end
+                end, tankName, timer.getTime() + (splash_damage_options.cookoff_final_explosion_fueltank_destroy_delay or 0.5))
+            elseif splash_damage_options.cookoff_final_explosion_fueltank_fallback then
+                debugCargoCookOff("Cookoff final explosion: fuel tank spawn failed, using direct explosion fallback for unit " .. tostring(params.unitName))
+                trigger.action.explosion(finalCoords, splash_damage_options.cookoff_final_explosion_power or 80)
+            else
+                debugCargoCookOff("Cookoff final explosion: fuel tank spawn failed, no fallback for unit " .. tostring(params.unitName))
+            end
+        else
+            debugCargoCookOff("Cookoff final explosion: direct explosion for unit " .. tostring(params.unitName) .. " at X: " .. tostring(finalCoords.x) .. ", Z: " .. tostring(finalCoords.z))
+            trigger.action.explosion(finalCoords, splash_damage_options.cookoff_final_explosion_power or 80)
+        end
+    end, {unitID = unitID, unitName = unitName, coords = fallbackCoords, finalId = finalId}, timer.getTime() + totalDelay)
+end
+
 --Function to trigger smoke effect with specified size and duration
 local function triggerSmokeEffect(coords, flameSize, duration, effectId)
     local terrainHeight = land.getHeight({x = coords.x, y = coords.z})
@@ -2391,6 +2658,7 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
                     end, {effectData, splash_damage_options.debris_power, j}, timer.getTime() + debrisDelay)
                 end
             end
+            scheduleCookoffFinalExplosion(unitID, effectData.unitName, effectData, effectData.cookOffDuration)
         end
     end
 
@@ -2443,7 +2711,7 @@ local function scheduleAdvancedEffectSequence(unitID, coords, effectData, fromDe
         CargoCookoffPendingTable[unitID] = {
             coords = coords,
             prevCoords = coords,
-            unit = Unit.getByName(effectData.name) -- Attempt to get unit, may be nil for DEAD events
+            unit = Unit.getByName(effectData.unitName or effectData.name) -- Attempt to get unit, may be nil for DEAD events
         }
         entry = CargoCookoffPendingTable[unitID]
     end
@@ -2493,6 +2761,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
 
     local effect = {
         name = unitType,
+        unitName = unitName,
         distance = 0,
         coords = {x = 0, y = 0, z = 0},
         power = cargoData.cargoExplosionPower or splash_damage_options.allunits_explode_power,
@@ -2624,6 +2893,7 @@ local function scheduleCargoEffects(unitType, unitName, unitID, effectIndex, fro
                         end, {eff, splash_damage_options.debris_power, j}, timer.getTime() + effectIndex + debrisDelay)
                     end
                 end
+                scheduleCookoffFinalExplosion(eff.unitID, eff.unitName, eff, effectIndex + eff.cookOffDuration)
             end
             processedCargoUnits[unitKey] = true
             effectIndex = effectIndex + 3
@@ -3873,8 +4143,8 @@ function track_wpns()
                         table.insert(weaponsToRemove, wpn_id_)
                     end
                 end
-                --Check for MK77 weapons independently
-                if splash_damage_options.napalm_mk77_enabled and (wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN") then
+                --Check for MK77 weapons independently (and BIN 200)
+                if splash_damage_options.napalm_mk77_enabled and (wpnData.name == "BIN_200" or wpnData.name == "MK77mod0-WPN" or wpnData.name == "MK77mod1-WPN") then
                     isNapalm = true
                     if splash_damage_options.debug then
                         debugMsg("MK77 napalm triggered for " .. wpnData.name .. " at X: " .. string.format("%.0f", explosionPoint.x) .. ", Z: " .. string.format("%.0f", explosionPoint.z) .. ", playerName: " .. tostring(wpnData.initiatorPilotName or wpnData.init or "unknown"))
@@ -6010,6 +6280,11 @@ end
 --VehicleIED action block
 function logEvent(eventName, eventData)
     
+    --MegaSmoke only checks names and processes effects when enabled and on a DEAD event.
+    if eventName == "DEAD" and splash_damage_options.megasmoke_enabled then
+        processMegaSmokeDeath(eventData)
+    end
+
 
     --Debug logging if enabled
     if splash_damage_options.events_debug then
@@ -6876,10 +7151,10 @@ end
 					maxHealth = safeGet(function() return unit:getDesc().life end, 1)
 				end
 				unitName = tostring(unitName)
-				--Exclude static objects and fortifications unless explicitly in cargoUnits or named CargoCookoffTarget
+				--Exclude static objects and fortifications unless explicitly in cargoUnits or named CookoffTarget
 				local objectCategory = safeGet(function() return Object.getCategory(unit) end, "unknown")
-					if (objectCategory == Object.Category.STATIC or objectCategory == Object.Category.FORTIFICATION) and not (cargoUnits[unitType] or unitName:find("CargoCookoffTarget")) then
-						debugCargoCookOff("Unit ID " .. unitID .. " is a static object or fortification (" .. unitType .. "), skipping unless in cargoUnits or CargoCookoffTarget")
+					if (objectCategory == Object.Category.STATIC or objectCategory == Object.Category.FORTIFICATION) and not (cargoUnits[unitType] or unitName:find("CookoffTarget")) then
+						debugCargoCookOff("Unit ID " .. unitID .. " is a static object or fortification (" .. unitType .. "), skipping unless in cargoUnits or CookoffTarget")
 						return false
 					end
 					local targetNames = {}
@@ -6896,9 +7171,9 @@ end
 					isCargoCandidate = true
 					isCargoUnit = true
 					debugCargoCookOff("Unit ID " .. unitID .. " identified as cargo candidate via cargoUnits table")
-				elseif unitName:find("CargoCookoffTarget") then
+				elseif unitName:find("CookoffTarget") then
 					isCargoCandidate = true
-					debugCargoCookOff("Unit ID " .. unitID .. " identified as cargo candidate via CargoCookoffTarget name")
+					debugCargoCookOff("Unit ID " .. unitID .. " identified as cargo candidate via CookoffTarget name")
 				elseif splash_damage_options.smokeandcookoffeffectallvehicles then
 					local category = safeGet(function() return unit:getDesc().category end, "unknown")
 					local isInfantry = safeGet(function() return unit:hasAttribute("Infantry") end, false)
@@ -7930,8 +8205,59 @@ end
 --[[-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=
                             		##### Changelog #####
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- =--=-=-=-=-=-=-=
-   
-    24th May 2025 - 3.3
+ 
+	  --3.4.2 
+	  	- Adjusted Lekas Foothold Integration
+		- Added flak units to ground ord tracking with 0 extra damage for night time light bursts
+				
+	    
+        4th July 2025 - 3.4
+
+		(Stevey666) 
+		
+	  - Added in optional kill feed feature, this will try to display kills from DCS engine and kills from the additional explosions by checking pre/post scans of the explosion area
+			    --SPLASH KILL FEED WORKS IN MP ONLY (you can host your local SP mission as MP if you want to see it)
+	  - Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required to be enabled for this
+	  - Added AGM_45B to expl table
+	  - Added instant phosphor/signal flares option to cook off events
+	  - Added in missing JF17/JAS39 weapons as per Kurdes
+	  - Added killfeed to napalm and cluster features.  Note, it may not support all features in this script i.e ied explosions but should work with splashdamage by dropping bombs, the new CBU cluster feature and napalm.
+	  - New Feature: A-10 Murder Mode, Named Unit Murder Mode (disabled by default) 
+			- adds a configurable sized explosion to every hit event with the a10 or the named unit with the name MurderMode in it as an initiator
+	  - New Feature: Trophy APS System (disabled by default)
+			-The script tracks weapons heading towards a TrophyAPS vehicle, triggers a small explosion by the unit to mimic the Trophy system and triggers a larger explosion at the co-ords of the incoming weapon.   The script mimics there being a Trophy system on the front right and back left of the vehicle, with each launcher having 4 rounds.
+			-It contains 2 methods of enabling, either the vehicle has TrophyAPS in its name or you put the unit type into the AllUnitType table. By default, only the name method is enabled, both can be enabled at the same time as below:
+	  - New Feature: Vehicle IEDs. (disabled by default)  If a unit is contains VehicleIEDTarget (or other names as set in the config) it will trigger a large configurable explosion
+	  - New Feature: Tactical Explosion, similar to the IED effect but a little bigger and has the ability to be assigned to a weapon in a table or as an override
+	  - New Feature: Critical Component.  % chance on a hit event of triggering an explosion at unit level
+	  - New Feature: Ground Unit Explosion On Death. 
+			- If a vehicle is flaming it takes time to pop, this will trigger an explosion with a %chance when its begins to flame (when it does not "exist" but has not triggerd a killed/dead event)
+			- There's a % chance settable
+			- You can also trigger this to happen if the unit has "GUED" in its name even if chance is set to 0
+	  - New Feature: CBU Bomblet Hit Spread - On a Hit event from a cluster bomb, it will scan the local area for nearby vehicles and trigger an additional explosion
+			- This features aims to help wipe out areas, but it works by scanning 20 meters radius (adjustable) for any vehicles nearby the hit vehicle and then 20m (adjustable) from those vehicles
+			- Max of 1 additional explosion will spawn on the vehicles. Not enabled for CBU_97/CBU_105 due to them already being effective.
+			- The spread mechanic could miss vehicles in the area still if one doesnt get hit, or theyre at opposite sides of the visible area and not within 20m (adjustable)
+			- There is % chance to hit per unit found in the area, % chance for that hit to be indirect, and armour damage modifiers
+	  - New Feature: Strobe Marker - generates a tiny explosion above a unit, no smoke but sound + light appears - can be used as a marker for planes
+			- Generates on an active and living unit with "Strobe" in the name
+			- Good: Visible to eye/FLIR(TV mode)
+			- Not good: Not visible in IR, audible explosions if you're close to the unit
+	  - New Feature: All Unit Cook/off smoke chances and advanced sequences
+			- It's possible to assign a % chance to allunits having smoke/cookoffs
+			- Advanced sequences allow for having multiple smoke/fire sizes of multiple lengths of time - and have smoke for example indefinitely burn
+	  - New trigger for cookoff - Cookoff with the allunits settings can be enabled for specific units by the having "CookoffTarget" in the name
+	  - Reworked how cookoff works, cookoffs will now follow a moving vehicle as it travels instead of just going off where it was.  Flames/smoke will trigger when the vehicle stops.
+			- You can have a chance of cookoff, smoke with a cookoff and also a chance of smoke only
+			- Added chance options to the flares for cookoffs also
+	  - Effects (i.e cookoff) no longer only bound by damage from tracked weapons.  Gun cannon kills will now count!  May time until the unit pops before it triggers a cookoff
+	  - Giant explosion effects now tracked on events instead of checking the unit every second
+	  - Jogaredi's suggestion added - ["only_players_weapons"] = true, --track only weapons launch by players, this will be defaulted to false
+	  - Due to ED boosting damage values for MK82s and a few others, added the ability to skip larger_explosion and damage_model by having a specific entry in the explosive table
+			- Example below, you would need to add this to each weapon that you need this for (or I can do it in the base script if multiple people think its a good idea)
+			- ["Mk_82"] = { explosive = 100, Skip_larger_explosions = true, Skip_damage_model = true },
+			
+            24th May 2025 - 3.3
 
 		(Stevey666) 
 		
